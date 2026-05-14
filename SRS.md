@@ -469,4 +469,230 @@ Promotions ──< Bookings
 
 ---
 
-*Tài liệu được tạo ngày 13/05/2026 — Phiên bản 1.0*
+### FE-13: Đặt sân định kỳ (Recurring Booking)
+
+| Mục | Chi tiết |
+|-----|----------|
+| **Mô tả** | Cho phép khách hàng đặt sân lặp lại theo tuần trong khoảng thời gian cố định |
+| **Actor** | Khách hàng |
+| **Precondition** | Đã đăng nhập, sân còn trống trong các slot được chọn |
+| **Postcondition** | Hệ thống tự động tạo nhiều booking theo lịch đã thiết lập |
+
+**Luồng chính:**
+1. Khách chọn sân, khung giờ, ngày bắt đầu và ngày kết thúc.
+2. Chọn các ngày trong tuần lặp lại (Thứ 2, Thứ 4, Thứ 6,...).
+3. Hệ thống kiểm tra toàn bộ slot còn trống.
+4. Khách xác nhận và thanh toán (toàn bộ hoặc từng buổi).
+5. Hệ thống sinh tự động các `Booking` tương ứng.
+
+**Quy tắc nghiệp vụ:**
+- Nếu một slot bị trùng, hệ thống thông báo và hỏi bỏ qua hoặc hủy toàn bộ.
+- Hủy recurring booking áp dụng chính sách hoàn tiền theo từng buổi.
+- Cho phép hủy từng buổi riêng lẻ trong lịch định kỳ.
+
+---
+
+### FE-14: Danh sách chờ (Waitlist)
+
+| Mục | Chi tiết |
+|-----|----------|
+| **Mô tả** | Khi sân đã đầy, khách đăng ký hàng chờ và được tự động thông báo khi có chỗ trống |
+| **Actor** | Khách hàng, Hệ thống |
+| **Precondition** | Sân đã được đặt kín trong khung giờ mong muốn |
+| **Postcondition** | Khách vào hàng chờ, được thông báo khi booking bị hủy |
+
+**Luồng chính:**
+1. Khách tìm sân — hệ thống báo "Đã đặt kín".
+2. Khách chọn "Vào danh sách chờ".
+3. Hệ thống lưu vị trí trong hàng (FIFO).
+4. Khi có booking bị hủy → hệ thống gửi thông báo cho người đầu hàng chờ.
+5. Người nhận thông báo có **15 phút** để xác nhận đặt.
+6. Nếu không xác nhận → chuyển sang người tiếp theo.
+
+**Quy tắc nghiệp vụ:**
+- Mỗi khách chỉ được vào waitlist 1 lần cho 1 slot.
+- Waitlist tự động hết hạn khi qua ngày đặt sân.
+
+---
+
+### FE-15: Xuất hóa đơn (Invoice)
+
+| Mục | Chi tiết |
+|-----|----------|
+| **Mô tả** | Tạo và xuất hóa đơn chi tiết sau khi thanh toán thành công |
+| **Actor** | Hệ thống (tự động), Khách hàng |
+| **Precondition** | Thanh toán thành công |
+| **Postcondition** | Hóa đơn được tạo và gửi qua email |
+
+**Thông tin hóa đơn:**
+- Mã hóa đơn (INV-YYYYMMDD-XXXX)
+- Thông tin khách hàng
+- Chi tiết sân + dịch vụ kèm theo
+- Thuế VAT (nếu có)
+- Tổng tiền, số tiền đã giảm, số tiền thực trả
+- Phương thức thanh toán, thời gian thanh toán
+
+**Tính năng:**
+- Xuất PDF hóa đơn.
+- Gửi email tự động sau khi thanh toán.
+- Khách có thể xem lại hóa đơn trong lịch sử.
+
+---
+
+### FE-16: Quản lý kho dụng cụ (Equipment Inventory)
+
+| Mục | Chi tiết |
+|-----|----------|
+| **Mô tả** | Theo dõi số lượng và tình trạng dụng cụ cho thuê |
+| **Actor** | Admin, Staff |
+| **Precondition** | Đăng nhập với quyền Admin hoặc Staff |
+| **Postcondition** | Tồn kho được cập nhật chính xác |
+
+**Chức năng:**
+- Xem số lượng tồn kho từng loại dụng cụ.
+- Cập nhật tình trạng: `Tốt / Hỏng / Đã thanh lý`.
+- Cảnh báo khi số lượng dưới ngưỡng tối thiểu.
+- Tự động giảm tồn kho khi khách đặt dịch vụ thuê dụng cụ.
+- Hoàn trả tồn kho khi booking bị hủy.
+
+**Quy tắc nghiệp vụ:**
+- Không cho phép đặt dịch vụ khi dụng cụ hết hàng.
+- Staff có thể ghi chú lý do hỏng hóc.
+
+---
+
+### FE-17: Lịch bảo trì sân (Maintenance Schedule)
+
+| Mục | Chi tiết |
+|-----|----------|
+| **Mô tả** | Lên lịch bảo trì sân có kế hoạch, tự động block booking trong thời gian bảo trì |
+| **Actor** | Admin |
+| **Precondition** | Đăng nhập với quyền Admin |
+| **Postcondition** | Sân bị block, khách không thể đặt trong thời gian bảo trì |
+
+**Luồng chính:**
+1. Admin tạo lịch bảo trì: chọn sân, ngày bắt đầu/kết thúc, lý do.
+2. Hệ thống kiểm tra có booking nào trong thời gian này không.
+3. Nếu có booking → gửi thông báo hủy và hoàn tiền 100%.
+4. Sân tự động chuyển trạng thái `Maintenance`.
+5. Kết thúc bảo trì → sân tự động `Available`.
+
+**Thông tin lịch bảo trì:**
+- Loại bảo trì: Định kỳ / Đột xuất / Nâng cấp
+- Nhân viên phụ trách
+- Ghi chú / Kết quả bảo trì
+
+---
+
+### FE-18: Quản lý ca làm việc nhân viên (Staff Shift)
+
+| Mục | Chi tiết |
+|-----|----------|
+| **Mô tả** | Phân ca và theo dõi lịch làm việc của nhân viên |
+| **Actor** | Admin |
+| **Precondition** | Đăng nhập với quyền Admin |
+| **Postcondition** | Lịch ca được lưu, nhân viên nhận thông báo |
+
+**Ca làm việc:**
+| Ca | Giờ |
+|----|-----|
+| Ca sáng | 06:00 – 14:00 |
+| Ca chiều | 14:00 – 22:00 |
+| Ca tối | 18:00 – 23:00 |
+
+**Chức năng:**
+- Xếp ca theo tuần/tháng.
+- Staff xem lịch ca của mình.
+- Nhận thông báo khi có thay đổi ca.
+- Thống kê giờ công theo tháng.
+
+---
+
+### FE-19: Tìm đối thủ / Đồng đội (Player Matching)
+
+| Mục | Chi tiết |
+|-----|----------|
+| **Mô tả** | Khách đặt sân có thể đăng tin tìm người chơi cùng |
+| **Actor** | Khách hàng |
+| **Precondition** | Đã có booking được xác nhận |
+| **Postcondition** | Đăng tin tìm người chơi, nhận đăng ký từ người khác |
+
+**Thông tin đăng tin:**
+- Loại sân, ngày giờ chơi.
+- Trình độ yêu cầu: Mới bắt đầu / Trung bình / Nâng cao.
+- Số người cần thêm.
+- Ghi chú (nam/nữ, độ tuổi,...).
+
+**Luồng:**
+1. Khách tạo tin sau khi booking được xác nhận.
+2. Người khác xem danh sách và đăng ký tham gia.
+3. Chủ tin xác nhận / từ chối thành viên.
+4. Khi đủ người → đóng tin tự động.
+
+---
+
+## 5. Thiết kế cơ sở dữ liệu
+
+### 5.1 Danh sách bảng chính
+
+| STT | Tên bảng | Mô tả |
+|-----|----------|-------|
+| 1 | Users | Thông tin người dùng |
+| 2 | Roles | Vai trò trong hệ thống |
+| 3 | UserRoles | Quan hệ User - Role |
+| 4 | CourtTypes | Loại sân (bóng đá, pickleball,...) |
+| 5 | Courts | Thông tin sân |
+| 6 | CourtImages | Hình ảnh sân |
+| 7 | TimeSlots | Khung giờ hoạt động |
+| 8 | CourtPricing | Giá thuê theo khung giờ / ngày |
+| 9 | Bookings | Thông tin đặt sân |
+| 10 | BookingDetails | Chi tiết đặt sân |
+| 11 | RecurringBookings | Đặt sân định kỳ |
+| 12 | Waitlists | Danh sách chờ |
+| 13 | Payments | Thanh toán |
+| 14 | Invoices | Hóa đơn |
+| 15 | Services | Dịch vụ bổ sung |
+| 16 | BookingServices | Dịch vụ đi kèm booking |
+| 17 | EquipmentInventory | Kho dụng cụ |
+| 18 | Reviews | Đánh giá |
+| 19 | Promotions | Khuyến mãi |
+| 20 | Notifications | Thông báo |
+| 21 | MembershipTiers | Hạng thành viên |
+| 22 | MaintenanceSchedules | Lịch bảo trì sân |
+| 23 | StaffShifts | Ca làm việc nhân viên |
+| 24 | PlayerRequests | Tin tìm đối thủ / đồng đội |
+| 25 | AuditLogs | Lịch sử thao tác hệ thống |
+
+### 5.2 Sơ đồ ERD (Entity Relationship)
+
+```
+Users ──< UserRoles >── Roles
+  │
+  ├──< Bookings >── Courts ──> CourtTypes
+  │       │              │
+  │       ├──< BookingDetails >── TimeSlots
+  │       │
+  │       ├──< BookingServices >── Services ──< EquipmentInventory
+  │       │
+  │       ├──< Payments ──< Invoices
+  │       │
+  │       └── RecurringBookings
+  │
+  ├──< Waitlists >── Courts
+  │
+  ├──< Reviews >── Courts
+  │
+  ├──< PlayerRequests >── Bookings
+  │
+  ├──< StaffShifts (Staff only)
+  │
+  └──> MembershipTiers
+
+Courts ──< CourtPricing >── TimeSlots
+Courts ──< MaintenanceSchedules
+Promotions ──< Bookings
+```
+
+---
+
+*Tài liệu được cập nhật ngày 14/05/2026 — Phiên bản 2.0*

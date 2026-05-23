@@ -31,24 +31,25 @@ Hệ thống bao gồm:
 
 ### 1.3 Đối tượng sử dụng
 
-| Vai trò | Mô tả |
-|---------|-------|
-| **Khách hàng (Customer)** | Tìm kiếm, đặt sân, thanh toán, đánh giá |
-| **Quản trị viên (Admin)** | Quản lý toàn bộ hệ thống |
-| **Nhân viên (Staff)** | Quản lý đặt sân, hỗ trợ khách hàng |
-| **Huấn luyện viên (Coach)** | Quản lý lịch dạy, dịch vụ huấn luyện |
+| Vai trò                     | Mô tả                                                             |
+| --------------------------- | ----------------------------------------------------------------- |
+| **Khách hàng (Customer)**   | Tìm kiếm, đặt sân, thanh toán, đánh giá                           |
+| **Quản trị viên (Admin)**   | Quản lý toàn bộ hệ thống                                          |
+| **Quản lý (Manager)**       | Quản lý từng tổ hợp sân cụ thể, quản lý nhân viên thuộc tổ hợp đó |
+| **Nhân viên (Staff)**       | Quản lý đặt sân, hỗ trợ khách hàng                                |
+| **Huấn luyện viên (Coach)** | Quản lý lịch dạy, dịch vụ huấn luyện                              |
 
 ### 1.4 Công nghệ sử dụng
 
-| Thành phần | Công nghệ |
-|------------|-----------|
-| Backend | ASP.NET Core Web API (.NET 7/8) |
-| Frontend | React.js / Blazor |
-| Database | SQL Server |
-| Authentication | JWT Token |
-| Payment | VNPay / MoMo API |
-| Realtime | SignalR |
-| Email | SMTP / SendGrid |
+| Thành phần     | Công nghệ                       |
+| -------------- | ------------------------------- |
+| Backend        | ASP.NET Core Web API (.NET 7/8) |
+| Frontend       | React.js / Blazor               |
+| Database       | SQL Server                      |
+| Authentication | JWT Token                       |
+| Payment        | VNPay / MoMo API                |
+| Realtime       | SignalR                         |
+| Email          | SMTP / SendGrid                 |
 
 ---
 
@@ -94,6 +95,17 @@ Nhiều cơ sở thể thao vẫn quản lý thủ công qua sổ sách, tin nh�
          |-- Thống kê doanh thu
          |-- Phân quyền người dùng
          |-- Quản lý khuyến mãi
+
++------------------+
+|      Quản lý     |
++--------+---------+
+         |
+         |-- Quản lý nhân viên khu vực
+         |-- Theo dõi lịch ca nhân viên
+         |-- Xem báo cáo doanh thu khu vực
+         |-- Quản lý tình trạng sân khu vực
+         |-- Phê duyệt lịch đặt sân đặc biệt
+         |-- Quản lý và giao việc cho nhân viên
 ```
 
 ---
@@ -102,12 +114,12 @@ Nhiều cơ sở thể thao vẫn quản lý thủ công qua sổ sách, tin nh�
 
 ### FE-01: Tìm kiếm và đặt sân thể thao
 
-| Mục | Chi tiết |
-|-----|----------|
-| **Mô tả** | Cho phép khách hàng tìm kiếm và đặt sân dựa trên loại sân, ngày, giờ và tình trạng trống |
-| **Actor** | Khách hàng |
-| **Precondition** | Khách hàng đã đăng nhập |
-| **Postcondition** | Hiển thị danh sách sân phù hợp |
+| Mục               | Chi tiết                                                                                 |
+| ----------------- | ---------------------------------------------------------------------------------------- |
+| **Mô tả**         | Cho phép khách hàng tìm kiếm và đặt sân dựa trên loại sân, ngày, giờ và tình trạng trống |
+| **Actor**         | Khách hàng                                                                               |
+| **Precondition**  | Khách hàng đã đăng nhập                                                                  |
+| **Postcondition** | Hiển thị danh sách sân phù hợp                                                           |
 
 **Luồng chính:**
 1. Khách hàng chọn loại sân (bóng đá, pickleball, cầu lông,...).
@@ -122,12 +134,12 @@ Nhiều cơ sở thể thao vẫn quản lý thủ công qua sổ sách, tin nh�
 
 ### FE-02: Quản lý đặt sân
 
-| Mục | Chi tiết |
-|-----|----------|
-| **Mô tả** | Tạo mới, xem, chỉnh sửa, đổi lịch và hủy đặt sân |
-| **Actor** | Khách hàng, Nhân viên, Admin |
-| **Precondition** | Đã đăng nhập vào hệ thống |
-| **Postcondition** | Thông tin đặt sân được cập nhật |
+| Mục               | Chi tiết                                         |
+| ----------------- | ------------------------------------------------ |
+| **Mô tả**         | Tạo mới, xem, chỉnh sửa, đổi lịch và hủy đặt sân |
+| **Actor**         | Khách hàng, Nhân viên, Admin                     |
+| **Precondition**  | Đã đăng nhập vào hệ thống                        |
+| **Postcondition** | Thông tin đặt sân được cập nhật                  |
 
 **Luồng chính:**
 1. Người dùng xem danh sách booking của mình.
@@ -144,12 +156,12 @@ Nhiều cơ sở thể thao vẫn quản lý thủ công qua sổ sách, tin nh�
 
 ### FE-03: Thanh toán trực tuyến
 
-| Mục | Chi tiết |
-|-----|----------|
-| **Mô tả** | Hỗ trợ thanh toán cho dịch vụ đặt sân và dịch vụ đi kèm |
-| **Actor** | Khách hàng |
-| **Precondition** | Đã tạo booking thành công |
-| **Postcondition** | Thanh toán được xử lý, hóa đơn được tạo |
+| Mục               | Chi tiết                                                |
+| ----------------- | ------------------------------------------------------- |
+| **Mô tả**         | Hỗ trợ thanh toán cho dịch vụ đặt sân và dịch vụ đi kèm |
+| **Actor**         | Khách hàng                                              |
+| **Precondition**  | Đã tạo booking thành công                               |
+| **Postcondition** | Thanh toán được xử lý, hóa đơn được tạo                 |
 
 **Phương thức thanh toán:**
 - VNPay
@@ -167,12 +179,12 @@ Nhiều cơ sở thể thao vẫn quản lý thủ công qua sổ sách, tin nh�
 
 ### FE-04: Quản lý thông tin sân thể thao
 
-| Mục | Chi tiết |
-|-----|----------|
-| **Mô tả** | Quản lý loại sân, giá thuê, giờ hoạt động, trạng thái, bảo trì |
-| **Actor** | Admin |
-| **Precondition** | Đăng nhập với quyền Admin |
-| **Postcondition** | Thông tin sân được cập nhật |
+| Mục               | Chi tiết                                                       |
+| ----------------- | -------------------------------------------------------------- |
+| **Mô tả**         | Quản lý loại sân, giá thuê, giờ hoạt động, trạng thái, bảo trì |
+| **Actor**         | Admin                                                          |
+| **Precondition**  | Đăng nhập với quyền Admin                                      |
+| **Postcondition** | Thông tin sân được cập nhật                                    |
 
 **Thông tin sân bao gồm:**
 - Tên sân, mã sân
@@ -187,11 +199,11 @@ Nhiều cơ sở thể thao vẫn quản lý thủ công qua sổ sách, tin nh�
 
 ### FE-05: Cập nhật trạng thái sân theo thời gian thực
 
-| Mục | Chi tiết |
-|-----|----------|
-| **Mô tả** | Cập nhật realtime trạng thái sân để tránh trùng lịch |
-| **Actor** | Hệ thống (tự động) |
-| **Công nghệ** | SignalR |
+| Mục           | Chi tiết                                             |
+| ------------- | ---------------------------------------------------- |
+| **Mô tả**     | Cập nhật realtime trạng thái sân để tránh trùng lịch |
+| **Actor**     | Hệ thống (tự động)                                   |
+| **Công nghệ** | SignalR                                              |
 
 **Trạng thái sân:**
 - `Available` – Còn trống
@@ -203,10 +215,10 @@ Nhiều cơ sở thể thao vẫn quản lý thủ công qua sổ sách, tin nh�
 
 ### FE-06: Quản lý khách hàng
 
-| Mục | Chi tiết |
-|-----|----------|
+| Mục       | Chi tiết                                                                 |
+| --------- | ------------------------------------------------------------------------ |
 | **Mô tả** | Quản lý thông tin khách hàng, lịch sử, thành viên, khách hàng thân thiết |
-| **Actor** | Admin, Nhân viên |
+| **Actor** | Admin, Nhân viên                                                         |
 
 **Chức năng:**
 - Xem danh sách khách hàng.
@@ -218,28 +230,28 @@ Nhiều cơ sở thể thao vẫn quản lý thủ công qua sổ sách, tin nh�
 
 ### FE-07: Quản lý dịch vụ bổ sung
 
-| Mục | Chi tiết |
-|-----|----------|
+| Mục       | Chi tiết                                                  |
+| --------- | --------------------------------------------------------- |
 | **Mô tả** | Quản lý thuê dụng cụ, nước uống, huấn luyện viên, sự kiện |
-| **Actor** | Admin, Nhân viên |
+| **Actor** | Admin, Nhân viên                                          |
 
 **Danh mục dịch vụ:**
 
-| Dịch vụ | Mô tả |
-|---------|-------|
-| Thuê dụng cụ | Vợt, bóng, giày, lưới,... |
-| Nước uống | Nước suối, nước tăng lực,... |
-| Huấn luyện viên | Đặt lịch dạy kèm |
-| Tổ chức sự kiện | Giải đấu, team building |
+| Dịch vụ         | Mô tả                        |
+| --------------- | ---------------------------- |
+| Thuê dụng cụ    | Vợt, bóng, giày, lưới,...    |
+| Nước uống       | Nước suối, nước tăng lực,... |
+| Huấn luyện viên | Đặt lịch dạy kèm             |
+| Tổ chức sự kiện | Giải đấu, team building      |
 
 ---
 
 ### FE-08: Gửi thông báo
 
-| Mục | Chi tiết |
-|-----|----------|
+| Mục       | Chi tiết                                                |
+| --------- | ------------------------------------------------------- |
 | **Mô tả** | Gửi xác nhận đặt sân, hóa đơn, nhắc lịch, thông báo hủy |
-| **Kênh** | Email, In-app notification |
+| **Kênh**  | Email, In-app notification                              |
 
 **Loại thông báo:**
 - Xác nhận đặt sân thành công
@@ -252,10 +264,10 @@ Nhiều cơ sở thể thao vẫn quản lý thủ công qua sổ sách, tin nh�
 
 ### FE-09: Thống kê và báo cáo
 
-| Mục | Chi tiết |
-|-----|----------|
+| Mục       | Chi tiết                                                 |
+| --------- | -------------------------------------------------------- |
 | **Mô tả** | Thống kê doanh thu, tần suất đặt sân, khung giờ cao điểm |
-| **Actor** | Admin |
+| **Actor** | Admin                                                    |
 
 **Báo cáo bao gồm:**
 - Doanh thu theo ngày / tuần / tháng / năm.
@@ -269,33 +281,34 @@ Nhiều cơ sở thể thao vẫn quản lý thủ công qua sổ sách, tin nh�
 
 ### FE-10: Quản lý vai trò và phân quyền
 
-| Mục | Chi tiết |
-|-----|----------|
+| Mục       | Chi tiết                            |
+| --------- | ----------------------------------- |
 | **Mô tả** | Phân quyền truy cập cho các vai trò |
-| **Actor** | Admin |
+| **Actor** | Admin                               |
 
 **Ma trận phân quyền:**
 
-| Chức năng | Admin | Staff | Coach | Customer |
-|-----------|:-----:|:-----:|:-----:|:--------:|
-| Quản lý sân | ✅ | ❌ | ❌ | ❌ |
-| Quản lý đặt sân | ✅ | ✅ | ❌ | ✅ (của mình) |
-| Quản lý khách hàng | ✅ | ✅ | ❌ | ❌ |
-| Thống kê doanh thu | ✅ | ❌ | ❌ | ❌ |
-| Quản lý dịch vụ | ✅ | ✅ | ❌ | ❌ |
-| Quản lý lịch dạy | ✅ | ❌ | ✅ | ❌ |
-| Đặt sân | ✅ | ✅ | ✅ | ✅ |
-| Đánh giá | ❌ | ❌ | ❌ | ✅ |
-| Quản lý khuyến mãi | ✅ | ❌ | ❌ | ❌ |
+| Chức năng          | Admin |   Manager   | Staff | Coach |   Customer   |
+| ------------------ | :---: | :---------: | :---: | :---: | :----------: |
+| Quản lý sân        |   ✅   | ✅ (khu vực) |   ❌   |   ❌   |      ❌       |
+| Quản lý đặt sân    |   ✅   |      ✅      |   ✅   |   ❌   | ✅ (của mình) |
+| Quản lý khách hàng |   ✅   |      ✅      |   ✅   |   ❌   |      ❌       |
+| Thống kê doanh thu |   ✅   | ✅ (khu vực) |   ❌   |   ❌   |      ❌       |
+| Quản lý dịch vụ    |   ✅   |      ✅      |   ✅   |   ❌   |      ❌       |
+| Quản lý lịch dạy   |   ✅   |      ✅      |   ❌   |   ✅   |      ❌       |
+| Đặt sân            |   ✅   |      ✅      |   ✅   |   ✅   |      ✅       |
+| Đánh giá           |   ❌   |      ❌      |   ❌   |   ❌   |      ✅       |
+| Quản lý khuyến mãi |   ✅   |      ❌      |   ❌   |   ❌   |      ❌       |
+| Quản lý nhân viên  |   ✅   | ✅ (khu vực) |   ❌   |   ❌   |      ❌       |
 
 ---
 
 ### FE-11: Quản lý khuyến mãi
 
-| Mục | Chi tiết |
-|-----|----------|
+| Mục       | Chi tiết                                             |
+| --------- | ---------------------------------------------------- |
 | **Mô tả** | Quản lý mã giảm giá, ưu đãi theo mùa, gói thành viên |
-| **Actor** | Admin |
+| **Actor** | Admin                                                |
 
 **Loại khuyến mãi:**
 - Mã giảm giá (% hoặc số tiền cố định).
@@ -307,11 +320,11 @@ Nhiều cơ sở thể thao vẫn quản lý thủ công qua sổ sách, tin nh�
 
 ### FE-12: Đánh giá và phản hồi
 
-| Mục | Chi tiết |
-|-----|----------|
-| **Mô tả** | Khách hàng đánh giá chất lượng sân, dịch vụ sau khi sử dụng |
-| **Actor** | Khách hàng |
-| **Precondition** | Đã hoàn thành booking |
+| Mục              | Chi tiết                                                    |
+| ---------------- | ----------------------------------------------------------- |
+| **Mô tả**        | Khách hàng đánh giá chất lượng sân, dịch vụ sau khi sử dụng |
+| **Actor**        | Khách hàng                                                  |
+| **Precondition** | Đã hoàn thành booking                                       |
 
 **Thông tin đánh giá:**
 - Xếp hạng sao (1-5).
@@ -325,11 +338,11 @@ Nhiều cơ sở thể thao vẫn quản lý thủ công qua sổ sách, tin nh�
 
 ### 4.1 Hiệu năng
 
-| Yêu cầu | Chỉ tiêu |
-|----------|----------|
-| Thời gian phản hồi API | < 2 giây |
-| Hỗ trợ người dùng đồng thời | ≥ 500 |
-| Uptime | ≥ 99.5% |
+| Yêu cầu                     | Chỉ tiêu |
+| --------------------------- | -------- |
+| Thời gian phản hồi API      | < 2 giây |
+| Hỗ trợ người dùng đồng thời | ≥ 500    |
+| Uptime                      | ≥ 99.5%  |
 
 ### 4.2 Bảo mật
 - Mã hóa mật khẩu bằng BCrypt.
@@ -354,24 +367,24 @@ Nhiều cơ sở thể thao vẫn quản lý thủ công qua sổ sách, tin nh�
 
 ### 5.1 Danh sách bảng chính
 
-| STT | Tên bảng | Mô tả |
-|-----|----------|-------|
-| 1 | Users | Thông tin người dùng |
-| 2 | Roles | Vai trò trong hệ thống |
-| 3 | UserRoles | Quan hệ User - Role |
-| 4 | CourtTypes | Loại sân (bóng đá, pickleball,...) |
-| 5 | Courts | Thông tin sân |
-| 6 | TimeSlots | Khung giờ hoạt động |
-| 7 | CourtPricing | Giá thuê theo khung giờ / ngày |
-| 8 | Bookings | Thông tin đặt sân |
-| 9 | BookingDetails | Chi tiết đặt sân |
-| 10 | Payments | Thanh toán |
-| 11 | Services | Dịch vụ bổ sung |
-| 12 | BookingServices | Dịch vụ đi kèm booking |
-| 13 | Reviews | Đánh giá |
-| 14 | Promotions | Khuyến mãi |
-| 15 | Notifications | Thông báo |
-| 16 | MembershipTiers | Hạng thành viên |
+| STT | Tên bảng        | Mô tả                              |
+| --- | --------------- | ---------------------------------- |
+| 1   | Users           | Thông tin người dùng               |
+| 2   | Roles           | Vai trò trong hệ thống             |
+| 3   | UserRoles       | Quan hệ User - Role                |
+| 4   | CourtTypes      | Loại sân (bóng đá, pickleball,...) |
+| 5   | Courts          | Thông tin sân                      |
+| 6   | TimeSlots       | Khung giờ hoạt động                |
+| 7   | CourtPricing    | Giá thuê theo khung giờ / ngày     |
+| 8   | Bookings        | Thông tin đặt sân                  |
+| 9   | BookingDetails  | Chi tiết đặt sân                   |
+| 10  | Payments        | Thanh toán                         |
+| 11  | Services        | Dịch vụ bổ sung                    |
+| 12  | BookingServices | Dịch vụ đi kèm booking             |
+| 13  | Reviews         | Đánh giá                           |
+| 14  | Promotions      | Khuyến mãi                         |
+| 15  | Notifications   | Thông báo                          |
+| 16  | MembershipTiers | Hạng thành viên                    |
 
 ### 5.2 Sơ đồ ERD (Entity Relationship)
 
@@ -382,71 +395,92 @@ Users ──< UserRoles >── Roles
   │       │              │
   │       ├──< BookingDetails >── TimeSlots
   │       │
-  │       ├──< BookingServices >── Services
+  │       ├──< BookingServices >── Services ──< EquipmentInventory
   │       │
-  │       └──< Payments
+  │       ├──< Payments ──< Invoices
+  │       │
+  │       └── RecurringBookings
+  │
+  ├──< Waitlists >── Courts
   │
   ├──< Reviews >── Courts
   │
+  ├──< PlayerRequests >── Bookings
+  │
+  ├──< StaffShifts (Staff only)
+  │
   └──> MembershipTiers
 
+Complexes ──< Courts
+Complexes ──< Users (Manager/Staff)
 Courts ──< CourtPricing >── TimeSlots
-
+Courts ──< MaintenanceSchedules
 Promotions ──< Bookings
 ```
 
 ### 5.3 Chi tiết bảng chính
 
+#### Complexes
+| Cột         | Kiểu dữ liệu  | Mô tả                                   |
+| ----------- | ------------- | --------------------------------------- |
+| ComplexId   | INT (PK)      | Mã tổ hợp sân                           |
+| ComplexName | NVARCHAR(100) | Tên tổ hợp sân (VD: Khu A, Khu B)       |
+| Address     | NVARCHAR(200) | Địa chỉ cụ thể                          |
+| ManagerId   | INT (FK)      | Mã người quản lý (User có role Manager) |
+| CreatedAt   | DATETIME      | Ngày tạo                                |
+
 #### Users
-| Cột | Kiểu dữ liệu | Mô tả |
-|-----|---------------|-------|
-| UserId | INT (PK) | Mã người dùng |
-| FullName | NVARCHAR(100) | Họ tên |
-| Email | VARCHAR(100) | Email (unique) |
-| Phone | VARCHAR(15) | Số điện thoại |
-| PasswordHash | VARCHAR(255) | Mật khẩu mã hóa |
-| AvatarUrl | VARCHAR(500) | Ảnh đại diện |
-| MembershipTierId | INT (FK) | Hạng thành viên |
-| IsActive | BIT | Trạng thái tài khoản |
-| CreatedAt | DATETIME | Ngày tạo |
+| Cột              | Kiểu dữ liệu       | Mô tả                                       |
+| ---------------- | ------------------ | ------------------------------------------- |
+| UserId           | INT (PK)           | Mã người dùng                               |
+| FullName         | NVARCHAR(100)      | Họ tên                                      |
+| Email            | VARCHAR(100)       | Email (unique)                              |
+| Phone            | VARCHAR(15)        | Số điện thoại                               |
+| PasswordHash     | VARCHAR(255)       | Mật khẩu mã hóa                             |
+| AvatarUrl        | VARCHAR(500)       | Ảnh đại diện                                |
+| MembershipTierId | INT (FK)           | Hạng thành viên                             |
+| ComplexId        | INT (FK, Nullable) | Tổ hợp sân quản lý (Dành cho Manager/Staff) |
+| IsActive         | BIT                | Trạng thái tài khoản                        |
+| CreatedAt        | DATETIME           | Ngày tạo                                    |
 
 #### Courts
-| Cột | Kiểu dữ liệu | Mô tả |
-|-----|---------------|-------|
-| CourtId | INT (PK) | Mã sân |
-| CourtName | NVARCHAR(100) | Tên sân |
-| CourtTypeId | INT (FK) | Loại sân |
-| Description | NVARCHAR(500) | Mô tả |
-| Location | NVARCHAR(200) | Vị trí |
-| ImageUrl | VARCHAR(500) | Hình ảnh |
-| Status | VARCHAR(20) | Trạng thái |
-| OpenTime | TIME | Giờ mở cửa |
-| CloseTime | TIME | Giờ đóng cửa |
-| CreatedAt | DATETIME | Ngày tạo |
+| Cột         | Kiểu dữ liệu  | Mô tả                |
+| ----------- | ------------- | -------------------- |
+| CourtId     | INT (PK)      | Mã sân               |
+| ComplexId   | INT (FK)      | Thuộc tổ hợp sân nào |
+| CourtName   | NVARCHAR(100) | Tên sân              |
+| CourtTypeId | INT (FK)      | Loại sân             |
+| Description | NVARCHAR(500) | Mô tả                |
+| Location    | NVARCHAR(200) | Vị trí               |
+| ImageUrl    | VARCHAR(500)  | Hình ảnh             |
+| Status      | VARCHAR(20)   | Trạng thái           |
+| OpenTime    | TIME          | Giờ mở cửa           |
+| CloseTime   | TIME          | Giờ đóng cửa         |
+| CreatedAt   | DATETIME      | Ngày tạo             |
 
 #### Bookings
-| Cột | Kiểu dữ liệu | Mô tả |
-|-----|---------------|-------|
-| BookingId | INT (PK) | Mã booking |
-| UserId | INT (FK) | Người đặt |
-| CourtId | INT (FK) | Sân được đặt |
-| BookingDate | DATE | Ngày đặt sân |
-| TotalAmount | DECIMAL(18,2) | Tổng tiền |
-| Status | VARCHAR(20) | Trạng thái booking |
-| PromotionId | INT (FK, nullable) | Mã khuyến mãi |
-| Note | NVARCHAR(500) | Ghi chú |
-| CreatedAt | DATETIME | Ngày tạo |
+| Cột         | Kiểu dữ liệu       | Mô tả              |
+| ----------- | ------------------ | ------------------ |
+| BookingId   | INT (PK)           | Mã booking         |
+| UserId      | INT (FK)           | Người đặt          |
+| CourtId     | INT (FK)           | Sân được đặt       |
+| BookingDate | DATE               | Ngày đặt sân       |
+| TotalAmount | DECIMAL(18,2)      | Tổng tiền          |
+| Status      | VARCHAR(20)        | Trạng thái booking |
+| PromotionId | INT (FK, nullable) | Mã khuyến mãi      |
+| Note        | NVARCHAR(500)      | Ghi chú            |
+| CreatedAt   | DATETIME           | Ngày tạo           |
 
 #### Payments
-| Cột | Kiểu dữ liệu | Mô tả |
-|-----|---------------|-------|
-| PaymentId | INT (PK) | Mã thanh toán |
-| BookingId | INT (FK) | Mã booking |
-| Amount | DECIMAL(18,2) | Số tiền |
-| PaymentMethod | VARCHAR(50) | Phương thức |
-| TransactionId | VARCHAR(100) | Mã giao dịch |
-| Status | VARCHAR(20) | Trạng thái |
-| PaidAt | DATETIME | Thời gian thanh toán |
+| Cột           | Kiểu dữ liệu  | Mô tả                |
+| ------------- | ------------- | -------------------- |
+| PaymentId     | INT (PK)      | Mã thanh toán        |
+| BookingId     | INT (FK)      | Mã booking           |
+| Amount        | DECIMAL(18,2) | Số tiền              |
+| PaymentMethod | VARCHAR(50)   | Phương thức          |
+| TransactionId | VARCHAR(100)  | Mã giao dịch         |
+| Status        | VARCHAR(20)   | Trạng thái           |
+| PaidAt        | DATETIME      | Thời gian thanh toán |
 
 ---
 
@@ -454,29 +488,29 @@ Promotions ──< Bookings
 
 ### 6.1 Màn hình chính
 
-| STT | Màn hình | Mô tả |
-|-----|----------|-------|
-| 1 | Trang chủ | Giới thiệu, tìm kiếm sân nhanh |
-| 2 | Tìm kiếm sân | Bộ lọc loại sân, ngày, giờ |
-| 3 | Chi tiết sân | Thông tin, hình ảnh, giá, đánh giá |
-| 4 | Đặt sân | Chọn khung giờ, dịch vụ, thanh toán |
-| 5 | Lịch sử đặt sân | Danh sách booking của khách hàng |
-| 6 | Dashboard Admin | Tổng quan thống kê |
-| 7 | Quản lý sân | CRUD sân thể thao |
-| 8 | Quản lý booking | Danh sách và xử lý booking |
-| 9 | Báo cáo doanh thu | Biểu đồ và bảng thống kê |
-| 10 | Quản lý người dùng | Danh sách và phân quyền |
+| STT | Màn hình           | Mô tả                               |
+| --- | ------------------ | ----------------------------------- |
+| 1   | Trang chủ          | Giới thiệu, tìm kiếm sân nhanh      |
+| 2   | Tìm kiếm sân       | Bộ lọc loại sân, ngày, giờ          |
+| 3   | Chi tiết sân       | Thông tin, hình ảnh, giá, đánh giá  |
+| 4   | Đặt sân            | Chọn khung giờ, dịch vụ, thanh toán |
+| 5   | Lịch sử đặt sân    | Danh sách booking của khách hàng    |
+| 6   | Dashboard Admin    | Tổng quan thống kê                  |
+| 7   | Quản lý sân        | CRUD sân thể thao                   |
+| 8   | Quản lý booking    | Danh sách và xử lý booking          |
+| 9   | Báo cáo doanh thu  | Biểu đồ và bảng thống kê            |
+| 10  | Quản lý người dùng | Danh sách và phân quyền             |
 
 ---
 
 ### FE-13: Đặt sân định kỳ (Recurring Booking)
 
-| Mục | Chi tiết |
-|-----|----------|
-| **Mô tả** | Cho phép khách hàng đặt sân lặp lại theo tuần trong khoảng thời gian cố định |
-| **Actor** | Khách hàng |
-| **Precondition** | Đã đăng nhập, sân còn trống trong các slot được chọn |
-| **Postcondition** | Hệ thống tự động tạo nhiều booking theo lịch đã thiết lập |
+| Mục               | Chi tiết                                                                     |
+| ----------------- | ---------------------------------------------------------------------------- |
+| **Mô tả**         | Cho phép khách hàng đặt sân lặp lại theo tuần trong khoảng thời gian cố định |
+| **Actor**         | Khách hàng                                                                   |
+| **Precondition**  | Đã đăng nhập, sân còn trống trong các slot được chọn                         |
+| **Postcondition** | Hệ thống tự động tạo nhiều booking theo lịch đã thiết lập                    |
 
 **Luồng chính:**
 1. Khách chọn sân, khung giờ, ngày bắt đầu và ngày kết thúc.
@@ -494,12 +528,12 @@ Promotions ──< Bookings
 
 ### FE-14: Danh sách chờ (Waitlist)
 
-| Mục | Chi tiết |
-|-----|----------|
-| **Mô tả** | Khi sân đã đầy, khách đăng ký hàng chờ và được tự động thông báo khi có chỗ trống |
-| **Actor** | Khách hàng, Hệ thống |
-| **Precondition** | Sân đã được đặt kín trong khung giờ mong muốn |
-| **Postcondition** | Khách vào hàng chờ, được thông báo khi booking bị hủy |
+| Mục               | Chi tiết                                                                          |
+| ----------------- | --------------------------------------------------------------------------------- |
+| **Mô tả**         | Khi sân đã đầy, khách đăng ký hàng chờ và được tự động thông báo khi có chỗ trống |
+| **Actor**         | Khách hàng, Hệ thống                                                              |
+| **Precondition**  | Sân đã được đặt kín trong khung giờ mong muốn                                     |
+| **Postcondition** | Khách vào hàng chờ, được thông báo khi booking bị hủy                             |
 
 **Luồng chính:**
 1. Khách tìm sân — hệ thống báo "Đã đặt kín".
@@ -517,12 +551,12 @@ Promotions ──< Bookings
 
 ### FE-15: Xuất hóa đơn (Invoice)
 
-| Mục | Chi tiết |
-|-----|----------|
-| **Mô tả** | Tạo và xuất hóa đơn chi tiết sau khi thanh toán thành công |
-| **Actor** | Hệ thống (tự động), Khách hàng |
-| **Precondition** | Thanh toán thành công |
-| **Postcondition** | Hóa đơn được tạo và gửi qua email |
+| Mục               | Chi tiết                                                   |
+| ----------------- | ---------------------------------------------------------- |
+| **Mô tả**         | Tạo và xuất hóa đơn chi tiết sau khi thanh toán thành công |
+| **Actor**         | Hệ thống (tự động), Khách hàng                             |
+| **Precondition**  | Thanh toán thành công                                      |
+| **Postcondition** | Hóa đơn được tạo và gửi qua email                          |
 
 **Thông tin hóa đơn:**
 - Mã hóa đơn (INV-YYYYMMDD-XXXX)
@@ -541,12 +575,12 @@ Promotions ──< Bookings
 
 ### FE-16: Quản lý kho dụng cụ (Equipment Inventory)
 
-| Mục | Chi tiết |
-|-----|----------|
-| **Mô tả** | Theo dõi số lượng và tình trạng dụng cụ cho thuê |
-| **Actor** | Admin, Staff |
-| **Precondition** | Đăng nhập với quyền Admin hoặc Staff |
-| **Postcondition** | Tồn kho được cập nhật chính xác |
+| Mục               | Chi tiết                                         |
+| ----------------- | ------------------------------------------------ |
+| **Mô tả**         | Theo dõi số lượng và tình trạng dụng cụ cho thuê |
+| **Actor**         | Admin, Staff                                     |
+| **Precondition**  | Đăng nhập với quyền Admin hoặc Staff             |
+| **Postcondition** | Tồn kho được cập nhật chính xác                  |
 
 **Chức năng:**
 - Xem số lượng tồn kho từng loại dụng cụ.
@@ -563,12 +597,12 @@ Promotions ──< Bookings
 
 ### FE-17: Lịch bảo trì sân (Maintenance Schedule)
 
-| Mục | Chi tiết |
-|-----|----------|
-| **Mô tả** | Lên lịch bảo trì sân có kế hoạch, tự động block booking trong thời gian bảo trì |
-| **Actor** | Admin |
-| **Precondition** | Đăng nhập với quyền Admin |
-| **Postcondition** | Sân bị block, khách không thể đặt trong thời gian bảo trì |
+| Mục               | Chi tiết                                                                        |
+| ----------------- | ------------------------------------------------------------------------------- |
+| **Mô tả**         | Lên lịch bảo trì sân có kế hoạch, tự động block booking trong thời gian bảo trì |
+| **Actor**         | Admin                                                                           |
+| **Precondition**  | Đăng nhập với quyền Admin                                                       |
+| **Postcondition** | Sân bị block, khách không thể đặt trong thời gian bảo trì                       |
 
 **Luồng chính:**
 1. Admin tạo lịch bảo trì: chọn sân, ngày bắt đầu/kết thúc, lý do.
@@ -586,19 +620,19 @@ Promotions ──< Bookings
 
 ### FE-18: Quản lý ca làm việc nhân viên (Staff Shift)
 
-| Mục | Chi tiết |
-|-----|----------|
-| **Mô tả** | Phân ca và theo dõi lịch làm việc của nhân viên |
-| **Actor** | Admin |
-| **Precondition** | Đăng nhập với quyền Admin |
-| **Postcondition** | Lịch ca được lưu, nhân viên nhận thông báo |
+| Mục               | Chi tiết                                        |
+| ----------------- | ----------------------------------------------- |
+| **Mô tả**         | Phân ca và theo dõi lịch làm việc của nhân viên |
+| **Actor**         | Admin                                           |
+| **Precondition**  | Đăng nhập với quyền Admin                       |
+| **Postcondition** | Lịch ca được lưu, nhân viên nhận thông báo      |
 
 **Ca làm việc:**
-| Ca | Giờ |
-|----|-----|
-| Ca sáng | 06:00 – 14:00 |
+| Ca       | Giờ           |
+| -------- | ------------- |
+| Ca sáng  | 06:00 – 14:00 |
 | Ca chiều | 14:00 – 22:00 |
-| Ca tối | 18:00 – 23:00 |
+| Ca tối   | 18:00 – 23:00 |
 
 **Chức năng:**
 - Xếp ca theo tuần/tháng.
@@ -610,11 +644,11 @@ Promotions ──< Bookings
 
 ### FE-19: Tìm đối thủ / Đồng đội (Player Matching)
 
-| Mục | Chi tiết |
-|-----|----------|
-| **Mô tả** | Khách đặt sân có thể đăng tin tìm người chơi cùng |
-| **Actor** | Khách hàng |
-| **Precondition** | Đã có booking được xác nhận |
+| Mục               | Chi tiết                                            |
+| ----------------- | --------------------------------------------------- |
+| **Mô tả**         | Khách đặt sân có thể đăng tin tìm người chơi cùng   |
+| **Actor**         | Khách hàng                                          |
+| **Precondition**  | Đã có booking được xác nhận                         |
 | **Postcondition** | Đăng tin tìm người chơi, nhận đăng ký từ người khác |
 
 **Thông tin đăng tin:**
@@ -631,37 +665,71 @@ Promotions ──< Bookings
 
 ---
 
+### FE-20: Quản lý khu vực sân và nhân viên (Manager Role)
+
+| Mục               | Chi tiết                                                                                 |
+| ----------------- | ---------------------------------------------------------------------------------------- |
+| **Mô tả**         | Cho phép Quản lý điều hành các hoạt động kinh doanh và nhân sự tại một tổ hợp sân cụ thể |
+| **Actor**         | Quản lý                                                                                  |
+| **Precondition**  | Đăng nhập với quyền Quản lý, được gán cho một tổ hợp sân (Complex)                       |
+| **Postcondition** | Thông tin nhân sự và vận hành khu vực được cập nhật                                      |
+
+**Chức năng chính:**
+1. **Quản lý nhân viên khu vực:**
+   - Xem danh sách nhân viên thuộc tổ hợp sân mình quản lý.
+   - Phân ca làm việc chi tiết cho nhân viên.
+   - Theo dõi hiệu quả làm việc và thời gian check-in/check-out của nhân viên.
+2. **Quản lý vận hành sân:**
+   - Cập nhật tình trạng sân nhanh (Sửa chữa đột xuất, dọn dẹp,...).
+   - Phê duyệt các yêu cầu đặt sân dài hạn hoặc sự kiện đặc biệt tại khu vực.
+3. **Báo cáo và thống kê khu vực:**
+   - Xem doanh thu chi tiết của tổ hợp sân phụ trách.
+   - Tỷ lệ lấp đầy sân theo khung giờ tại khu vực.
+   - Thống kê dịch vụ đi kèm (nước uống, dụng cụ) tại khu vực.
+4. **Quản lý công việc (Task Management):**
+   - **Giao việc thủ công (Manual Assignment):**
+     - Quản lý tạo các đầu việc phát sinh (sửa chữa, vệ sinh đột xuất, xử lý khiếu nại).
+     - Chỉ định nhân viên cụ thể thực hiện.
+     - Kiểm tra và xác nhận hoàn thành (Review & Approval).
+   - **Giao việc tự động (Automated Tasks - System):**
+     - Hệ thống tự động tạo task vệ sinh khi một booking kết thúc.
+     - Tự động giao task chuẩn bị dụng cụ/nước uống khi có đơn hàng dịch vụ.
+     - Tự động nhắc lịch bảo trì định kỳ dựa trên cấu hình hệ thống.
+
+---
+
 ## 5. Thiết kế cơ sở dữ liệu
 
 ### 5.1 Danh sách bảng chính
 
-| STT | Tên bảng | Mô tả |
-|-----|----------|-------|
-| 1 | Users | Thông tin người dùng |
-| 2 | Roles | Vai trò trong hệ thống |
-| 3 | UserRoles | Quan hệ User - Role |
-| 4 | CourtTypes | Loại sân (bóng đá, pickleball,...) |
-| 5 | Courts | Thông tin sân |
-| 6 | CourtImages | Hình ảnh sân |
-| 7 | TimeSlots | Khung giờ hoạt động |
-| 8 | CourtPricing | Giá thuê theo khung giờ / ngày |
-| 9 | Bookings | Thông tin đặt sân |
-| 10 | BookingDetails | Chi tiết đặt sân |
-| 11 | RecurringBookings | Đặt sân định kỳ |
-| 12 | Waitlists | Danh sách chờ |
-| 13 | Payments | Thanh toán |
-| 14 | Invoices | Hóa đơn |
-| 15 | Services | Dịch vụ bổ sung |
-| 16 | BookingServices | Dịch vụ đi kèm booking |
-| 17 | EquipmentInventory | Kho dụng cụ |
-| 18 | Reviews | Đánh giá |
-| 19 | Promotions | Khuyến mãi |
-| 20 | Notifications | Thông báo |
-| 21 | MembershipTiers | Hạng thành viên |
-| 22 | MaintenanceSchedules | Lịch bảo trì sân |
-| 23 | StaffShifts | Ca làm việc nhân viên |
-| 24 | PlayerRequests | Tin tìm đối thủ / đồng đội |
-| 25 | AuditLogs | Lịch sử thao tác hệ thống |
+| STT | Tên bảng             | Mô tả                              |
+| --- | -------------------- | ---------------------------------- |
+| 1   | Users                | Thông tin người dùng               |
+| 2   | Roles                | Vai trò trong hệ thống             |
+| 3   | UserRoles            | Quan hệ User - Role                |
+| 4   | CourtTypes           | Loại sân (bóng đá, pickleball,...) |
+| 5   | Courts               | Thông tin sân                      |
+| 6   | CourtImages          | Hình ảnh sân                       |
+| 7   | TimeSlots            | Khung giờ hoạt động                |
+| 8   | CourtPricing         | Giá thuê theo khung giờ / ngày     |
+| 9   | Bookings             | Thông tin đặt sân                  |
+| 10  | BookingDetails       | Chi tiết đặt sân                   |
+| 11  | RecurringBookings    | Đặt sân định kỳ                    |
+| 12  | Waitlists            | Danh sách chờ                      |
+| 13  | Payments             | Thanh toán                         |
+| 14  | Invoices             | Hóa đơn                            |
+| 15  | Services             | Dịch vụ bổ sung                    |
+| 16  | BookingServices      | Dịch vụ đi kèm booking             |
+| 17  | EquipmentInventory   | Kho dụng cụ                        |
+| 18  | Reviews              | Đánh giá                           |
+| 19  | Promotions           | Khuyến mãi                         |
+| 20  | Notifications        | Thông báo                          |
+| 21  | MembershipTiers      | Hạng thành viên                    |
+| 22  | MaintenanceSchedules | Lịch bảo trì sân                   |
+| 23  | StaffShifts          | Ca làm việc nhân viên              |
+| 24  | PlayerRequests       | Tin tìm đối thủ / đồng đội         |
+| 25  | Complexes            | Thông tin tổ hợp sân (Khu vực)     |
+| 26  | AuditLogs            | Lịch sử thao tác hệ thống          |
 
 ### 5.2 Sơ đồ ERD (Entity Relationship)
 

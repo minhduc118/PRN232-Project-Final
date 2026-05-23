@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — Sports Court Management</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <div class="layout" id="layout">
+    <!-- ════════════════════════════════════════
+          SIDEBAR
+    ════════════════════════════════════════ -->
+    <aside class="sidebar" id="sidebar">
+      <!-- Logo -->
+      <div class="sidebar-logo">
+        <div class="logo-icon">🏟️</div>
+        <div class="logo-text">
+          <h2>SportsPlex</h2>
+          <span>Management System</span>
+        </div>
+      </div>
+
+      <!-- Main Navigation -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Tổng quan</div>
+        <a href="#" class="nav-item active" id="nav-dashboard">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="#" class="nav-item">
+          <i class="fa-solid fa-calendar-check"></i>
+          <span class="nav-label">Đặt sân</span>
+          <span class="badge">12</span>
+        </a>
+        <a href="#" class="nav-item">
+          <i class="fa-solid fa-table-tennis-paddle-ball"></i>
+          <span class="nav-label">Quản lý sân</span>
+        </a>
+        <a href="#" class="nav-item">
+          <i class="fa-solid fa-building"></i>
+          <span class="nav-label">Tổ hợp sân</span>
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Quản lý</div>
+        <a href="#" class="nav-item">
+          <i class="fa-solid fa-users"></i>
+          <span class="nav-label">Khách hàng</span>
+        </a>
+        <a href="#" class="nav-item">
+          <i class="fa-solid fa-user-tie"></i>
+          <span class="nav-label">Nhân viên</span>
+        </a>
+        <a href="#" class="nav-item">
+          <i class="fa-solid fa-user-gear"></i>
+          <span class="nav-label">Quản lý (Manager)</span>
+        </a>
+        <a href="#" class="nav-item">
+          <i class="fa-solid fa-whistle"></i>
+          <span class="nav-label">Huấn luyện viên</span>
+        </a>
+        <a href="#" class="nav-item">
+          <i class="fa-solid fa-gift"></i>
+          <span class="nav-label">Khuyến mãi</span>
+        </a>
+        <a href="#" class="nav-item">
+          <i class="fa-solid fa-toolbox"></i>
+          <span class="nav-label">Dịch vụ &amp; Kho</span>
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Báo cáo</div>
+        <a href="#" class="nav-item">
+          <i class="fa-solid fa-chart-line"></i>
+          <span class="nav-label">Doanh thu</span>
+        </a>
+        <a href="#" class="nav-item">
+          <i class="fa-solid fa-file-invoice-dollar"></i>
+          <span class="nav-label">Hóa đơn</span>
+        </a>
+        <a href="#" class="nav-item">
+          <i class="fa-solid fa-clipboard-list"></i>
+          <span class="nav-label">Nhật ký hệ thống</span>
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Hệ thống</div>
+        <a href="#" class="nav-item">
+          <i class="fa-solid fa-gear"></i>
+          <span class="nav-label">Cài đặt</span>
+        </a>
+        <a href="#" class="nav-item">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span class="nav-label">Phân quyền</span>
+        </a>
+      </div>
+
+      <!-- Footer -->
+      <div class="sidebar-footer">
+        <div class="avatar">A</div>
+        <div class="footer-info">
+          <h4>Super Admin</h4>
+          <span><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ════════════════════════════════════════
+          MAIN
+    ════════════════════════════════════════ -->
+    <div class="main">
+      <!-- Header -->
+      <header class="header">
+        <button class="header-toggle" id="sidebarToggle" onclick="toggleSidebar()">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <div class="header-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Tìm kiếm booking, sân, khách hàng..." />
+        </div>
+
+        <div class="header-actions">
+          <button class="header-btn" title="Maintenance">
+            <i class="fa-solid fa-wrench"></i>
+          </button>
+          <button class="header-btn" title="Notifications">
+            <i class="fa-solid fa-bell"></i>
+            <span class="dot"></span>
+          </button>
+          <button class="header-btn" title="Messages">
+            <i class="fa-solid fa-envelope"></i>
+          </button>
+          <div class="header-user">
+            <div class="avatar">A</div>
+            <span>Super Admin</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </div>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <main class="page-content">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-title">
+            <h1>Dashboard Tổng quan</h1>
+            <p>Thứ Sáu, 23 tháng 5, 2026 — Dữ liệu cập nhật lúc 16:45</p>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-ghost">
+              <i class="fa-solid fa-download"></i>
+              Xuất báo cáo
+            </button>
+            <button class="btn btn-primary">
+              <i class="fa-solid fa-plus"></i>
+              Thêm sân mới
+            </button>
+          </div>
+        </div>
+
+        <!-- ── Stat Cards ── -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon g1"><i class="fa-solid fa-money-bill-trend-up"></i></div>
+            <div>
+              <div class="stat-label">Doanh thu tháng này</div>
+              <div class="stat-value">148.5M</div>
+            </div>
+            <div class="stat-row">
+              <span style="font-size:12px;color:var(--col-subtext)">So với tháng trước</span>
+              <span class="stat-change up"><i class="fa-solid fa-arrow-trend-up"></i> +18.3%</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon g2"><i class="fa-solid fa-calendar-check"></i></div>
+            <div>
+              <div class="stat-label">Booking hôm nay</div>
+              <div class="stat-value">87</div>
+            </div>
+            <div class="stat-row">
+              <span style="font-size:12px;color:var(--col-subtext)">Đang chờ xác nhận</span>
+              <span class="stat-change up"><i class="fa-solid fa-arrow-trend-up"></i> +5.2%</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon g3"><i class="fa-solid fa-table-tennis-paddle-ball"></i></div>
+            <div>
+              <div class="stat-label">Sân đang hoạt động</div>
+              <div class="stat-value">34<span style="font-size:16px;font-weight:400;color:var(--col-subtext)">/40</span></div>
+            </div>
+            <div class="stat-row">
+              <span style="font-size:12px;color:var(--col-subtext)">6 sân đang bảo trì</span>
+              <span class="stat-change down"><i class="fa-solid fa-arrow-trend-down"></i> -3 sân</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon g4"><i class="fa-solid fa-users"></i></div>
+            <div>
+              <div class="stat-label">Khách hàng mới</div>
+              <div class="stat-value">1,248</div>
+            </div>
+            <div class="stat-row">
+              <span style="font-size:12px;color:var(--col-subtext)">Tổng tháng này</span>
+              <span class="stat-change up"><i class="fa-solid fa-arrow-trend-up"></i> +12.7%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Charts Row ── -->
+        <div class="charts-row">
+          <!-- Revenue Chart -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Doanh thu theo thời gian</div>
+                <div class="card-subtitle">Dữ liệu 6 tháng gần nhất</div>
+              </div>
+              <div class="card-actions">
+                <button class="tab-btn active">Tháng</button>
+                <button class="tab-btn">Tuần</button>
+                <button class="tab-btn">Ngày</button>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="revenueChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Court Type Doughnut -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Phân bổ loại sân</div>
+                <div class="card-subtitle">Tỷ lệ sử dụng theo loại</div>
+              </div>
+            </div>
+            <div class="chart-container" style="height:170px">
+              <canvas id="courtTypeChart"></canvas>
+            </div>
+            <div class="legend-list">
+              <div class="legend-item">
+                <div class="legend-dot" style="background:#4f6ef7"></div>
+                <span class="legend-label">Pickleball</span>
+                <span class="legend-value">42%</span>
+              </div>
+              <div class="legend-bar"><div class="legend-bar-fill" style="width:42%;background:#4f6ef7"></div></div>
+              <div class="legend-item">
+                <div class="legend-dot" style="background:#22d3a5"></div>
+                <span class="legend-label">Cầu lông</span>
+                <span class="legend-value">31%</span>
+              </div>
+              <div class="legend-bar"><div class="legend-bar-fill" style="width:31%;background:#22d3a5"></div></div>
+              <div class="legend-item">
+                <div class="legend-dot" style="background:#f7b955"></div>
+                <span class="legend-label">Bóng đá</span>
+                <span class="legend-value">27%</span>
+              </div>
+              <div class="legend-bar"><div class="legend-bar-fill" style="width:27%;background:#f7b955"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Bottom Row ── -->
+        <div class="bottom-row">
+          <!-- Recent Bookings Table -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Đặt sân gần đây</div>
+                <div class="card-subtitle">12 booking mới nhất hôm nay</div>
+              </div>
+              <a href="#" class="btn btn-ghost" style="padding:6px 14px;font-size:12px;">
+                Xem tất cả <i class="fa-solid fa-arrow-right"></i>
+              </a>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Khách hàng</th>
+                    <th>Sân</th>
+                    <th>Khung giờ</th>
+                    <th>Số tiền</th>
+                    <th>Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div class="td-user">
+                        <div class="td-avatar" style="background:linear-gradient(135deg,#4f6ef7,#a855f7)">N</div>
+                        <div>
+                          <div class="td-name">Nguyễn Văn A</div>
+                          <div class="td-sub">0912 345 678</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span>Pickleball 02</span><br><span class="td-sub">Khu A</span></td>
+                    <td><span>08:00 – 09:30</span><br><span class="td-sub">Hôm nay</span></td>
+                    <td class="amount" style="color:var(--col-accent)">180.000₫</td>
+                    <td><span class="badge-status success">Đã xác nhận</span></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="td-user">
+                        <div class="td-avatar" style="background:linear-gradient(135deg,#22d3a5,#0ea5e9)">T</div>
+                        <div>
+                          <div class="td-name">Trần Thị B</div>
+                          <div class="td-sub">0987 654 321</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span>Cầu lông 05</span><br><span class="td-sub">Khu B</span></td>
+                    <td><span>10:00 – 12:00</span><br><span class="td-sub">Hôm nay</span></td>
+                    <td class="amount" style="color:var(--col-accent)">240.000₫</td>
+                    <td><span class="badge-status pending">Chờ thanh toán</span></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="td-user">
+                        <div class="td-avatar" style="background:linear-gradient(135deg,#f7b955,#f75a5a)">L</div>
+                        <div>
+                          <div class="td-name">Lê Minh C</div>
+                          <div class="td-sub">0901 234 567</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span>Bóng đá 01</span><br><span class="td-sub">Khu C</span></td>
+                    <td><span>14:00 – 15:30</span><br><span class="td-sub">Hôm nay</span></td>
+                    <td class="amount" style="color:var(--col-accent)">350.000₫</td>
+                    <td><span class="badge-status success">Đã xác nhận</span></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="td-user">
+                        <div class="td-avatar" style="background:linear-gradient(135deg,#f75a5a,#e11d48)">P</div>
+                        <div>
+                          <div class="td-name">Phạm Thị D</div>
+                          <div class="td-sub">0938 765 432</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span>Pickleball 04</span><br><span class="td-sub">Khu A</span></td>
+                    <td><span>16:00 – 17:30</span><br><span class="td-sub">Hôm nay</span></td>
+                    <td class="amount" style="color:var(--col-danger)">180.000₫</td>
+                    <td><span class="badge-status danger">Đã hủy</span></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="td-user">
+                        <div class="td-avatar" style="background:linear-gradient(135deg,#4f6ef7,#22d3a5)">H</div>
+                        <div>
+                          <div class="td-name">Hoàng Văn E</div>
+                          <div class="td-sub">0977 111 222</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span>Cầu lông 03</span><br><span class="td-sub">Khu B</span></td>
+                    <td><span>18:00 – 20:00</span><br><span class="td-sub">Hôm nay</span></td>
+                    <td class="amount" style="color:var(--col-accent)">280.000₫</td>
+                    <td><span class="badge-status info">Đang diễn ra</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Activity Feed -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Hoạt động hệ thống</div>
+                <div class="card-subtitle">Nhật ký gần đây</div>
+              </div>
+              <button class="btn btn-ghost" style="padding:6px 14px;font-size:12px;">Tất cả</button>
+            </div>
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-icon" style="background:linear-gradient(135deg,#22d3a5,#0ea5e9)"><i class="fa-solid fa-check"></i></div>
+                <div class="activity-body">
+                  <div class="activity-title">Booking <strong>#BK-2024</strong> đã được xác nhận</div>
+                  <div class="activity-time"><i class="fa-regular fa-clock"></i> 2 phút trước</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-icon" style="background:linear-gradient(135deg,#4f6ef7,#a855f7)"><i class="fa-solid fa-user-plus"></i></div>
+                <div class="activity-body">
+                  <div class="activity-title"><strong>Nguyễn Thị X</strong> vừa đăng ký tài khoản</div>
+                  <div class="activity-time"><i class="fa-regular fa-clock"></i> 8 phút trước</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-icon" style="background:linear-gradient(135deg,#f7b955,#f75a5a)"><i class="fa-solid fa-wrench"></i></div>
+                <div class="activity-body">
+                  <div class="activity-title">Sân <strong>Cầu lông 07</strong> chuyển sang bảo trì</div>
+                  <div class="activity-time"><i class="fa-regular fa-clock"></i> 22 phút trước</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-icon" style="background:linear-gradient(135deg,#f75a5a,#e11d48)"><i class="fa-solid fa-xmark"></i></div>
+                <div class="activity-body">
+                  <div class="activity-title">Booking <strong>#BK-2019</strong> bị hủy, hoàn tiền 100%</div>
+                  <div class="activity-time"><i class="fa-regular fa-clock"></i> 35 phút trước</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-icon" style="background:linear-gradient(135deg,#22d3a5,#4f6ef7)"><i class="fa-solid fa-money-bill-wave"></i></div>
+                <div class="activity-body">
+                  <div class="activity-title">Thanh toán VNPay <strong>350.000₫</strong> thành công</div>
+                  <div class="activity-time"><i class="fa-regular fa-clock"></i> 51 phút trước</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-icon" style="background:linear-gradient(135deg,#a855f7,#4f6ef7)"><i class="fa-solid fa-user-gear"></i></div>
+                <div class="activity-body">
+                  <div class="activity-title">Manager <strong>Trần Văn Y</strong> đã giao task cho nhân viên</div>
+                  <div class="activity-time"><i class="fa-regular fa-clock"></i> 1 giờ trước</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-icon" style="background:linear-gradient(135deg,#f7b955,#22d3a5)"><i class="fa-solid fa-star"></i></div>
+                <div class="activity-body">
+                  <div class="activity-title"><strong>Lê Anh Z</strong> đánh giá 5⭐ sân Pickleball 02</div>
+                  <div class="activity-time"><i class="fa-regular fa-clock"></i> 2 giờ trước</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>

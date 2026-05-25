@@ -1,0 +1,166 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Xếp Ca Nhân Viên - Manager</title>
+
+    <!-- Shared CSS -->
+    <link rel="stylesheet" href="../../../assets/css/shared.css" />
+    <link rel="stylesheet" href="../../admin/dashboard/dashboard.css" />
+    <link rel="stylesheet" href="staff.css" />
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+    <div class="layout" id="layout">
+        <!-- SIDEBAR -->
+        <div id="sidebar-container" data-active="staff"></div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main">
+            <!-- TOP HEADER -->
+            <header class="header">
+                <button class="header-toggle" onclick="toggleSidebar()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="header-search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="Tìm nhân viên, ca làm..." />
+                </div>
+                <div class="header-actions">
+                    <div class="header-user">
+                        <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">M</div>
+                        <span>Quản lý</span>
+                    </div>
+                </div>
+            </header>
+
+            <main class="page-content">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h1>Quản lý Lịch Trực (Shift Scheduler)</h1>
+                        <p>Quản lý phân ca hàng tuần và theo dõi giờ làm việc của nhân viên.</p>
+                    </div>
+                    <div class="page-header-actions" style="display:flex; gap:10px;">
+                        <select class="form-control" style="width: auto;" id="weekSelector" onchange="changeWeek(this.value)">
+                            <option value="W21">Tuần 21: 18/05 - 24/05</option>
+                            <option value="W22" selected>Tuần 22: 25/05 - 31/05</option>
+                            <option value="W23">Tuần 23: 01/06 - 07/06</option>
+                        </select>
+                        <select class="form-control" style="width: auto;">
+                            <option>Tất cả cơ sở</option>
+                            <option>Chi nhánh Quận 1</option>
+                        </select>
+                        <button class="btn" style="background-color: white; color: #111827; border: 1px solid #dbe2ea; font-weight: 600;" onclick="copyLastWeek()">
+                            <i class="fa-solid fa-copy"></i> Copy Tuần Trước
+                        </button>
+                        <button class="btn btn-primary" onclick="alert('Đã công bố lịch thành công!')">
+                            <i class="fa-solid fa-paper-plane"></i> Công bố lịch
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STATS -->
+                <div class="stats-grid">
+                    <div class="card stat-card">
+                        <h3>Tổng nhân viên</h3>
+                        <div class="number" id="totalStaff">0</div>
+                    </div>
+                    <div class="card stat-card">
+                        <h3>Ca đã xếp</h3>
+                        <div class="number" id="assignedShifts">0</div>
+                    </div>
+                    <div class="card stat-card">
+                        <h3>Đơn xin nghỉ</h3>
+                        <div class="number" id="pendingLeave" style="color: var(--col-warn);">0</div>
+                    </div>
+                    <div class="card stat-card">
+                        <h3>Cảnh báo Overwork</h3>
+                        <div class="number" id="overworkAlerts" style="color: var(--col-danger);">0</div>
+                    </div>
+                </div>
+
+                <!-- TABS -->
+                <div class="tabs-container">
+                    <button class="tab-btn active" data-target="weeklyBoard" onclick="switchTab('weeklyBoard')"><i class="fa-solid fa-table-cells"></i> Bảng Lịch Tuần</button>
+                    <button class="tab-btn" data-target="todayList" onclick="switchTab('todayList')"><i class="fa-solid fa-list-check"></i> Trực Hôm Nay</button>
+                </div>
+
+                <!-- SCHEDULE BOARD -->
+                <div id="weeklyBoard" class="tab-content active">
+                    <div class="schedule-wrapper">
+                        <!-- Lưới ca trực Render từ JS -->
+                        <div class="schedule-grid" id="scheduleGrid"></div>
+
+                        <!-- Thống kê tổng quan Render từ JS -->
+                        <div class="summary-row" id="summaryRow"></div>
+                    </div>
+                </div>
+
+                <!-- TODAY LIST VIEW -->
+                <div id="todayList" class="tab-content">
+                    <div class="card p-0">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nhân viên</th>
+                                        <th>Ca làm</th>
+                                        <th>Cơ sở</th>
+                                        <th>Giờ Check-in</th>
+                                        <th>Trạng thái</th>
+                                    </tr>
+                                </thead>
+                                <!-- Danh sách hôm nay Render từ JS -->
+                                <tbody id="todayListTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- RIGHT DRAWER: XẾP CA -->
+    <div class="drawer-overlay" id="drawerOverlay" onclick="closeShiftDrawer()"></div>
+    <div class="drawer" id="shiftDrawer">
+        <div class="drawer-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--col-border); padding: 20px;">
+            <h3>Phân ca trực</h3>
+            <button class="btn-icon" onclick="closeShiftDrawer()" style="background:none; border:none; color:var(--col-subtext); font-size:18px; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="drawer-body" style="padding: 20px;">
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="color:var(--col-subtext); font-size:12px;">Nhân viên</label>
+                <div style="font-weight:bold; font-size:16px; color:var(--col-text);" id="drawerEmpName">--</div>
+            </div>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="color:var(--col-subtext); font-size:12px;">Ngày</label>
+                <div style="font-weight:bold; font-size:14px; color:var(--col-text);" id="drawerDate">--</div>
+            </div>
+
+            <h4 style="margin: 20px 0 10px; color:var(--col-text);">Chọn Ca Làm (Shift Options)</h4>
+            
+            <!-- Danh sách Options Render từ JS -->
+            <div id="shiftOptionsContainer"></div>
+
+            <!-- WARNING MESSAGE -->
+            <div id="drawerWarning" style="margin-top:20px; padding:15px; border-radius:var(--radius-sm); border:1px solid var(--col-danger); background:rgba(239, 68, 68, 0.1); color:var(--col-danger); display:none;">
+                <i class="fa-solid fa-triangle-exclamation"></i> <b>Cảnh báo:</b> Khung giờ không hợp lệ hoặc không đủ 8 tiếng nghỉ ngơi giữa 2 ca liên tiếp.
+            </div>
+        </div>
+        <div class="drawer-footer" style="padding: 20px; border-top:1px solid var(--col-border); display:flex; gap:10px;">
+            <button class="btn btn-secondary" onclick="closeShiftDrawer()" style="flex:1; color:white;">Hủy bỏ</button>
+            <button class="btn btn-primary" onclick="saveShift()" style="flex:1;">Lưu Ca Trực</button>
+        </div>
+    </div>
+
+    <!-- Script Menu Toggle & Components -->
+    <script>
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
+    </script>
+    <script src="../../../assets/js/components/sidebar.js"></script>
+    <script src="staff.js"></script>
+</body>
+</html>

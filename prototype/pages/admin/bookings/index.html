@@ -1,0 +1,201 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quản lý Đặt Sân - Admin</title>
+
+    <!-- Shared CSS (design tokens + base components) -->
+    <link rel="stylesheet" href="../../../assets/css/shared.css" />
+    <link rel="stylesheet" href="../../admin/dashboard/dashboard.css" />
+    <!-- Page CSS -->
+    <link rel="stylesheet" href="bookings.css" />
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+    <div class="layout" id="layout">
+        <!-- SIDEBAR -->
+        <div id="sidebar-container" data-active="bookings"></div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main">
+            <!-- TOP HEADER -->
+            <header class="header">
+                <button class="header-toggle" onclick="toggleSidebar()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="header-search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="bookingSearch" placeholder="Tìm kiếm booking, tên khách..." oninput="filterBookings()" />
+                </div>
+                <div class="header-actions">
+                    <div class="header-user">
+                        <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#4f6ef7,#a855f7)">A</div>
+                        <span>Admin</span>
+                    </div>
+                </div>
+            </header>
+
+            <main class="page-content">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h1>Quản lý Đặt Sân</h1>
+                        <p>Theo dõi lịch nhận sân, xếp thời gian và quản lý thanh toán.</p>
+                    </div>
+                    <div class="page-header-actions">
+                        <button class="btn btn-primary" onclick="openDrawer()">
+                            <i class="fa-solid fa-plus"></i> Đặt sân mới
+                        </button>
+                    </div>
+                </div>
+
+                <!-- FILTER BAR -->
+                <div class="card" style="margin-bottom: 20px; padding: 15px;">
+                    <div class="filters-bar" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <input type="date" id="filterDate" class="form-control" style="padding: 8px;" value="2026-05-25" onchange="filterBookings()" />
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <select id="filterCourt" class="form-control" style="padding: 8px;" onchange="filterBookings()">
+                                <option value="all">Tất cả loại sân</option>
+                                <option value="badminton">Cầu lông</option>
+                                <option value="tennis">Tennis</option>
+                                <option value="pickleball">Pickleball</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <select id="filterStatus" class="form-control" style="padding: 8px;" onchange="filterBookings()">
+                                <option value="all">Tất cả Trạng thái</option>
+                                <option value="pending">Chờ xác nhận</option>
+                                <option value="confirmed">Đã xác nhận</option>
+                                <option value="completed">Đã hoàn thành</option>
+                                <option value="cancelled">Đã hủy</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-secondary" onclick="resetBookingFilters()" style="margin-left: auto; color: white;">
+                            <i class="fa-solid fa-rotate-right"></i> Làm mới
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="tabs-container">
+                    <button class="tab-btn active" data-target="calendarView" onclick="switchTab('calendarView')"><i class="fa-solid fa-calendar-days"></i> Lịch sân</button>
+                    <button class="tab-btn" data-target="listView" onclick="switchTab('listView')"><i class="fa-solid fa-list"></i> Danh sách</button>
+                </div>
+
+                <!-- Tab 1: Calendar View -->
+                <div id="calendarView" class="tab-content active">
+                    <div class="card p-0">
+                        <div class="calendar-wrapper">
+                            <!-- Trục thời gian -->
+                            <div class="time-axis" id="timeAxis"></div>
+                            <!-- Lưới sân -->
+                            <div class="courts-grid" id="courtsGrid"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: List View -->
+                <div id="listView" class="tab-content">
+                    <div class="card p-0">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Mã Đặt</th>
+                                        <th>Khách hàng</th>
+                                        <th>Sân</th>
+                                        <th>Thời gian</th>
+                                        <th>Tổng tiền</th>
+                                        <th>Trạng thái</th>
+                                        <th>Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bookingsTableBody">
+                                    <!-- JS Render -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Right Drawer: Chi tiết đặt sân -->
+    <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+    <div class="drawer" id="bookingDrawer">
+        <div class="drawer-header flex-between">
+            <h3 id="drawerTitle">Tạo Đặt Sân Mới</h3>
+            <button class="btn-icon" onclick="closeDrawer()"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="drawer-body">
+            <form id="bookingForm">
+                <div class="form-group">
+                    <label>Tên khách hàng</label>
+                    <input type="text" id="customerName" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Số điện thoại</label>
+                    <input type="text" id="customerPhone" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Chọn Sân</label>
+                    <select class="form-control" id="courtSelect">
+                        <option value="badminton_1">Sân Cầu Lông A1</option>
+                        <option value="tennis_1">Sân Tennis T1</option>
+                    </select>
+                </div>
+                <div class="form-group-row flex-gap">
+                    <div class="form-group flex-1">
+                        <label>Giờ bắt đầu</label>
+                        <input type="time" id="timeStart" class="form-control" value="08:00">
+                    </div>
+                    <div class="form-group flex-1">
+                        <label>Giờ kết thúc</label>
+                        <input type="time" id="timeEnd" class="form-control" value="09:30">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Dịch vụ kèm theo</label><br>
+                    <label style="font-weight:normal; margin-right: 15px;"><input type="checkbox"> Nước suối (+15.000đ)</label>
+                    <label style="font-weight:normal;"><input type="checkbox"> Thuê vợt (+40.000đ)</label>
+                </div>
+                <div class="form-group">
+                    <label>Trạng thái thanh toán</label>
+                    <select class="form-control">
+                        <option>Chưa thanh toán</option>
+                        <option>Đã thanh toán (Chuyển khoản)</option>
+                        <option>Đã thanh toán (Tiền mặt)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Trạng thái</label>
+                    <select class="form-control" id="statusSelect">
+                        <option value="pending">Chờ xác nhận</option>
+                        <option value="confirmed">Đã xác nhận</option>
+                        <option value="completed">Đã chơi xong</option>
+                        <option value="cancelled">Đã hủy</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+        <div class="drawer-footer">
+            <button class="btn btn-secondary" onclick="closeDrawer()" style="color: white;">Hủy</button>
+            <button class="btn btn-primary" onclick="saveBooking()">Lưu Booking</button>
+        </div>
+    </div>
+
+    <!-- Script Menu Toggle (Shared) -->
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
+    </script>
+    <script src="bookings.js"></script>
+<script src="../../../assets/js/components/sidebar.js"></script>
+</body>
+</html>

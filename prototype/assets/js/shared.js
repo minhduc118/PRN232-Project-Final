@@ -14,6 +14,8 @@ function toggleSidebar() {
 function initNavItems() {
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', function (e) {
+            const href = this.getAttribute('href');
+            if (href && href !== '#') return;
             e.preventDefault();
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
             this.classList.add('active');
@@ -67,10 +69,77 @@ function formatDate(dateStr) {
     return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(dateStr));
 }
 
+function formatShortMoney(num) {
+    if (num >= 1_000_000_000) return (num / 1_000_000_000).toFixed(1) + 'B';
+    if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + 'M';
+    if (num >= 1_000) return (num / 1_000).toFixed(0) + 'K';
+    return String(num);
+}
+
+/* ── Modal ───────────────────────────────────────────────── */
+function openModal(id) {
+    const overlay = document.getElementById(id);
+    if (overlay) overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModal(id) {
+    const overlay = document.getElementById(id);
+    if (overlay) overlay.classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+function initModalClose() {
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', e => {
+            if (e.target === overlay) closeModal(overlay.id);
+        });
+    });
+    document.querySelectorAll('[data-close-modal]').forEach(btn => {
+        btn.addEventListener('click', () => closeModal(btn.dataset.closeModal));
+    });
+}
+
+/* ── Toast ─────────────────────────────────────────────────── */
+function showToast(message, type = 'success') {
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    const icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation';
+    toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3200);
+}
+
+/* ── Form validation helper ────────────────────────────────── */
+function validateFormGroup(group) {
+    const input = group.querySelector('.form-input, .form-textarea, .form-select-field');
+    if (!input) return true;
+    const valid = input.checkValidity();
+    group.classList.toggle('invalid', !valid);
+    group.classList.toggle('valid', valid && input.value.trim() !== '');
+    return valid;
+}
+
+function validateForm(formEl) {
+    const groups = formEl.querySelectorAll('.form-group[data-validate]');
+    let ok = true;
+    groups.forEach(g => {
+        if (!validateFormGroup(g)) ok = false;
+    });
+    return ok;
+}
+
 /* ── Init on DOM Ready ───────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
     initNavItems();
     initTabButtons();
     initResponsiveSidebar();
+    initModalClose();
     applyChartDefaults();
 });

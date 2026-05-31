@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quản lý sân — Sports Court Management</title>
+    <link rel="stylesheet" href="../../../assets/css/shared.css" />
+    <link rel="stylesheet" href="courts.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+
+<body>
+    <div class="layout" id="layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">🏟️</div>
+                <div class="logo-text">
+                    <h2>SportsPlex</h2>
+                    <span>Management System</span>
+                </div>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-label">Tổng quan</div>
+                <a href="../dashboard/index.html" class="nav-item">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span class="nav-label">Dashboard</span>
+                </a>
+                <a href="../bookings/index.html" class="nav-item">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span class="nav-label">Đặt sân</span>
+                    <span class="badge">12</span>
+                </a>
+                <a href="index.html" class="nav-item active">
+                    <i class="fa-solid fa-table-tennis-paddle-ball"></i>
+                    <span class="nav-label">Quản lý sân</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-building"></i>
+                    <span class="nav-label">Tổ hợp sân</span>
+                </a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-label">Quản lý</div>
+                <a href="../users/index.html" class="nav-item">
+                    <i class="fa-solid fa-users"></i>
+                    <span class="nav-label">Khách hàng</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-user-tie"></i>
+                    <span class="nav-label">Nhân viên</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-user-gear"></i>
+                    <span class="nav-label">Quản lý (Manager)</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-whistle"></i>
+                    <span class="nav-label">Huấn luyện viên</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-gift"></i>
+                    <span class="nav-label">Khuyến mãi</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-toolbox"></i>
+                    <span class="nav-label">Dịch vụ &amp; Kho</span>
+                </a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-label">Báo cáo</div>
+                <a href="../reports/index.html" class="nav-item">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span class="nav-label">Doanh thu</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    <span class="nav-label">Hóa đơn</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                    <span class="nav-label">Nhật ký hệ thống</span>
+                </a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-label">Hệ thống</div>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-gear"></i>
+                    <span class="nav-label">Cài đặt</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span class="nav-label">Phân quyền</span>
+                </a>
+            </div>
+            <div class="sidebar-footer">
+                <div class="avatar avatar-md" style="background:linear-gradient(135deg,#4f6ef7,#a855f7)">A</div>
+                <div class="footer-info">
+                    <h4>Super Admin</h4>
+                    <span><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</span>
+                </div>
+            </div>
+        </aside>
+
+        <div class="main">
+            <header class="header">
+                <button class="header-toggle" onclick="toggleSidebar()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="header-search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="Tìm kiếm booking, sân, khách hàng..." />
+                </div>
+                <div class="header-actions">
+                    <button class="header-btn"><i class="fa-solid fa-wrench"></i></button>
+                    <button class="header-btn"><i class="fa-solid fa-bell"></i><span class="dot"></span></button>
+                    <button class="header-btn"><i class="fa-solid fa-envelope"></i></button>
+                    <div class="header-user">
+                        <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#4f6ef7,#a855f7)">A</div>
+                        <span>Super Admin</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </div>
+            </header>
+
+            <main class="page-content">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h1>Quản lý sân thể thao</h1>
+                        <p>FE-04 — Quản lý loại sân, giá thuê, giờ hoạt động và trạng thái</p>
+                    </div>
+                    <div class="page-header-actions">
+                        <button class="btn btn-primary" id="btnAddCourt">
+                            <i class="fa-solid fa-plus"></i>
+                            Thêm sân mới
+                        </button>
+                    </div>
+                </div>
+
+                <div class="courts-summary">
+                    <div class="summary-chip">
+                        <div class="chip-icon c1"><i class="fa-solid fa-table-tennis-paddle-ball"></i></div>
+                        <div>
+                            <div class="chip-label">Tổng sân</div>
+                            <div class="chip-value" id="sumTotal">0</div>
+                        </div>
+                    </div>
+                    <div class="summary-chip">
+                        <div class="chip-icon c2"><i class="fa-solid fa-circle-check"></i></div>
+                        <div>
+                            <div class="chip-label">Đang hoạt động</div>
+                            <div class="chip-value" id="sumActive">0</div>
+                        </div>
+                    </div>
+                    <div class="summary-chip">
+                        <div class="chip-icon c3"><i class="fa-solid fa-wrench"></i></div>
+                        <div>
+                            <div class="chip-label">Đang bảo trì</div>
+                            <div class="chip-value" id="sumMaintenance">0</div>
+                        </div>
+                    </div>
+                    <div class="summary-chip">
+                        <div class="chip-icon c4"><i class="fa-solid fa-ban"></i></div>
+                        <div>
+                            <div class="chip-label">Ngưng hoạt động</div>
+                            <div class="chip-value" id="sumInactive">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-bar">
+                    <div class="filter-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="filterSearch" placeholder="Tìm theo tên, mã sân, vị trí..." />
+                    </div>
+                    <select class="filter-select" id="filterType">
+                        <option value="">Tất cả loại sân</option>
+                    </select>
+                    <select class="filter-select" id="filterStatus">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="Available">Hoạt động</option>
+                        <option value="Maintenance">Bảo trì</option>
+                        <option value="Inactive">Ngưng hoạt động</option>
+                        <option value="Booked">Đã đặt</option>
+                        <option value="InUse">Đang sử dụng</option>
+                    </select>
+                    <div class="view-toggle">
+                        <button class="view-toggle-btn active" data-view="grid" title="Grid view">
+                            <i class="fa-solid fa-grip"></i>
+                        </button>
+                        <button class="view-toggle-btn" data-view="list" title="List view">
+                            <i class="fa-solid fa-list"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="courtsGridView" class="courts-grid-view active">
+                    <div class="courts-grid" id="courtsGrid"></div>
+                </div>
+
+                <div id="courtsListView" class="courts-list-view card">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Sân</th>
+                                    <th>Loại</th>
+                                    <th>Vị trí</th>
+                                    <th>Giờ hoạt động</th>
+                                    <th>Giá/giờ</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="courtsListBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="courtsEmpty" class="empty-state card" style="display:none">
+                    <i class="fa-solid fa-table-tennis-paddle-ball"></i>
+                    <h3>Không tìm thấy sân</h3>
+                    <p>Thử thay đổi bộ lọc hoặc thêm sân mới</p>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal Thêm/Sửa sân -->
+    <div class="modal-overlay" id="courtModal">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h2 id="modalTitle">Thêm sân mới</h2>
+                <button class="modal-close" data-close-modal="courtModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="courtForm" novalidate>
+                    <div class="form-tabs">
+                        <button type="button" class="form-tab active" data-panel="panelInfo">Thông tin cơ bản</button>
+                        <button type="button" class="form-tab" data-panel="panelPricing">Bảng giá</button>
+                    </div>
+
+                    <div id="panelInfo" class="form-panel active">
+                        <div class="form-grid">
+                            <div class="form-group" data-validate>
+                                <label class="form-label">Tên sân <span class="required">*</span></label>
+                                <input type="text" class="form-input" id="fieldName" required minlength="3"
+                                    maxlength="100" placeholder="VD: Sân Pickleball A1" />
+                                <span class="form-error-msg"><i class="fa-solid fa-circle-exclamation"></i>Tên sân tối thiểu 3 ký tự</span>
+                            </div>
+                            <div class="form-group" data-validate>
+                                <label class="form-label">Mã sân <span class="required">*</span></label>
+                                <input type="text" class="form-input" id="fieldCode" required pattern="[A-Za-z0-9\-]+"
+                                    maxlength="20" placeholder="VD: PCK-A1" />
+                                <span class="form-hint">Chỉ chữ, số và dấu gạch ngang</span>
+                                <span class="form-error-msg"><i class="fa-solid fa-circle-exclamation"></i>Mã sân không hợp lệ</span>
+                            </div>
+                            <div class="form-group" data-validate>
+                                <label class="form-label">Loại sân <span class="required">*</span></label>
+                                <select class="form-select-field" id="fieldType" required></select>
+                            </div>
+                            <div class="form-group" data-validate>
+                                <label class="form-label">Trạng thái <span class="required">*</span></label>
+                                <select class="form-select-field" id="fieldStatus" required>
+                                    <option value="Available">Hoạt động</option>
+                                    <option value="Maintenance">Bảo trì</option>
+                                    <option value="Inactive">Ngưng hoạt động</option>
+                                </select>
+                            </div>
+                            <div class="form-group" data-validate>
+                                <label class="form-label">Vị trí <span class="required">*</span></label>
+                                <input type="text" class="form-input" id="fieldLocation" required placeholder="VD: Khu A - Tầng 1" />
+                                <span class="form-error-msg"><i class="fa-solid fa-circle-exclamation"></i>Vui lòng nhập vị trí</span>
+                            </div>
+                            <div class="form-group" data-validate>
+                                <label class="form-label">Sức chứa <span class="required">*</span></label>
+                                <input type="number" class="form-input" id="fieldCapacity" required min="1" max="100" value="4" />
+                                <span class="form-error-msg"><i class="fa-solid fa-circle-exclamation"></i>Sức chứa từ 1–100</span>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Bề mặt sân</label>
+                                <input type="text" class="form-input" id="fieldSurface" placeholder="VD: Polymer, Gỗ, Cỏ nhân tạo" />
+                            </div>
+                            <div class="form-group" data-validate>
+                                <label class="form-label">Giá cơ bản/giờ (VND) <span class="required">*</span></label>
+                                <input type="number" class="form-input" id="fieldPrice" required min="10000" step="1000" value="100000" />
+                                <span class="form-error-msg"><i class="fa-solid fa-circle-exclamation"></i>Giá tối thiểu 10.000₫</span>
+                            </div>
+                            <div class="form-group" data-validate>
+                                <label class="form-label">Giờ mở cửa <span class="required">*</span></label>
+                                <input type="time" class="form-input" id="fieldOpenTime" required value="06:00" />
+                            </div>
+                            <div class="form-group" data-validate>
+                                <label class="form-label">Giờ đóng cửa <span class="required">*</span></label>
+                                <input type="time" class="form-input" id="fieldCloseTime" required value="22:00" />
+                            </div>
+                            <div class="form-group full">
+                                <label class="form-label">URL hình ảnh</label>
+                                <input type="url" class="form-input" id="fieldImageUrl" placeholder="https://..." />
+                            </div>
+                            <div class="form-group full">
+                                <label class="form-label">Mô tả</label>
+                                <textarea class="form-textarea" id="fieldDescription" maxlength="500"
+                                    placeholder="Mô tả tiện ích, quy cách sân..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="panelPricing" class="form-panel">
+                        <p class="form-hint" style="margin-bottom:14px">Giá theo khung giờ — hệ số cao điểm áp dụng cho ca 17:00–22:00</p>
+                        <div class="form-group" style="margin-bottom:16px">
+                            <label class="form-label">Hệ số giờ cao điểm</label>
+                            <input type="number" class="form-input" id="fieldPeakMultiplier" min="1" max="3" step="0.1" value="1.5" style="max-width:120px" />
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="pricing-table">
+                                <thead>
+                                    <tr>
+                                        <th>Khung giờ</th>
+                                        <th>Ngày thường</th>
+                                        <th>Cuối tuần</th>
+                                        <th>Cao điểm</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>06:00 – 12:00</td><td><input type="number" value="100000" readonly /></td><td><input type="number" value="120000" /></td><td>—</td></tr>
+                                    <tr><td>12:00 – 17:00</td><td><input type="number" value="100000" /></td><td><input type="number" value="120000" /></td><td>—</td></tr>
+                                    <tr><td>17:00 – 22:00</td><td><input type="number" value="150000" /></td><td><input type="number" value="180000" /></td><td>×1.5</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" data-close-modal="courtModal">Hủy</button>
+                <button type="button" class="btn btn-primary" id="btnSaveCourt">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    Lưu sân
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Xóa -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal" style="max-width:420px">
+            <div class="modal-header">
+                <h2>Xác nhận xóa</h2>
+                <button class="modal-close" data-close-modal="deleteModal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có chắc muốn xóa sân <strong id="deleteCourtName"></strong>? Hành động này không thể hoàn tác.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" data-close-modal="deleteModal">Hủy</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmDelete">
+                    <i class="fa-solid fa-trash"></i>
+                    Xóa sân
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../../../assets/js/shared.js"></script>
+    <script src="courts.js"></script>
+</body>
+
+</html>

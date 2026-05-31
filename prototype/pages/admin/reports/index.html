@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Báo cáo doanh thu — Sports Court Management</title>
+    <link rel="stylesheet" href="../../../assets/css/shared.css" />
+    <link rel="stylesheet" href="reports.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <div class="layout" id="layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-logo">
+                <div class="logo-icon">🏟️</div>
+                <div class="logo-text">
+                    <h2>SportsPlex</h2>
+                    <span>Management System</span>
+                </div>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-label">Tổng quan</div>
+                <a href="../dashboard/index.html" class="nav-item">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span class="nav-label">Dashboard</span>
+                </a>
+                <a href="../bookings/index.html" class="nav-item">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span class="nav-label">Đặt sân</span>
+                    <span class="badge">12</span>
+                </a>
+                <a href="../courts/index.html" class="nav-item">
+                    <i class="fa-solid fa-table-tennis-paddle-ball"></i>
+                    <span class="nav-label">Quản lý sân</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-building"></i>
+                    <span class="nav-label">Tổ hợp sân</span>
+                </a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-label">Quản lý</div>
+                <a href="../users/index.html" class="nav-item">
+                    <i class="fa-solid fa-users"></i>
+                    <span class="nav-label">Khách hàng</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-user-tie"></i>
+                    <span class="nav-label">Nhân viên</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-user-gear"></i>
+                    <span class="nav-label">Quản lý (Manager)</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-whistle"></i>
+                    <span class="nav-label">Huấn luyện viên</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-gift"></i>
+                    <span class="nav-label">Khuyến mãi</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-toolbox"></i>
+                    <span class="nav-label">Dịch vụ &amp; Kho</span>
+                </a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-label">Báo cáo</div>
+                <a href="index.html" class="nav-item active">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span class="nav-label">Doanh thu</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                    <span class="nav-label">Hóa đơn</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                    <span class="nav-label">Nhật ký hệ thống</span>
+                </a>
+            </div>
+            <div class="sidebar-section">
+                <div class="sidebar-section-label">Hệ thống</div>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-gear"></i>
+                    <span class="nav-label">Cài đặt</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span class="nav-label">Phân quyền</span>
+                </a>
+            </div>
+            <div class="sidebar-footer">
+                <div class="avatar avatar-md" style="background:linear-gradient(135deg,#4f6ef7,#a855f7)">A</div>
+                <div class="footer-info">
+                    <h4>Super Admin</h4>
+                    <span><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</span>
+                </div>
+            </div>
+        </aside>
+
+        <div class="main">
+            <header class="header">
+                <button class="header-toggle" onclick="toggleSidebar()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="header-search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="Tìm kiếm booking, sân, khách hàng..." />
+                </div>
+                <div class="header-actions">
+                    <button class="header-btn"><i class="fa-solid fa-wrench"></i></button>
+                    <button class="header-btn"><i class="fa-solid fa-bell"></i><span class="dot"></span></button>
+                    <button class="header-btn"><i class="fa-solid fa-envelope"></i></button>
+                    <div class="header-user">
+                        <div class="avatar avatar-sm" style="background:linear-gradient(135deg,#4f6ef7,#a855f7)">A</div>
+                        <span>Super Admin</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </div>
+            </header>
+
+            <main class="page-content">
+                <div class="page-header">
+                    <div class="page-title">
+                        <h1>Báo cáo doanh thu</h1>
+                        <p>FE-09 — Thống kê doanh thu, tần suất đặt sân và khung giờ cao điểm</p>
+                    </div>
+                    <div class="page-header-actions">
+                        <button class="btn btn-ghost" id="btnExport">
+                            <i class="fa-solid fa-file-excel"></i>
+                            Xuất Excel
+                        </button>
+                    </div>
+                </div>
+
+                <div class="reports-filter">
+                    <div class="reports-filter-left">
+                        <div class="date-range">
+                            <input type="date" class="date-input" id="dateFrom" />
+                            <span>đến</span>
+                            <input type="date" class="date-input" id="dateTo" />
+                        </div>
+                        <button class="btn btn-primary btn-sm" id="btnApplyFilter">
+                            <i class="fa-solid fa-filter"></i>
+                            Áp dụng
+                        </button>
+                        <div class="card-actions" id="periodTabs">
+                            <button class="tab-btn" data-period="day">Ngày</button>
+                            <button class="tab-btn" data-period="week">Tuần</button>
+                            <button class="tab-btn active" data-period="month">Tháng</button>
+                            <button class="tab-btn" data-period="year">Năm</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon g1"><i class="fa-solid fa-money-bill-trend-up"></i></div>
+                        <div>
+                            <div class="stat-label">Tổng doanh thu</div>
+                            <div class="stat-value" id="kpiRevenue">0₫</div>
+                            <div class="kpi-highlight" id="kpiRevenueSub">Tổng tháng này</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon g2"><i class="fa-solid fa-calendar-check"></i></div>
+                        <div>
+                            <div class="stat-label">Tổng booking</div>
+                            <div class="stat-value" id="kpiBookings">0</div>
+                            <div class="kpi-highlight" id="kpiBookingsSub">Tổng tháng này</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon g3"><i class="fa-solid fa-percent"></i></div>
+                        <div>
+                            <div class="stat-label">Tỷ lệ sử dụng sân</div>
+                            <div class="stat-value" id="kpiUtilization">0%</div>
+                            <div class="kpi-highlight">Trung bình các loại sân</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon g4"><i class="fa-solid fa-receipt"></i></div>
+                        <div>
+                            <div class="stat-label">Giá trị TB/booking</div>
+                            <div class="stat-value" id="kpiAov" style="font-size:22px">0₫</div>
+                            <div class="kpi-highlight">Average Order Value</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="reports-grid-3">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">Xu hướng doanh thu</div>
+                                <div class="card-subtitle">Biểu đồ theo kỳ đã chọn</div>
+                            </div>
+                        </div>
+                        <div class="chart-container-lg"><canvas id="revenueReportChart"></canvas></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">Doanh thu theo loại sân</div>
+                                <div class="card-subtitle">Phân bổ theo danh mục</div>
+                            </div>
+                        </div>
+                        <div class="chart-container-md"><canvas id="courtTypeReportChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="reports-grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">Khung giờ cao điểm</div>
+                                <div class="card-subtitle">Số lượng booking theo khung giờ</div>
+                            </div>
+                        </div>
+                        <div class="chart-container-md"><canvas id="peakHoursChart"></canvas></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">Tỷ lệ sử dụng sân</div>
+                                <div class="card-subtitle">% thời gian có booking</div>
+                            </div>
+                        </div>
+                        <div id="utilizationBars" style="padding-top:8px"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Top khách hàng</div>
+                            <div class="card-subtitle">Khách hàng chi tiêu nhiều nhất trong kỳ</div>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Khách hàng</th>
+                                    <th>Số booking</th>
+                                    <th>Tổng chi tiêu</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topCustomersBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="../../../assets/js/shared.js"></script>
+    <script src="reports.js"></script>
+</body>
+
+</html>

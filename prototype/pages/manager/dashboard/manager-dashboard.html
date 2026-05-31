@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>CourtManager Pro - Manager Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Google Fonts: Geist -->
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;display=swap" rel="stylesheet">
+    <!-- Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Geist', sans-serif;
+            background-color: #13131b; /* surface-dim */
+        }
+        .glass-card {
+            background: rgba(31, 31, 39, 0.6); /* surface-container with opacity */
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(144, 143, 160, 0.2); /* outline with opacity */
+            transition: all 0.2s ease-in-out;
+        }
+        .glass-card:hover {
+            border-color: rgba(192, 193, 255, 0.4); /* primary with opacity */
+            background: rgba(41, 41, 50, 0.7);
+        }
+        .glow-primary {
+            box-shadow: 0 0 15px -5px rgba(192, 193, 255, 0.3);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(144, 143, 160, 0.3);
+            border-radius: 10px;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                "tertiary": "#ffb783",
+                "error": "#ffb4ab",
+                "inverse-surface": "#e4e1ed",
+                "surface-dim": "#13131b",
+                "on-secondary-container": "#00374d",
+                "outline": "#908fa0",
+                "primary-container": "#8083ff",
+                "surface-variant": "#34343d",
+                "on-background": "#e4e1ed",
+                "background": "#13131b",
+                "surface-container": "#1f1f27",
+                "secondary": "#7bd0ff",
+                "secondary-fixed": "#c4e7ff",
+                "surface": "#13131b",
+                "tertiary-container": "#d97721",
+                "error-container": "#93000a",
+                "on-primary-fixed-variant": "#2f2ebe",
+                "surface-container-lowest": "#0d0d15",
+                "secondary-fixed-dim": "#7bd0ff",
+                "on-error": "#690005",
+                "on-secondary-fixed": "#001e2c",
+                "on-surface-variant": "#c7c4d7",
+                "on-error-container": "#ffdad6",
+                "primary-fixed-dim": "#c0c1ff",
+                "on-primary-fixed": "#07006c",
+                "surface-container-low": "#1b1b23",
+                "on-tertiary": "#4f2500",
+                "on-surface": "#e4e1ed",
+                "outline-variant": "#464554",
+                "primary": "#c0c1ff",
+                "on-secondary-fixed-variant": "#004c69",
+                "primary-fixed": "#e1e0ff",
+                "on-primary-container": "#0d0096",
+                "on-primary": "#1000a9",
+                "tertiary-fixed": "#ffdcc5",
+                "on-secondary": "#00354a",
+                "inverse-primary": "#494bd6",
+                "secondary-container": "#00a6e0",
+                "on-tertiary-container": "#452000",
+                "tertiary-fixed-dim": "#ffb783",
+                "surface-tint": "#c0c1ff",
+                "surface-container-highest": "#34343d",
+                "inverse-on-surface": "#303038",
+                "on-tertiary-fixed": "#301400",
+                "on-tertiary-fixed-variant": "#703700",
+                "surface-container-high": "#292932",
+                "surface-bright": "#393841"
+            },
+            "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+            },
+            "spacing": {
+                "unit": "4px",
+                "margin-desktop": "32px",
+                "stack-lg": "32px",
+                "stack-xs": "4px",
+                "stack-md": "16px",
+                "container-max": "1440px",
+                "stack-sm": "8px",
+                "stack-xl": "64px",
+                "margin-mobile": "16px",
+                "gutter": "16px"
+            },
+            "fontFamily": {
+                "label-md": ["Geist"],
+                "body-lg": ["Geist"],
+                "headline-lg-mobile": ["Geist"],
+                "headline-md": ["Geist"],
+                "body-sm": ["Geist"],
+                "body-md": ["Geist"],
+                "code": ["Geist"],
+                "headline-lg": ["Geist"],
+                "headline-xl": ["Geist"]
+            },
+            "fontSize": {
+                "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                "code": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                "headline-xl": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+</head>
+<body class="overflow-hidden">
+<!-- SIDE NAVBAR (Anchor: SideNavBar) -->
+<aside class="h-screen w-64 fixed left-0 top-0 border-r border-outline-variant/30 bg-surface-dim/60 backdrop-blur-xl flex flex-col py-8 z-50" id="side-nav">
+    <div class="px-6 mb-8">
+        <h1 class="font-headline-md text-headline-md font-bold text-on-surface tracking-tight">ProCourt</h1>
+        <p class="text-on-surface-variant font-label-md text-label-md opacity-70">Complex Manager</p>
+    </div>
+    <nav class="flex-1 space-y-1">
+        <a class="text-primary bg-primary/10 border-r-2 border-primary flex items-center gap-3 px-4 py-3 active:scale-[0.98] transition-transform font-body-md text-body-md" href="#">
+            <span class="material-symbols-outlined">dashboard</span> Dashboard
+        </a>
+        <a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50 flex items-center gap-3 px-4 py-3 active:scale-[0.98] transition-all duration-200 font-body-md text-body-md" href="#">
+            <span class="material-symbols-outlined">group</span> Staff
+        </a>
+        <a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50 flex items-center gap-3 px-4 py-3 active:scale-[0.98] transition-all duration-200 font-body-md text-body-md" href="#">
+            <span class="material-symbols-outlined">assignment</span> Tasks
+        </a>
+        <a class="text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50 flex items-center gap-3 px-4 py-3 active:scale-[0.98] transition-all duration-200 font-body-md text-body-md" href="#">
+            <span class="material-symbols-outlined">settings</span> Settings
+        </a>
+    </nav>
+    <div class="mt-auto px-4 pb-4">
+        <div class="bg-surface-container-low/40 rounded-xl p-4 flex items-center gap-3">
+            <img alt="Organization Logo" class="w-8 h-8 rounded bg-primary-container/20 p-1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjHAVTra_lfHHZLKbTx_mukJPkvSM813qixEKMxP_kRJv1t76Ac7yw6hUr_1lalSl01r-_zas3-lmYTWlVOooQTT7N-5iP3nsbSoNlYVHg8lk9SPdxeSo_CeDWm9DHxtWuYDZYWfRwwAPknYjUvG7ZIwFcAxjdClW9igCpExmWoaaerPAgZ1vpob7jLA6e6yL1GpXb894tBylWvrKhjtDfLMtAWjdFjtXkcwgknssa9_p2FBTBLi4Avyd28DIMzrd1sEWcdkJ-iEc">
+            <div>
+                <p class="font-label-md text-label-md text-on-surface font-semibold">HQ Complex</p>
+                <p class="text-[10px] text-on-surface-variant">Manager Privileges</p>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<!-- TOP NAVBAR (Anchor: TopNavBar) - FIXED HEIGHT BUG RESOLVED BY REMOVING h-full -->
+<header class="fixed top-0 right-0 left-64 h-16 border-b border-outline-variant/30 bg-surface-dim/40 backdrop-blur-md flex items-center justify-between px-8 z-40 transition-all">
+    <!-- Header Left: Logo and Nav -->
+    <div class="flex items-center gap-10 h-full">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary text-2xl">stadium</span>
+        <span class="font-headline-md text-headline-md font-bold text-on-surface tracking-tight">CourtManager Pro</span>
+      </div>
+      
+      <nav class="hidden lg:flex items-center gap-6 h-full">
+        <a href="#" class="h-full flex items-center px-1 border-b-2 border-primary text-primary font-label-md text-label-md">Complex A</a>
+        <a href="#" class="h-full flex items-center px-1 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-colors font-label-md text-label-md">Complex B</a>
+        <a href="#" class="h-full flex items-center px-1 border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-colors font-label-md text-label-md">Global View</a>
+      </nav>
+    </div>
+
+    <!-- Header Center: Search -->
+    <div class="flex-1 max-w-md mx-4">
+      <div class="relative group">
+        <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl transition-colors group-focus-within:text-primary">search</span>
+        <input type="text" placeholder="Search courts, bookings..." class="w-full bg-surface-container-lowest border border-outline-variant/30 rounded-full py-2 pl-12 pr-4 text-body-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/10 transition-all">
+      </div>
+    </div>
+
+    <!-- Header Right: Actions -->
+    <div class="flex items-center gap-3">
+      <button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50 transition-all">
+        <span class="material-symbols-outlined">notifications</span>
+      </button>
+      <button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/50 transition-all">
+        <span class="material-symbols-outlined">settings</span>
+      </button>
+      <div class="h-6 w-px bg-outline-variant/30 mx-2"></div>
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-secondary overflow-hidden cursor-pointer active:opacity-80">
+            <img alt="Manager Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuANJog_opPpGhBvWlcTQWxsv939sTevLenQr3tF3u8auX5xqnWV3Ju1Z0bJQR_Jney2BBPV7R0iCymPudkcWQIxbeLe3GUReI0lyIfPlV8lIwbUsUhPm4u5MWEIwh0pC2uD--tY1zt-GGxGP8dxt863rQf5anxnwUMjhwsI-FVlxAVNDsJgak1gJlv0X9zGK64V78Jrtazg-KqXokwlWoKF9HRObycE7BBVqZHd_z3SVfO2Hu-Fbd3eDQ2LVIbEn44DAZLMEu-p3TY"/>
+        </div>
+        <span class="text-sm font-medium text-on-surface hidden md:block">Alex Rivera</span>
+      </div>
+    </div>
+</header>
+
+<!-- MAIN CONTENT CANVAS -->
+<main class="ml-64 mt-16 h-[calc(100vh-64px)] overflow-y-auto custom-scrollbar bg-background p-8">
+    <div class="max-w-container-max mx-auto space-y-6 pb-10">
+        <!-- A. TOP STATISTICS -->
+        <section class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <!-- Stat 1 -->
+            <div class="glass-card p-4 rounded-xl flex flex-col justify-between h-32">
+                <div class="flex justify-between items-start">
+                    <p class="font-label-md text-label-md text-on-surface-variant">Today Revenue</p>
+                    <span class="text-primary text-[10px] font-bold bg-primary/10 px-1.5 py-0.5 rounded">+12%</span>
+                </div>
+                <div class="flex items-end justify-between">
+                    <div>
+                        <p class="font-headline-md text-headline-md text-on-surface">$4,280</p>
+                        <p class="text-[10px] text-on-surface-variant mt-1">vs yesterday</p>
+                    </div>
+                    <div class="w-16 h-8 bg-primary/5 rounded">
+                        <div class="w-full h-full flex items-end gap-0.5 px-1">
+                            <div class="bg-primary/40 w-1 h-[20%]"></div>
+                            <div class="bg-primary/40 w-1 h-[40%]"></div>
+                            <div class="bg-primary/60 w-1 h-[30%]"></div>
+                            <div class="bg-primary/60 w-1 h-[60%]"></div>
+                            <div class="bg-primary w-1 h-[80%]"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Stat 2 -->
+            <div class="glass-card p-4 rounded-xl flex flex-col justify-between h-32">
+                <div class="flex justify-between items-start">
+                    <p class="font-label-md text-label-md text-on-surface-variant">Active Bookings</p>
+                    <span class="text-secondary text-[10px] font-bold bg-secondary/10 px-1.5 py-0.5 rounded">High</span>
+                </div>
+                <div class="flex items-end justify-between">
+                    <div>
+                        <p class="font-headline-md text-headline-md text-on-surface">34</p>
+                        <p class="text-[10px] text-on-surface-variant mt-1">Currently live</p>
+                    </div>
+                    <span class="material-symbols-outlined text-secondary opacity-50">stadium</span>
+                </div>
+            </div>
+            <!-- Stat 3 -->
+            <div class="glass-card p-4 rounded-xl flex flex-col justify-between h-32">
+                <div class="flex justify-between items-start">
+                    <p class="font-label-md text-label-md text-on-surface-variant">Occupancy Rate</p>
+                    <span class="text-tertiary text-[10px] font-bold bg-tertiary/10 px-1.5 py-0.5 rounded">88%</span>
+                </div>
+                <div class="flex items-end justify-between">
+                    <div>
+                        <p class="font-headline-md text-headline-md text-on-surface">92<span class="text-sm opacity-50">%</span></p>
+                        <p class="text-[10px] text-on-surface-variant mt-1">Peak utilization</p>
+                    </div>
+                    <span class="material-symbols-outlined text-tertiary opacity-50">analytics</span>
+                </div>
+            </div>
+            <!-- Stat 4 -->
+            <div class="glass-card p-4 rounded-xl flex flex-col justify-between h-32">
+                <div class="flex justify-between items-start">
+                    <p class="font-label-md text-label-md text-on-surface-variant">Staff On Duty</p>
+                    <span class="text-on-surface-variant text-[10px] bg-outline-variant/30 px-1.5 py-0.5 rounded">All Present</span>
+                </div>
+                <div class="flex items-end justify-between">
+                    <div>
+                        <p class="font-headline-md text-headline-md text-on-surface">12</p>
+                        <p class="text-[10px] text-on-surface-variant mt-1">Shift A + B</p>
+                    </div>
+                    <span class="material-symbols-outlined text-on-surface-variant opacity-50">badge</span>
+                </div>
+            </div>
+            <!-- Stat 5 -->
+            <div class="glass-card p-4 rounded-xl flex flex-col justify-between h-32">
+                <div class="flex justify-between items-start">
+                    <p class="font-label-md text-label-md text-on-surface-variant">Pending Tasks</p>
+                    <span class="text-error text-[10px] font-bold bg-error/10 px-1.5 py-0.5 rounded">3 Priority</span>
+                </div>
+                <div class="flex items-end justify-between">
+                    <div>
+                        <p class="font-headline-md text-headline-md text-on-surface">07</p>
+                        <p class="text-[10px] text-on-surface-variant mt-1">Due before 6PM</p>
+                    </div>
+                    <span class="material-symbols-outlined text-error opacity-50">list_alt</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- B. REVENUE & ANALYTICS -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div class="lg:col-span-2 glass-card p-6 rounded-xl">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="font-headline-md text-headline-md text-on-surface">Revenue Performance</h2>
+                    <div class="flex bg-surface-container-lowest rounded-lg p-1">
+                        <button class="px-3 py-1 rounded text-[10px] font-bold bg-primary text-on-primary-container">Daily</button>
+                        <button class="px-3 py-1 rounded text-[10px] font-bold text-on-surface-variant hover:text-on-surface ml-1">Weekly</button>
+                        <button class="px-3 py-1 rounded text-[10px] font-bold text-on-surface-variant hover:text-on-surface ml-1">Monthly</button>
+                    </div>
+                </div>
+                <div class="h-64 w-full">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+            <div class="glass-card p-6 rounded-xl flex flex-col">
+                <h2 class="font-headline-md text-headline-md text-on-surface mb-6">Payment Methods</h2>
+                <div class="flex-1 flex flex-col justify-center items-center">
+                    <div class="w-40 h-40 relative">
+                        <canvas id="paymentChart"></canvas>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 w-full mt-6">
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full bg-primary"></div>
+                            <span class="text-xs text-on-surface-variant">VNPay (45%)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full bg-secondary"></div>
+                            <span class="text-xs text-on-surface-variant">MoMo (35%)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full bg-tertiary"></div>
+                            <span class="text-xs text-on-surface-variant">Cash (15%)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full bg-outline"></div>
+                            <span class="text-xs text-on-surface-variant">Other (5%)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- C. COURT STATUS GRID -->
+        <section class="space-y-4">
+            <div class="flex justify-between items-end">
+                <div>
+                    <h2 class="font-headline-md text-headline-md text-on-surface">Court Live Status</h2>
+                    <p class="text-body-sm text-on-surface-variant">Real-time monitoring of all playing surfaces</p>
+                </div>
+                <div class="flex gap-2">
+                    <button class="bg-surface-container-high hover:bg-surface-bright text-on-surface px-4 py-2 rounded-lg text-sm border border-outline-variant/30 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-lg">filter_list</span> Filter
+                    </button>
+                    <button class="bg-primary text-on-primary-container px-4 py-2 rounded-lg text-sm font-semibold shadow-lg shadow-primary/20 hover:bg-primary-container transition-all">
+                        Book Court
+                    </button>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <!-- Court 1 - Available -->
+                <div class="glass-card p-4 rounded-xl border-l-4 border-l-emerald-500/50">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-bold text-on-surface">Badminton A1</h3>
+                            <p class="text-[10px] text-on-surface-variant uppercase tracking-wider">Indoors • Wood</p>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400">AVAILABLE</span>
+                    </div>
+                    <div class="space-y-2 mb-4">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-on-surface-variant">Occupant</span>
+                            <span class="text-on-surface">None</span>
+                        </div>
+                        <div class="flex justify-between text-xs">
+                            <span class="text-on-surface-variant">Next</span>
+                            <span class="text-primary font-medium">14:00 (H. Son)</span>
+                        </div>
+                    </div>
+                    <button class="w-full py-2 bg-surface-container-highest/50 hover:bg-surface-bright rounded text-xs font-semibold text-on-surface transition-colors">Quick Reserve</button>
+                </div>
+                <!-- Court 2 - In Use -->
+                <div class="glass-card p-4 rounded-xl border-l-4 border-l-amber-500/50">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-bold text-on-surface">Tennis B1</h3>
+                            <p class="text-[10px] text-on-surface-variant uppercase tracking-wider">Outdoors • Clay</p>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400">IN USE</span>
+                    </div>
+                    <div class="space-y-2 mb-4">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-on-surface-variant">Occupant</span>
+                            <span class="text-on-surface">Nguyen Minh Anh</span>
+                        </div>
+                        <div class="flex justify-between text-xs">
+                            <span class="text-on-surface-variant">Ends In</span>
+                            <span class="text-amber-400 font-medium">24 mins</span>
+                        </div>
+                    </div>
+                    <button class="w-full py-2 bg-amber-500/10 hover:bg-amber-500/20 rounded text-xs font-semibold text-amber-400 transition-colors">Manage Session</button>
+                </div>
+                <!-- Court 3 - Booked -->
+                <div class="glass-card p-4 rounded-xl border-l-4 border-l-secondary/50">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-bold text-on-surface">Pickleball C1</h3>
+                            <p class="text-[10px] text-on-surface-variant uppercase tracking-wider">Multipurpose</p>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-secondary/10 text-secondary">BOOKED</span>
+                    </div>
+                    <div class="space-y-2 mb-4">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-on-surface-variant">Scheduled</span>
+                            <span class="text-on-surface">13:30 - 15:30</span>
+                        </div>
+                        <div class="flex justify-between text-xs">
+                            <span class="text-on-surface-variant">Client</span>
+                            <span class="text-secondary font-medium">Tran Van B.</span>
+                        </div>
+                    </div>
+                    <button class="w-full py-2 bg-secondary/10 hover:bg-secondary/20 rounded text-xs font-semibold text-secondary transition-colors">Check-in Player</button>
+                </div>
+                <!-- Court 4 - Maintenance -->
+                <div class="glass-card p-4 rounded-xl border-l-4 border-l-error/50">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-bold text-on-surface">Badminton A2</h3>
+                            <p class="text-[10px] text-on-surface-variant uppercase tracking-wider">Indoors • Wood</p>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-error/10 text-error">MAINTENANCE</span>
+                    </div>
+                    <div class="space-y-2 mb-4">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-on-surface-variant">Issue</span>
+                            <span class="text-error">Light Fixture</span>
+                        </div>
+                        <div class="flex justify-between text-xs">
+                            <span class="text-on-surface-variant">Est. Completion</span>
+                            <span class="text-on-surface">Tomorrow</span>
+                        </div>
+                    </div>
+                    <button class="w-full py-2 bg-error/10 hover:bg-error/20 rounded text-xs font-semibold text-error transition-colors">View Report</button>
+                </div>
+                <!-- Additional Courts -->
+                <div class="glass-card p-4 rounded-xl border-l-4 border-l-emerald-500/50">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-bold text-on-surface">Tennis B2</h3>
+                            <p class="text-[10px] text-on-surface-variant uppercase tracking-wider">Outdoors • Hard</p>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400">AVAILABLE</span>
+                    </div>
+                    <div class="space-y-2 mb-4">
+                        <div class="flex justify-between text-xs"><span class="text-on-surface-variant">Occupant</span><span class="text-on-surface">None</span></div>
+                        <div class="flex justify-between text-xs"><span class="text-on-surface-variant">Next</span><span class="text-primary">15:00</span></div>
+                    </div>
+                    <button class="w-full py-2 bg-surface-container-highest/50 rounded text-xs font-semibold text-on-surface">Quick Reserve</button>
+                </div>
+                <div class="glass-card p-4 rounded-xl border-l-4 border-l-amber-500/50">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-bold text-on-surface">Court D1</h3>
+                            <p class="text-[10px] text-on-surface-variant uppercase tracking-wider">VIP • Luxury Wood</p>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400">IN USE</span>
+                    </div>
+                    <div class="space-y-2 mb-4">
+                        <div class="flex justify-between text-xs"><span class="text-on-surface-variant">Occupant</span><span class="text-on-surface">Lee Sung-gi</span></div>
+                        <div class="flex justify-between text-xs"><span class="text-on-surface-variant">Ends In</span><span class="text-amber-400">5 mins</span></div>
+                    </div>
+                    <button class="w-full py-2 bg-amber-500/10 rounded text-xs font-semibold text-amber-400">Manage Session</button>
+                </div>
+                <div class="glass-card p-4 rounded-xl border-l-4 border-l-emerald-500/50">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-bold text-on-surface">Court D2</h3>
+                            <p class="text-[10px] text-on-surface-variant uppercase tracking-wider">VIP • Luxury Wood</p>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400">AVAILABLE</span>
+                    </div>
+                    <div class="space-y-2 mb-4">
+                        <div class="flex justify-between text-xs"><span class="text-on-surface-variant">Occupant</span><span class="text-on-surface">None</span></div>
+                        <div class="flex justify-between text-xs"><span class="text-on-surface-variant">Next</span><span class="text-primary">None Today</span></div>
+                    </div>
+                    <button class="w-full py-2 bg-surface-container-highest/50 rounded text-xs font-semibold text-on-surface">Quick Reserve</button>
+                </div>
+                <div class="glass-card border-2 border-dashed border-outline-variant/30 rounded-xl p-4 flex flex-col items-center justify-center text-on-surface-variant hover:border-primary/50 transition-colors cursor-pointer group">
+                    <span class="material-symbols-outlined text-3xl mb-2 group-hover:scale-110 transition-transform">add_circle</span>
+                    <p class="text-xs font-bold">ADD NEW COURT</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- D. OPERATIONAL PANELS -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <!-- Column 1: Quick Management -->
+            <div class="glass-card rounded-xl overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-outline-variant/20 flex justify-between items-center">
+                    <h2 class="font-headline-md text-headline-md text-on-surface">Quick Management</h2>
+                    <span class="material-symbols-outlined text-on-surface-variant">bolt</span>
+                </div>
+                <div class="p-6 space-y-6">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-semibold text-tertiary flex items-center gap-2">
+                                <span class="material-symbols-outlined text-lg">build</span> Maintenance Requests
+                            </h3>
+                            <a class="text-[10px] font-bold text-on-surface-variant hover:text-primary underline" href="#">View All</a>
+                        </div>
+                        <div class="space-y-3">
+                            <div class="bg-surface-container-low p-3 rounded-lg border border-outline-variant/10 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded bg-error/10 flex items-center justify-center text-error">
+                                        <span class="material-symbols-outlined text-sm">priority_high</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-medium text-on-surface">Net torn in Court B2</p>
+                                        <p class="text-[10px] text-on-surface-variant">Reported by Staff Alex • 2h ago</p>
+                                    </div>
+                                </div>
+                                <button class="px-3 py-1 bg-surface-container-highest text-[10px] rounded hover:bg-primary/20 transition-colors">Assign</button>
+                            </div>
+                            <div class="bg-surface-container-low p-3 rounded-lg border border-outline-variant/10 flex items-center justify-between opacity-70">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded bg-tertiary/10 flex items-center justify-center text-tertiary">
+                                        <span class="material-symbols-outlined text-sm">schedule</span>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-medium text-on-surface">AC Unit Servicing - Block A</p>
+                                        <p class="text-[10px] text-on-surface-variant">Scheduled Recurring Task</p>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] text-tertiary font-bold px-2">Planned</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-semibold text-error flex items-center gap-2">
+                                <span class="material-symbols-outlined text-lg">sentiment_dissatisfied</span> Customer Complaints
+                            </h3>
+                            <a class="text-[10px] font-bold text-on-surface-variant hover:text-primary underline" href="#">Manage</a>
+                        </div>
+                        <div class="bg-surface-container-low p-3 rounded-lg border border-outline-variant/10">
+                            <p class="text-xs text-on-surface italic">"The water cooler in the locker room was empty for over 3 hours during my session."</p>
+                            <div class="flex justify-between items-center mt-3">
+                                <span class="text-[10px] font-medium text-on-surface-variant">— Mrs. Clara Jenkins (ID: #882)</span>
+                                <button class="text-[10px] font-bold text-primary hover:underline">Reply</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Column 2: Staff Activity -->
+            <div class="glass-card rounded-xl overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-outline-variant/20 flex justify-between items-center">
+                    <h2 class="font-headline-md text-headline-md text-on-surface">Staff Activity</h2>
+                    <div class="flex items-center gap-2 text-xs text-on-surface-variant">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Live Monitor
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-surface-container-highest/50">
+                            <tr>
+                                <th class="px-6 py-3 font-label-md text-label-md text-on-surface-variant uppercase">Staff Name</th>
+                                <th class="px-6 py-3 font-label-md text-label-md text-on-surface-variant uppercase">Shift</th>
+                                <th class="px-6 py-3 font-label-md text-label-md text-on-surface-variant uppercase">Check-in</th>
+                                <th class="px-6 py-3 font-label-md text-label-md text-on-surface-variant uppercase">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-outline-variant/10">
+                            <tr class="hover:bg-primary/5 transition-colors">
+                                <td class="px-6 py-4 flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center font-bold text-xs text-primary">AR</div>
+                                    <span class="text-sm text-on-surface font-medium">Alex Rivera</span>
+                                </td>
+                                <td class="px-6 py-4 text-xs text-on-surface-variant">Morning (06-14)</td>
+                                <td class="px-6 py-4 text-xs text-on-surface-variant">05:52 AM</td>
+                                <td class="px-6 py-4">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400">ON-SITE</span>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-primary/5 transition-colors">
+                                <td class="px-6 py-4 flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center font-bold text-xs text-secondary">SC</div>
+                                    <span class="text-sm text-on-surface font-medium">Sarah Chen</span>
+                                </td>
+                                <td class="px-6 py-4 text-xs text-on-surface-variant">Full Day (08-20)</td>
+                                <td class="px-6 py-4 text-xs text-on-surface-variant">07:45 AM</td>
+                                <td class="px-6 py-4">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400">ON-SITE</span>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-primary/5 transition-colors">
+                                <td class="px-6 py-4 flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-tertiary/20 flex items-center justify-center font-bold text-xs text-tertiary">MN</div>
+                                    <span class="text-sm text-on-surface font-medium">Marcus Ng</span>
+                                </td>
+                                <td class="px-6 py-4 text-xs text-on-surface-variant">Afternoon (14-22)</td>
+                                <td class="px-6 py-4 text-xs text-on-surface-variant">-</td>
+                                <td class="px-6 py-4">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-outline-variant/30 text-on-surface-variant">OFF-DUTY</span>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-primary/5 transition-colors">
+                                <td class="px-6 py-4 flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-error/20 flex items-center justify-center font-bold text-xs text-error">HV</div>
+                                    <span class="text-sm text-on-surface font-medium">Helena Vogt</span>
+                                </td>
+                                <td class="px-6 py-4 text-xs text-on-surface-variant">Morning (06-14)</td>
+                                <td class="px-6 py-4 text-xs text-on-surface-variant">06:05 AM</td>
+                                <td class="px-6 py-4">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400">ON-BREAK</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- E. RECENT TRANSACTIONS -->
+        <section class="glass-card rounded-xl overflow-hidden">
+            <div class="p-6 border-b border-outline-variant/20 flex justify-between items-center">
+                <h2 class="font-headline-md text-headline-md text-on-surface">Recent Transactions</h2>
+                <button class="text-sm text-primary font-bold hover:underline">Download Report</button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left whitespace-nowrap">
+                    <thead class="bg-surface-container-highest/50">
+                        <tr>
+                            <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant">TRANSACTION ID</th>
+                            <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant">BOOKING CODE</th>
+                            <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant">CUSTOMER</th>
+                            <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant">AMOUNT</th>
+                            <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant">METHOD</th>
+                            <th class="px-6 py-4 font-label-md text-label-md text-on-surface-variant">STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-variant/10">
+                        <tr class="hover:bg-primary/5">
+                            <td class="px-6 py-4 text-sm font-mono text-on-surface">TRX-99821</td>
+                            <td class="px-6 py-4 text-sm font-semibold text-primary">BK-A122</td>
+                            <td class="px-6 py-4 text-sm text-on-surface">Nguyen Minh Anh</td>
+                            <td class="px-6 py-4 text-sm font-bold text-on-surface">$45.00</td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-on-surface-variant">VNPay</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400">SUCCESS</span>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-primary/5">
+                            <td class="px-6 py-4 text-sm font-mono text-on-surface">TRX-99820</td>
+                            <td class="px-6 py-4 text-sm font-semibold text-primary">BK-C004</td>
+                            <td class="px-6 py-4 text-sm text-on-surface">David Miller</td>
+                            <td class="px-6 py-4 text-sm font-bold text-on-surface">$120.00</td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-on-surface-variant">Cash</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400">SUCCESS</span>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-primary/5">
+                            <td class="px-6 py-4 text-sm font-mono text-on-surface">TRX-99819</td>
+                            <td class="px-6 py-4 text-sm font-semibold text-primary">BK-B091</td>
+                            <td class="px-6 py-4 text-sm text-on-surface">Tran Van B.</td>
+                            <td class="px-6 py-4 text-sm font-bold text-on-surface">$35.00</td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-on-surface-variant">MoMo</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400">SUCCESS</span>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-primary/5">
+                            <td class="px-6 py-4 text-sm font-mono text-on-surface">TRX-99818</td>
+                            <td class="px-6 py-4 text-sm font-semibold text-primary">BK-D111</td>
+                            <td class="px-6 py-4 text-sm text-on-surface">Unknown Guest</td>
+                            <td class="px-6 py-4 text-sm font-bold text-on-surface">$60.00</td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-on-surface-variant">VNPay</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-error/10 text-error">FAILED</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</main>
+
+<!-- FAB -->
+<button class="fixed bottom-8 right-8 w-14 h-14 bg-primary text-on-primary-container rounded-full shadow-2xl shadow-primary/40 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50">
+    <span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">add</span>
+</button>
+
+<!-- Page Script link -->
+<script src="dashboard.js"></script>
+</body>
+</html>

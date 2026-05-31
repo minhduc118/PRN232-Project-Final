@@ -1,0 +1,57 @@
+/* ============================================================
+   COURTMANAGER PRO — ENTERPRISE DASHBOARD CSS CUSTOMIZATIONS
+   pages/manager/dashboard/dashboard.css
+   ============================================================ */
+
+/* Atmosphere effects */
+.glass-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.glass-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+        800px circle at var(--mouse-x, 0) var(--mouse-y, 0),
+        rgba(192, 193, 255, 0.06),
+        transparent 40%
+    );
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* Custom Table custom styling to blend with dark mode design system */
+table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+th {
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+    color: #908fa0; /* outline */
+}
+
+td {
+    vertical-align: middle;
+}
+
+/* Transition micro-animations */
+button, a, input, select {
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stat-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+}

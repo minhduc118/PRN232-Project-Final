@@ -1,53 +1,74 @@
+using Microsoft.EntityFrameworkCore;
+using SportCourtManagerment.Data;
 
-namespace SportCourtManagerment
+namespace SportCourtManagerment;
+
+/// <summary>Application entry point — configures DI, middleware, and startup tasks.</summary>
+public class Program
 {
-    public class Program
+  /// <summary>Main application entry.</summary>
+  public static async Task Main(string[] args)
+  {
+    var builder = WebApplication.CreateBuilder(args);
+
+    // ==================== Services ====================
+
+    // Database (EF Core Code First)
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+      options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sql => sql.MigrationsAssembly("SportCourtManagerment")
+      )
+    );
+
+    // Controllers (Controller-based API pattern)
+    builder.Services.AddControllers();
+
+    // Authorization
+    builder.Services.AddAuthorization();
+
+    // Swagger / OpenAPI
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen(c =>
     {
-        public static void Main(string[] args)
-        {
-            var builder = WebApplication.CreateBuilder(args);
+      c.SwaggerDoc("v1", new()
+      {
+        Title = "Sports Court Management API",
+        Version = "v1",
+        Description = "API quản lý sân thể thao — PRN232"
+      });
+    });
 
-            // Add services to the container.
-            builder.Services.AddAuthorization();
+    var app = builder.Build();
 
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+    // ==================== Startup Tasks ====================
 
-            var app = builder.Build();
+    // Auto-migrate and seed in development
+    if (app.Environment.IsDevelopment())
+    {
+      using var scope = app.Services.CreateScope();
+      var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
-
-            app.UseHttpsRedirection();
-
-            app.UseAuthorization();
-
-            var summaries = new[]
-            {
-                "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-            };
-
-            app.MapGet("/weatherforecast", (HttpContext httpContext) =>
-            {
-                var forecast = Enumerable.Range(1, 5).Select(index =>
-                    new WeatherForecast
-                    {
-                        Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                        TemperatureC = Random.Shared.Next(-20, 55),
-                        Summary = summaries[Random.Shared.Next(summaries.Length)]
-                    })
-                    .ToArray();
-                return forecast;
-            })
-            .WithName("GetWeatherForecast")
-            .WithOpenApi();
-
-            app.Run();
-        }
+      await dbContext.Database.MigrateAsync();
+      await DbSeeder.SeedAsync(dbContext);
     }
+
+    // ==================== Middleware ====================
+
+    if (app.Environment.IsDevelopment())
+    {
+      app.UseSwagger();
+      app.UseSwaggerUI(c =>
+      {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Sports Court API v1");
+        c.RoutePrefix = string.Empty; // Swagger at root "/"
+      });
+    }
+
+    app.UseHttpsRedirection();
+    app.UseAuthorization();
+    app.MapControllers();
+
+    await app.RunAsync();
+  }
 }

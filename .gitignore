@@ -1,6 +1,9 @@
 # Visual Studio
 .vs/
 *.user
+*.suo
+*.userosscache
+*.sln.docstates
 
 # Build outputs
 **/bin/
@@ -11,10 +14,25 @@
 **/packages/
 !**/packages/build/
 
-# User-specific settings
-*.suo
-*.userosscache
-*.sln.docstates
+# User secrets & local config (contains sensitive data like passwords)
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/secrets.json
+
+# EF Core (logs/tools — keep Migrations/ in git so teammates can apply)
+*.efbackup
+
+# Test results
+**/TestResults/
+*.trx
+*.coveragexml
+
+# Publish output
+**/publish/
+
+# Docker
+.env
+.env.local
 
 # OS
 .DS_Store

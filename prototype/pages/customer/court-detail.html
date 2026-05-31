@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta name="description" content="Chi tiết sân thể thao — Hình ảnh, tiện ích, bảng giá, đánh giá và đặt sân trực tuyến."/>
+  <title>Chi tiết sân — SportsCourt</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/customer.css?v=4.5"/>
+</head>
+<body>
+
+<!-- navbar mount point -->
+<div id="navbar-root"></div>
+
+<!-- Loading state -->
+<div id="state-loading" style="padding:120px 0; text-align:center">
+  <div style="width:40px; height:40px; border:3px solid var(--col-primary); border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 16px"></div>
+  <p style="color:var(--col-subtext); font-size:13.5px; font-weight:500">Đang tải thông tin chi tiết sân đấu...</p>
+</div>
+
+<!-- 404 state -->
+<div id="state-404" class="hidden" style="text-align:center; padding:120px 28px">
+  <div style="font-size:4rem; margin-bottom:18px">🏟️</div>
+  <h2 style="margin-bottom:12px; font-weight:800; color:var(--col-text)">Không tìm thấy sân đấu</h2>
+  <p style="color:var(--col-subtext); margin-bottom:28px; font-size:14.5px">Sân đấu bạn đang tìm kiếm không tồn tại hoặc đã tạm dừng hoạt động.</p>
+  <a href="courts.html" class="btn btn-primary">← Quay lại danh sách sân</a>
+</div>
+
+<!-- Main content (populated dynamically) -->
+<main id="state-content" class="hidden" style="padding-bottom:80px">
+  <div class="container" style="padding-top:24px">
+    <div id="page-body"></div>
+  </div>
+</main>
+
+<!-- footer mount point -->
+<div id="footer-root"></div>
+
+<!-- notification toast -->
+<div class="toast" id="toast"></div>
+
+<script src="js/data.js?v=4.5"></script>
+<script>
+// Render Navbar & Footer dynamically
+document.getElementById('navbar-root').innerHTML = renderNavbar('courts');
+document.getElementById('footer-root').innerHTML = renderFooter();
+initNavbar();
+
+/* ── Stars HTML helper ── */
+function starsHTML(rating, size = '13px') {
+  return Array.from({length: 5}, (_, i) =>
+    `<span style="color:${i < Math.round(rating) ? '#f59e0b' : '#1f2538'}; font-size:${size}">★</span>`
+  ).join('');
+}
+
+/* Load court dynamically from URL parameter 'id' */
+const courtId = parseInt(getUrlParam('id'));
+const court = COURTS.find(c => c.courtId === courtId);
+
+setTimeout(() => {
+  document.getElementById('state-loading').classList.add('hidden');
+  
+  if (!court) {
+    document.getElementById('state-444')?.classList.remove('hidden'); // fallback
+    document.getElementById('state-404').classList.remove('hidden');
+    return;
+  }
+  
+  document.title = `${court.courtName} — SportsCourt`;
+  
+  const reviews = getCourtReviews(court.courtId);
+  const similarCourts = COURTS.filter(c => c.courtTypeId === court.courtTypeId && c.courtId !== court.courtId).slice(0, 3);
+  const typeObj = COURT_TYPES.find(t => t.courtTypeId === court.courtTypeId);
+  
+  const statusMap = {
+    Available:   { cls: 'badge-success', lbl: 'Còn trống' },
+    Maintenance: { cls: 'badge-danger',  lbl: 'Đang bảo trì' },
+    Booked:      { cls: 'badge-gray',    lbl: 'Đã đặt kín' },
+    InUse:       { cls: 'badge-primary', lbl: 'Đang sử dụng' }
+  };
+  const st = statusMap[court.status] || { cls: 'badge-gray', lbl: court.status };
+  
+  const avgRating = reviews.length
+    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+    : court.rating;
+
+  /* Helper to generate rating breakdown rows */
+  function reviewBarsHTML() {
+    if (!reviews.length) return '';
+    return [5, 4, 3, 2, 1].map(star => {
+      const count = reviews.filter(r => Math.round(r.rating) === star).length;
+      const percent = reviews.length ? Math.round((count / reviews.length) * 100) : 0;
+      return `
+      <div class="rb-row">
+        <span class="rb-lbl">${star}★</span>
+        <div class="rb-wrap"><div class="rb-fill" style="width:${percent}%"></div></div>
+        <span class="rb-pct">${percent}%</span>
+      </div>`;
+    }).join('');
+  }
+
+  /* Helper to render individual reviews cards */
+  function reviewCardHTML(r) {
+    return `
+    <div class="review-item" style="animation: fadeIn 0.4s ease both">
+      <div class="review-item-head">
+        <div class="review-user">
+          <div class="review-avatar" style="background:${r.avatarColor}">${r.initials}</div>
+          <div>
+            <div class="review-name">${r.userFullName}</div>
+            <div class="review-date">${getRelativeTime(r.createdAt)}</div>
+          </div>
+        </div>
+        <div class="review-stars">${starsHTML(r.rating, '13px')}</div>
+      </div>
+      <p class="review-text">${r.comment}</p>
+    </div>`;
+  }
+
+  /* Helper to render similar courts grid cards */
+  function similarCourtHTML(c) {
+    const type = COURT_TYPES.find(t => t.courtTypeId === c.courtTypeId);
+    const targetUrl = `court-detail.html?id=${c.courtId}`;
+    return `
+    <article class="court-card" onclick="location.href='${targetUrl}'" tabindex="0">
+      <div class="court-card-img">
+        <img src="${c.imageUrl}" alt="${c.courtName}" loading="lazy"/>
+        <div class="court-card-overlay"></div>
+        <div class="cc-badges"><span class="badge badge-primary">${type ? type.icon + ' ' + type.typeName : ''}</span></div>
+      </div>
+      <div class="court-card-body">
+        <h4 class="court-card-name" style="font-size:14.5px; font-weight:700; color:var(--col-text); margin-bottom:5px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap">${c.courtName}</h4>
+        <div class="court-card-loc" style="display:flex; align-items:center; gap:5px; color:var(--col-subtext); font-size:12.5px; margin-bottom:12px">📍 <span>${c.location}</span></div>
+        <div class="court-card-divider" style="height:1px; background:var(--col-border); margin-bottom:12px"></div>
+        <div class="court-card-footer" style="display:flex; align-items:center; justify-content:space-between">
+          <div class="court-card-rating" style="display:flex; align-items:center; gap:4px; font-size:12.5px">
+            <span style="color:#f59e0b">★</span><strong style="color:var(--col-text)">${c.rating}</strong>
+            <span style="color:var(--col-subtext)">(${c.reviewCount})</span>
+          </div>
+          <div class="court-card-price" style="font-size:15px; font-weight:800; color:var(--col-accent)">
+            ${c.pricePerHour.toLocaleString('vi-VN')}đ<small style="font-size:11px; font-weight:400; color:var(--col-subtext)">/giờ</small>
+          </div>
+        </div>
+      </div>
+    </article>`;
+  }
+
+  /* ── Dynamic Template Generation ── */
+  document.getElementById('page-body').innerHTML = `
+  
+  <!-- Breadcrumb -->
+  <nav class="breadcrumb">
+    <a href="home.html">🏠 Trang chủ</a>
+    <span class="sep">›</span>
+    <a href="courts.html">Tìm sân</a>
+    <span class="sep">›</span>
+    <span class="cur">${court.courtName}</span>
+  </nav>
+
+  <!-- Gallery Grid -->
+  <div class="gallery" id="gallery-wrap">
+    <div class="gallery-main" id="gal-main">
+      <img id="gal-img" src="${court.images[0]}" alt="${court.courtName}"/>
+      <div class="gallery-main-overlay"></div>
+    </div>
+    ${court.images.slice(1, 3).map((img, i) => `
+    <div class="gallery-thumb ${i === 0 ? 'active' : ''}" onclick="switchImg(${i + 1})" tabindex="0"
+      onkeydown="if(event.key==='Enter')switchImg(${i + 1})">
+      <img src="${img}" alt="Thumbnail ${i + 2}" loading="lazy"/>
+    </div>`).join('')}
+  </div>
+
+  <!-- Detail Two-Column Layout -->
+  <div class="detail-layout">
+    
+    <!-- Left Column: Primary Details -->
+    <div>
+      <div class="detail-head">
+        <h1 class="detail-title">${court.courtName}</h1>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; align-items:center">
+          <span class="badge badge-primary" style="font-size:11.5px; padding:4px 10px">${typeObj ? typeObj.icon + ' ' + typeObj.typeName : ''}</span>
+          <span class="badge ${st.cls}" style="font-size:11.5px; padding:4px 10px">${st.lbl}</span>
+          <span class="badge badge-gray" style="font-size:11px; padding:4px 10px">📋 Mã: ${court.courtCode}</span>
+        </div>
+        <div class="detail-meta-row" style="padding-top:4px">
+          <div class="detail-rating">
+            <span class="big-star">★</span>
+            <span class="score">${avgRating}</span>
+            <span class="rev-count">(${reviews.length || court.reviewCount} đánh giá)</span>
+          </div>
+          <div class="detail-location">📍 <span>Vị trí: ${court.location}</span></div>
+          <div class="detail-hours">⏰ <span>Giờ hoạt động: ${court.openTime}–${court.closeTime}</span></div>
+        </div>
+      </div>
+
+      <!-- Nav Tabs -->
+      <div class="detail-tabs" role="tablist">
+        <button class="detail-tab active" onclick="switchTab('info')" id="tb-info">📋 Thông tin sân</button>
+        <button class="detail-tab" onclick="switchTab('amn')" id="tb-amn">✨ Tiện ích</button>
+        <button class="detail-tab" onclick="switchTab('pricing')" id="tb-pricing">💰 Bảng giá</button>
+        <button class="detail-tab" onclick="switchTab('reviews')" id="tb-reviews">⭐ Đánh giá (${reviews.length})</button>
+      </div>
+
+      <!-- Tab Content: Info -->
+      <div class="tab-panel active" id="tp-info">
+        <p style="font-size:14px; line-height:1.8; color:var(--col-text-sm); margin-bottom:24px">${court.description}</p>
+        <div class="info-grid">
+          <div class="info-cell">
+            <div class="info-cell-label">Địa chỉ sân đấu</div>
+            <div class="info-cell-val" style="font-size:13.5px; color:var(--col-text)">📍 ${court.address}</div>
+          </div>
+          <div class="info-cell">
+            <div class="info-cell-label">Khung giờ hoạt động</div>
+            <div class="info-cell-val" style="font-size:13.5px; color:var(--col-text)">⏰ ${court.openTime} – ${court.closeTime}</div>
+          </div>
+          <div class="info-cell">
+            <div class="info-cell-label">Giá cơ bản / giờ</div>
+            <div class="info-cell-val" style="color:var(--col-accent)">${formatCurrency(court.pricePerHour)}</div>
+          </div>
+          <div class="info-cell">
+            <div class="info-cell-label">Phụ thu cuối tuần</div>
+            <div class="info-cell-val" style="color:var(--col-warn)">+${court.weekendSurcharge || 20}% (T7 & CN)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Content: Amenities -->
+      <div class="tab-panel" id="tp-amn">
+        <div class="amenities-grid">
+          ${court.amenities.map(a => {
+            const emoji = a.split(' ')[0];
+            const text = a.split(' ').slice(1).join(' ');
+            return `
+            <div class="amenity-item">
+              <span class="amenity-icon">${emoji}</span>
+              <span>${text}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- Tab Content: Pricing -->
+      <div class="tab-panel" id="tp-pricing">
+        <div style="overflow-x:auto; border:1px solid var(--col-border); border-radius:var(--radius-sm)">
+          <table class="pricing-table">
+            <thead>
+              <tr>
+                <th>Khung giờ đấu</th>
+                <th>Giá ngày thường</th>
+                <th>Giá cuối tuần (+${court.weekendSurcharge || 20}%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${TIME_SLOTS.slice(0, 10).map(s => {
+                const basePrice = court.pricePerHour;
+                const wkPrice = Math.round(basePrice * (1 + (court.weekendSurcharge || 20) / 100));
+                const isPeak = parseInt(s.startTime) >= 17 || parseInt(s.startTime) <= 8;
+                return `
+                <tr>
+                  <td style="font-weight:500">
+                    Ca ${s.startTime}–${s.endTime}
+                    ${isPeak ? '<span class="badge badge-warn" style="font-size:10px; margin-left:6px; padding:1px 6px">Giờ vàng</span>' : ''}
+                  </td>
+                  <td class="price">${formatCurrency(basePrice)}</td>
+                  <td class="price-wk">${formatCurrency(wkPrice)}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:12px; color:var(--col-subtext); margin-top:14px; font-style:italic">* Bảng giá có hiệu lực đến ngày 31/12/2026. Phụ thu ngày lễ tết được thông báo riêng.</p>
+      </div>
+
+      <!-- Tab Content: Reviews -->
+      <div class="tab-panel" id="tp-reviews">
+        ${reviews.length ? `
+        <div class="review-overview">
+          <div class="review-score-big">
+            <div class="num">${avgRating}</div>
+            <div class="stars">${starsHTML(avgRating, '15px')}</div>
+            <div class="total">${reviews.length} lượt đánh giá</div>
+          </div>
+          <div class="review-bars">${reviewBarsHTML()}</div>
+        </div>
+        <div class="review-list" id="review-list-wrap">
+          ${reviews.slice(0, 4).map(reviewCardHTML).join('')}
+        </div>
+        ${reviews.length > 4 ? `
+        <button class="btn btn-ghost" style="width:100%; margin-top:18px" id="btn-load-more" onclick="loadMoreReviews()">
+          Xem thêm ${reviews.length - 4} đánh giá khách hàng →
+        </button>` : ''}
+        ` : `
+        <div class="empty-state" style="padding:48px 20px">
+          <div class="empty-icon" style="opacity:0.3; font-size:3rem">💬</div>
+          <h3>Chưa có lượt đánh giá nào</h3>
+          <p>Sân đấu này hiện tại chưa có đánh giá nào từ cộng đồng khách hàng.</p>
+        </div>`}
+      </div>
+    </div>
+
+    <!-- Right Column: Glassmorphic Sticky Booking Sidebar -->
+    <div>
+      <div class="booking-card glass-card">
+        <div class="booking-price-area">
+          <div class="booking-price-big">
+            ${formatCurrency(court.pricePerHour)}<span class="booking-price-unit"> /giờ</span>
+          </div>
+          <div class="booking-status-row">
+            <span class="badge ${st.cls}">${st.lbl}</span>
+            <span style="font-size:12px; color:var(--col-subtext)">• Xác nhận tự động ⚡</span>
+          </div>
+        </div>
+
+        <div class="booking-field">
+          <label class="booking-label" for="booking-date">📅 Ngày chơi</label>
+          <input class="input" type="date" id="booking-date"/>
+        </div>
+        
+        <div class="booking-field">
+          <label class="booking-label" for="booking-slot">⏰ Khung giờ đặt</label>
+          <select class="input" id="booking-slot">
+            <option value="">-- Chọn khung giờ chơi --</option>
+            ${TIME_SLOTS.map(s => `<option value="${s.slotId}">${s.startTime}–${s.endTime}</option>`).join('')}
+          </select>
+        </div>
+
+        <!-- Calculated price totals (expands on select) -->
+        <div class="booking-price-summary" id="booking-summary-wrap" style="transition:var(--transition); border:1px solid rgba(255,255,255,0.03)">
+          <div class="booking-price-row">
+            <span>Tiền sân (1 giờ)</span>
+            <span id="summary-price-1h">${formatCurrency(court.pricePerHour)}</span>
+          </div>
+          <div class="booking-price-row" id="surcharge-row" style="display:none">
+            <span style="color:var(--col-warn)">⚡ Phụ thu cuối tuần (+${court.weekendSurcharge || 20}%)</span>
+            <span id="surcharge-value" style="color:var(--col-warn)">0đ</span>
+          </div>
+          <div class="booking-price-total">
+            <span>Tổng cộng</span>
+            <span id="summary-total">${formatCurrency(court.pricePerHour)}</span>
+          </div>
+        </div>
+
+        <div class="booking-btn-area">
+          ${court.status === 'Available'
+            ? `<button class="booking-btn booking-btn-primary" onclick="handleBookingSubmit()" id="booking-btn-cta">⚡ Đặt sân đấu ngay</button>`
+            : `<button class="booking-btn booking-btn-disabled" disabled>⚠️ Sân đấu tạm dừng nhận lịch</button>`
+          }
+        </div>
+
+        <div class="booking-info-item" style="margin-top:14px">🔒 <span>Chính sách: Hoàn tiền 100% khi hủy trước 24h</span></div>
+        <div class="booking-info-item">✉️ <span>Xác nhận thông tin tức thì qua Email &amp; Zalo</span></div>
+
+        <div class="booking-actions">
+          <button class="btn btn-ghost btn-sm" onclick="toggleFavorite(this)" id="btn-favorite" data-fav="0">🤍 Yêu thích</button>
+          <button class="btn btn-ghost btn-sm" onclick="handleShareLink()">📤 Chia sẻ</button>
+        </div>
+      </div>
+
+      <!-- Contact assistance card -->
+      <div class="contact-card glass-card">
+        <h4 style="color:var(--col-text)">📞 Hỗ trợ đặt sân nhanh</h4>
+        <p>Gặp khó khăn khi lựa chọn hoặc thanh toán đặt sân? Gọi ngay cho chúng tôi.</p>
+        <a href="tel:19001234" class="btn btn-ghost btn-sm" style="width:100%; justify-content:center; border-color:var(--col-primary-bg); color:var(--col-primary-lt)">
+          📞 Tổng đài hỗ trợ: 1900 1234
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section: Similar Courts -->
+  ${similarCourts.length ? `
+  <div class="similar-section">
+    <h3 style="font-size:16px; font-weight:800; color:var(--col-text); border-left:3px solid var(--col-primary); padding-left:10px; margin-bottom:20px">
+      Sân đấu tương tự — ${typeObj ? typeObj.icon + ' ' + typeObj.typeName : ''}
+    </h3>
+    <div class="similar-grid">${similarCourts.map(similarCourtHTML).join('')}</div>
+  </div>` : ''}
+  `;
+
+  /* ── Interactive Hooks Init ── */
+  document.getElementById('state-content').classList.remove('hidden');
+  
+  // Animate review percentage bars
+  setTimeout(() => {
+    document.querySelectorAll('.rb-fill').forEach(bar => {
+      const targetWidth = bar.style.width;
+      bar.style.width = '0';
+      bar.style.transition = 'width 0s';
+      requestAnimationFrame(() => {
+        bar.style.transition = 'width 1s cubic-bezier(0.4, 0, 0.2, 1)';
+        bar.style.width = targetWidth;
+      });
+    });
+  }, 150);
+
+  // Set default booking date
+  const dateInput = document.getElementById('booking-date');
+  const slotSelect = document.getElementById('booking-slot');
+  const summaryWrap = document.getElementById('booking-summary-wrap');
+  
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (dateInput) {
+    dateInput.value = todayStr;
+    dateInput.min = todayStr;
+  }
+
+  // Price calculations on field changes
+  function updateBookingPrice() {
+    if (!slotSelect.value) {
+      summaryWrap.style.display = 'none';
+      return;
+    }
+    
+    const selectedDate = new Date(dateInput.value || todayStr);
+    const isWeekend = selectedDate.getDay() === 0 || selectedDate.getDay() === 6; // Sunday or Saturday
+    
+    const baseVal = court.pricePerHour;
+    const surchargeRate = court.weekendSurcharge || 20;
+    const surchargeVal = isWeekend ? Math.round(baseVal * surchargeRate / 100) : 0;
+    const totalVal = baseVal + surchargeVal;
+    
+    document.getElementById('summary-price-1h').textContent = formatCurrency(baseVal);
+    
+    const surchargeRow = document.getElementById('surcharge-row');
+    if (isWeekend) {
+      document.getElementById('surcharge-value').textContent = `+${formatCurrency(surchargeVal)}`;
+      surchargeRow.style.display = 'flex';
+    } else {
+      surchargeRow.style.display = 'none';
+    }
+    
+    document.getElementById('summary-total').textContent = formatCurrency(totalVal);
+    summaryWrap.style.display = 'block';
+  }
+
+  if (slotSelect) slotSelect.addEventListener('change', updateBookingPrice);
+  if (dateInput) dateInput.addEventListener('change', updateBookingPrice);
+
+  /* Load more reviews action */
+  window.loadMoreReviews = function() {
+    const wrap = document.getElementById('review-list-wrap');
+    reviews.slice(4).forEach(r => {
+      wrap.innerHTML += reviewCardHTML(r);
+    });
+    document.getElementById('btn-load-more')?.remove();
+    showToast('💬 Đã tải toàn bộ đánh giá');
+  };
+
+}, 250);
+
+/* Switch Main Gallery Large Image */
+function switchImg(idx) {
+  const galImg = document.getElementById('gal-img');
+  if (!galImg || !court) return;
+  
+  // Transition fade-out fade-in
+  galImg.style.opacity = '0';
+  galImg.style.transition = 'opacity 0.2s ease';
+  
+  setTimeout(() => {
+    galImg.src = court.images[idx];
+    galImg.style.opacity = '1';
+  }, 180);
+  
+  document.querySelectorAll('.gallery-thumb').forEach((thumb, i) => {
+    thumb.classList.toggle('active', i === idx - 1);
+  });
+}
+
+/* Tabs Switching Logic */
+function switchTab(tabId) {
+  const tabs = ['info', 'amn', 'pricing', 'reviews'];
+  tabs.forEach(t => {
+    document.getElementById(`tb-${t}`)?.classList.remove('active');
+    document.getElementById(`tp-${t}`)?.classList.remove('active');
+  });
+  
+  document.getElementById(`tb-${tabId}`)?.classList.add('active');
+  document.getElementById(`tp-${tabId}`)?.classList.add('active');
+}
+
+/* Booking Request Submission */
+function handleBookingSubmit() {
+  const dateVal = document.getElementById('booking-date')?.value;
+  const slotVal = document.getElementById('booking-slot')?.value;
+  
+  if (!dateVal) {
+    showToast('⚠️ Vui lòng chọn ngày muốn chơi');
+    return;
+  }
+  if (!slotVal) {
+    showToast('⚠️ Vui lòng chọn ca khung giờ');
+    return;
+  }
+  
+  const btn = document.getElementById('booking-btn-cta');
+  if (btn) {
+    btn.textContent = '⏳ Đang khởi tạo đơn hàng...';
+    btn.disabled = true;
+  }
+  
+  showToast('✅ Đang chuyển tới trang xác nhận hóa đơn đặt hàng...');
+  setTimeout(() => {
+    // Simply redirect back to search lists as prototype completion
+    window.location.href = 'courts.html';
+  }, 1600);
+}
+
+/* Favorite Toggle Button action */
+function toggleFavorite(btn) {
+  const isFav = btn.dataset.fav === '1';
+  if (isFav) {
+    btn.dataset.fav = '0';
+    btn.innerHTML = '🤍 Yêu thích';
+    btn.style.cssText = '';
+    showToast('💔 Đã xóa sân khỏi danh sách yêu thích');
+  } else {
+    btn.dataset.fav = '1';
+    btn.innerHTML = '❤️ Đã yêu thích';
+    btn.style.cssText = 'color:var(--col-danger); border-color:rgba(239, 68, 68, 0.3)';
+    showToast('❤️ Đã thêm sân vào danh sách yêu thích');
+  }
+}
+
+/* Share Page Link helper */
+function handleShareLink() {
+  if (navigator.share) {
+    navigator.share({
+      title: court ? court.courtName : 'SportsCourt Detail',
+      url: window.location.href
+    }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      showToast('🔗 Đã sao chép liên kết vào bộ nhớ tạm');
+    }).catch(() => {
+      showToast('⚠️ Không thể sao chép liên kết tự động');
+    });
+  }
+}
+
+/* Toast Helper */
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>

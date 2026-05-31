@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Tìm kiếm sân thể thao — Lọc theo loại sân, giá, đánh giá. Đặt sân dễ dàng trên SportsCourt."/>
+  <title>Tìm sân thể thao — SportsCourt</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="css/customer.css?v=4.5"/>
+</head>
+<body>
+
+<!-- navbar mount point -->
+<div id="navbar-root"></div>
+
+<!-- PAGE HEADER BAR -->
+<div class="search-page-head-bar" style="border-bottom:1px solid var(--col-border); padding:28px 0 20px; background:var(--col-surface)">
+  <div class="container" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:12px">
+    <div>
+      <h1 style="font-size:24px; font-weight:800; color:var(--col-text); letter-spacing:-0.4px">Tìm kiếm sân đấu</h1>
+      <p style="font-size:13px; color:var(--col-subtext); margin-top:4px">Lọc theo loại hình sân, khoảng giá và xếp hạng đánh giá để tìm sân đấu ưng ý nhất</p>
+    </div>
+    <span class="badge badge-accent" style="font-size:11.5px; padding:4px 12px">🟢 500+ Sân đấu đang hoạt động</span>
+  </div>
+</div>
+
+<div class="container" style="padding-top:16px; padding-bottom:72px">
+  
+  <!-- Mobile Filter Toggle Button -->
+  <button class="mobile-filter-btn" id="mobile-filter-btn" style="width:100%; justify-content:center; gap:8px">
+    🎛️ Bộ lọc tìm kiếm
+    <span id="filter-badge" style="display:none; background:var(--col-primary); color:#fff; font-size:10.5px; font-weight:700; padding:1px 7px; border-radius:999px">0</span>
+  </button>
+
+  <div class="search-layout">
+    
+    <!-- Sidebar Filters Column (Desktop) -->
+    <aside class="filter-sidebar glass-card" id="sidebar-filters">
+      <div class="filter-sidebar-head">
+        <h3 style="font-size:14px; font-weight:700; color:var(--col-text); display:flex; align-items:center; gap:6px">🎛️ Bộ lọc</h3>
+        <button class="filter-reset" onclick="resetFilters()">Xóa tất cả</button>
+      </div>
+
+      <!-- Filter Section: Sport Type -->
+      <div class="filter-section">
+        <div class="filter-section-title">Loại sân</div>
+        <div class="checkbox-list" id="type-checkbox-list">
+          <!-- populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Filter Section: Price Range -->
+      <div class="filter-section">
+        <div class="filter-section-title">Khoảng giá / giờ</div>
+        <div class="price-row" style="margin-bottom:6px">
+          <div>
+            <div class="form-label" style="font-size:10px; margin-bottom:3px">Từ (đ)</div>
+            <input class="input" type="number" id="price-min" placeholder="0" min="0" step="10000"/>
+          </div>
+          <div>
+            <div class="form-label" style="font-size:10px; margin-bottom:3px">Đến (đ)</div>
+            <input class="input" type="number" id="price-max" placeholder="500k" min="0" step="10000"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Section: Rating -->
+      <div class="filter-section">
+        <div class="filter-section-title">Đánh giá tối thiểu</div>
+        <div class="rating-options" id="rating-options-wrap">
+          <label class="rating-option sel">
+            <input type="radio" name="rating-filter" value="0" checked style="display:none"/>
+            <span style="font-weight:600">Tất cả</span>
+          </label>
+          <label class="rating-option">
+            <input type="radio" name="rating-filter" value="4" style="display:none"/>
+            <span class="rating-stars-row">★★★★<span class="empty-star" style="color:var(--col-surface-3)">★</span></span>
+            <span class="rating-option-lbl" style="font-size:11.5px">4.0+</span>
+          </label>
+          <label class="rating-option">
+            <input type="radio" name="rating-filter" value="4.5" style="display:none"/>
+            <span class="rating-stars-row">★★★★★</span>
+            <span class="rating-option-lbl" style="font-size:11.5px">4.5+</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Filter Section: Availability -->
+      <div class="filter-section">
+        <div class="filter-section-title">Trạng thái</div>
+        <div class="radio-list">
+          <label class="radio-item">
+            <input type="radio" name="status-filter" value="" checked/>
+            <span>Tất cả</span>
+          </label>
+          <label class="radio-item">
+            <input type="radio" name="status-filter" value="Available"/>
+            <span>Sân còn trống</span>
+          </label>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%; margin-top:8px" onclick="applyFilters()">✅ Áp dụng bộ lọc</button>
+    </aside>
+
+    <!-- Content Results Column -->
+    <div>
+      <!-- Search input wrapper -->
+      <div class="search-bar-wrap">
+        <span class="search-bar-icon">🔍</span>
+        <input class="input" type="text" id="search-input" placeholder="Tìm theo tên sân, địa điểm, mã sân..."/>
+      </div>
+
+      <!-- Toolbar results summary and sorter -->
+      <div class="results-topbar">
+        <p class="results-count">Tìm thấy <strong id="results-count-num" style="color:var(--col-accent)">0</strong> sân đấu</p>
+        <select class="sort-select" id="sort-select">
+          <option value="rating-desc">⭐ Đánh giá cao nhất</option>
+          <option value="price-asc">💰 Giá từ thấp đến cao</option>
+          <option value="price-desc">💰 Giá từ cao đến thấp</option>
+          <option value="name-asc">🔤 Tên sân A–Z</option>
+          <option value="reviews-desc">💬 Nhiều lượt đánh giá</option>
+        </select>
+      </div>
+
+      <!-- Active chips tags -->
+      <div class="filter-tags" id="active-filter-tags">
+        <!-- populated dynamically -->
+      </div>
+
+      <!-- Main court grid -->
+      <div class="court-list-grid" id="courts-grid">
+        <!-- populated dynamically -->
+      </div>
+
+      <!-- Empty state when no matches -->
+      <div class="empty-state hidden" id="courts-empty-state">
+        <div class="empty-icon" style="opacity:0.4">🏟️</div>
+        <h3>Không tìm thấy kết quả phù hợp</h3>
+        <p>Vui lòng đổi từ khóa tìm kiếm hoặc đặt lại bộ lọc để xem thêm sân đấu.</p>
+        <button class="btn btn-ghost" style="margin-top:16px" onclick="resetFilters()">Đặt lại bộ lọc</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile Filter Slide Drawer -->
+<div class="filter-drawer" id="mobile-filter-drawer">
+  <div class="filter-drawer-overlay" id="mobile-drawer-overlay"></div>
+  <div class="filter-drawer-panel" id="mobile-drawer-panel">
+    <!-- populated dynamically from desktop sidebar on click -->
+  </div>
+</div>
+
+<!-- footer mount point -->
+<div id="footer-root"></div>
+
+<!-- notification toast -->
+<div class="toast" id="toast"></div>
+
+<script src="js/data.js?v=4.5"></script>
+<script>
+// Render Navbar & Footer dynamically
+document.getElementById('navbar-root').innerHTML = renderNavbar('courts');
+document.getElementById('footer-root').innerHTML = renderFooter();
+initNavbar();
+
+/* ── Centralized Filter State ── */
+let filterState = {
+  types: [],
+  priceMin: null,
+  priceMax: null,
+  rating: 0,
+  status: '',
+  q: '',
+  sort: 'rating-desc'
+};
+
+// Auto-read URL query param for redirecting from home.html quick search
+const urlParams = new URLSearchParams(window.location.search);
+const urlType = urlParams.get('type');
+const urlDate = urlParams.get('date');
+const urlTime = urlParams.get('time');
+
+if (urlType) {
+  filterState.types = [parseInt(urlType)];
+}
+if (urlDate || urlTime) {
+  // Can be displayed as tags/chips
+  showToast(`⚡ Đang tìm kiếm khung giờ cho ngày ${urlDate || 'hôm nay'}`);
+}
+
+/* Render checkbox sport types dynamically based on COURT_TYPES */
+const checkboxContainer = document.getElementById('type-checkbox-list');
+COURT_TYPES.forEach(t => {
+  const count = COURTS.filter(c => c.courtTypeId === t.courtTypeId).length;
+  const isChecked = filterState.types.includes(t.courtTypeId) ? 'checked' : '';
+  
+  checkboxContainer.innerHTML += `
+  <label class="checkbox-item">
+    <input type="checkbox" value="${t.courtTypeId}" onchange="onTypeToggle(this)" ${isChecked}/>
+    <span>${t.icon} ${t.typeName}</span>
+    <span class="checkbox-count">${count}</span>
+  </label>`;
+});
+
+/* Toggle sport type filter */
+function onTypeToggle(cb) {
+  const typeId = parseInt(cb.value);
+  if (cb.checked) {
+    filterState.types = [...filterState.types, typeId];
+  } else {
+    filterState.types = filterState.types.filter(id => id !== typeId);
+  }
+  renderResults();
+}
+
+/* Core Filter and Sorting Logic */
+function getFilteredCourts() {
+  let list = [...COURTS];
+  
+  // 1. Sport types
+  if (filterState.types.length > 0) {
+    list = list.filter(c => filterState.types.includes(c.courtTypeId));
+  }
+  // 2. Minimum price
+  if (filterState.priceMin) {
+    list = list.filter(c => c.pricePerHour >= parseInt(filterState.priceMin));
+  }
+  // 3. Maximum price
+  if (filterState.priceMax) {
+    list = list.filter(c => c.pricePerHour <= parseInt(filterState.priceMax));
+  }
+  // 4. Rating
+  if (filterState.rating > 0) {
+    list = list.filter(c => c.rating >= parseFloat(filterState.rating));
+  }
+  // 5. Status
+  if (filterState.status) {
+    list = list.filter(c => c.status === filterState.status);
+  }
+  // 6. Search query text
+  if (filterState.q.trim()) {
+    const qStr = filterState.q.toLowerCase();
+    list = list.filter(c => 
+      c.courtName.toLowerCase().includes(qStr) || 
+      c.location.toLowerCase().includes(qStr) || 
+      c.courtCode.toLowerCase().includes(qStr)
+    );
+  }
+  
+  // Sorting
+  switch (filterState.sort) {
+    case 'rating-desc':
+      list.sort((a, b) => b.rating - a.rating);
+      break;
+    case 'price-asc':
+      list.sort((a, b) => a.pricePerHour - b.pricePerHour);
+      break;
+    case 'price-desc':
+      list.sort((a, b) => b.pricePerHour - a.pricePerHour);
+      break;
+    case 'name-asc':
+      list.sort((a, b) => a.courtName.localeCompare(b.courtName, 'vi'));
+      break;
+    case 'reviews-desc':
+      list.sort((a, b) => b.reviewCount - a.reviewCount);
+      break;
+  }
+  
+  return list;
+}
+
+/* Render active filters tags/chips */
+function renderActiveChips() {
+  const chips = [];
+  
+  // Types chips
+  filterState.types.forEach(typeId => {
+    const t = COURT_TYPES.find(x => x.courtTypeId === typeId);
+    if (t) {
+      chips.push({
+        label: `${t.icon} ${t.typeName}`,
+        remove: () => {
+          filterState.types = filterState.types.filter(id => id !== typeId);
+          // Sync desktop sidebar checkbox
+          const cb = document.querySelector(`#type-checkbox-list input[value="${typeId}"]`);
+          if (cb) cb.checked = false;
+          // Sync mobile drawer checkbox if open
+          const mobCb = document.querySelector(`#mobile-drawer-panel input[value="${typeId}"]`);
+          if (mobCb) mobCb.checked = false;
+          renderResults();
+        }
+      });
+    }
+  });
+  
+  // Price chips
+  if (filterState.priceMin) {
+    chips.push({
+      label: `Từ ${parseInt(filterState.priceMin).toLocaleString('vi-VN')}đ`,
+      remove: () => {
+        filterState.priceMin = null;
+        document.getElementById('price-min').value = '';
+        const mobMin = document.querySelector('#mobile-drawer-panel #price-min');
+        if (mobMin) mobMin.value = '';
+        renderResults();
+      }
+    });
+  }
+  if (filterState.priceMax) {
+    chips.push({
+      label: `Đến ${parseInt(filterState.priceMax).toLocaleString('vi-VN')}đ`,
+      remove: () => {
+        filterState.priceMax = null;
+        document.getElementById('price-max').value = '';
+        const mobMax = document.querySelector('#mobile-drawer-panel #price-max');
+        if (mobMax) mobMax.value = '';
+        renderResults();
+      }
+    });
+  }
+  
+  // Rating chip
+  if (filterState.rating > 0) {
+    chips.push({
+      label: `${filterState.rating}+ ⭐`,
+      remove: () => {
+        filterState.rating = 0;
+        document.querySelector('input[name="rating-filter"][value="0"]').checked = true;
+        const mobR = document.querySelector('#mobile-drawer-panel input[name="rating-filter"][value="0"]');
+        if (mobR) mobR.checked = true;
+        
+        document.querySelectorAll('.rating-option').forEach(o => o.classList.remove('sel'));
+        document.querySelector('.rating-option').classList.add('sel');
+        renderResults();
+      }
+    });
+  }
+  
+  // Status chip
+  if (filterState.status) {
+    chips.push({
+      label: `Sân còn trống`,
+      remove: () => {
+        filterState.status = '';
+        document.querySelector('input[name="status-filter"][value=""]').checked = true;
+        const mobS = document.querySelector('#mobile-drawer-panel input[name="status-filter"][value=""]');
+        if (mobS) mobS.checked = true;
+        renderResults();
+      }
+    });
+  }
+  
+  // Render badge counts on mobile button
+  const filterBadge = document.getElementById('filter-badge');
+  if (filterBadge) {
+    filterBadge.textContent = chips.length;
+    filterBadge.style.display = chips.length > 0 ? 'inline' : 'none';
+  }
+  
+  // Render chips wrapper HTML
+  const wrapper = document.getElementById('active-filter-tags');
+  wrapper.innerHTML = chips
+    .map(c => `<button class="ftag" onclick="(${c.remove.toString()})()">${c.label} ✕</button>`)
+    .join('');
+}
+
+/* Render the filtered grid list */
+function renderResults() {
+  const filtered = getFilteredCourts();
+  const grid = document.getElementById('courts-grid');
+  const emptyState = document.getElementById('courts-empty-state');
+  
+  // Count
+  document.getElementById('results-count-num').textContent = filtered.length.toLocaleString('vi-VN');
+  
+  if (filtered.length === 0) {
+    grid.innerHTML = '';
+    emptyState.classList.remove('hidden');
+    renderActiveChips();
+    return;
+  }
+  
+  emptyState.classList.add('hidden');
+  grid.innerHTML = filtered.map(c => courtCardHTML(c)).join('');
+  
+  // Staggered animated fade-in for cards
+  grid.querySelectorAll('.court-card').forEach((card, index) => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(14px)';
+    card.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
+    setTimeout(() => {
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(0)';
+    }, index * 60);
+  });
+  
+  renderActiveChips();
+}
+
+/* Desktop Sidebar apply filter action */
+function applyFilters() {
+  filterState.priceMin = document.getElementById('price-min').value || null;
+  filterState.priceMax = document.getElementById('price-max').value || null;
+  
+  const selectedRating = document.querySelector('input[name="rating-filter"]:checked');
+  filterState.rating = selectedRating ? parseFloat(selectedRating.value) : 0;
+  
+  const selectedStatus = document.querySelector('input[name="status-filter"]:checked');
+  filterState.status = selectedStatus ? selectedStatus.value : '';
+  
+  renderResults();
+  closeMobileDrawer();
+  showToast('✅ Đã áp dụng bộ lọc thành công');
+}
+
+/* Mobile apply filter action (copies inputs from mobile drawer) */
+function applyMobileFilters() {
+  const mobMin = document.querySelector('#mobile-drawer-panel #price-min')?.value;
+  const mobMax = document.querySelector('#mobile-drawer-panel #price-max')?.value;
+  const mobRatingSelected = document.querySelector('#mobile-drawer-panel input[name="rating-filter"]:checked')?.value;
+  const mobStatusSelected = document.querySelector('#mobile-drawer-panel input[name="status-filter"]:checked')?.value;
+  
+  // Sync back to desktop inputs
+  document.getElementById('price-min').value = mobMin || '';
+  document.getElementById('price-max').value = mobMax || '';
+  filterState.priceMin = mobMin || null;
+  filterState.priceMax = mobMax || null;
+  
+  if (mobRatingSelected) {
+    filterState.rating = parseFloat(mobRatingSelected);
+    const radio = document.querySelector(`input[name="rating-filter"][value="${mobRatingSelected}"]`);
+    if (radio) {
+      radio.checked = true;
+      document.querySelectorAll('.rating-option').forEach(o => o.classList.remove('sel'));
+      radio.closest('.rating-option')?.classList.add('sel');
+    }
+  }
+  
+  if (mobStatusSelected !== undefined) {
+    filterState.status = mobStatusSelected;
+    const radio = document.querySelector(`input[name="status-filter"][value="${mobStatusSelected}"]`);
+    if (radio) radio.checked = true;
+  }
+  
+  renderResults();
+  closeMobileDrawer();
+  showToast('✅ Đã áp dụng bộ lọc thành công');
+}
+
+/* Reset all filters */
+function resetFilters() {
+  filterState = {
+    types: [],
+    priceMin: null,
+    priceMax: null,
+    rating: 0,
+    status: '',
+    q: document.getElementById('search-input').value,
+    sort: document.getElementById('sort-select').value
+  };
+  
+  // Desktop Sidebar inputs sync
+  document.getElementById('price-min').value = '';
+  document.getElementById('price-max').value = '';
+  document.querySelectorAll('#type-checkbox-list input[type="checkbox"]').forEach(cb => cb.checked = false);
+  document.querySelector('input[name="rating-filter"][value="0"]').checked = true;
+  document.querySelector('input[name="status-filter"][value=""]').checked = true;
+  
+  document.querySelectorAll('.rating-option').forEach(o => o.classList.remove('sel'));
+  document.querySelector('.rating-option').classList.add('sel');
+  
+  // Mobile drawer inputs sync (if open)
+  const panel = document.getElementById('mobile-drawer-panel');
+  if (panel.innerHTML !== '') {
+    panel.querySelector('#price-min').value = '';
+    panel.querySelector('#price-max').value = '';
+    panel.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+    panel.querySelector('input[name="rating-filter"][value="0"]').checked = true;
+    panel.querySelector('input[name="status-filter"][value=""]').checked = true;
+  }
+  
+  renderResults();
+  closeMobileDrawer();
+  showToast('🔄 Đã làm mới toàn bộ bộ lọc');
+}
+
+/* Custom interactive design for rating selection clicks */
+document.getElementById('rating-options-wrap').addEventListener('change', (e) => {
+  document.querySelectorAll('.rating-option').forEach(o => o.classList.remove('sel'));
+  e.target.closest('.rating-option')?.classList.add('sel');
+});
+
+// Sorter element listener
+document.getElementById('sort-select').addEventListener('change', (e) => {
+  filterState.sort = e.target.value;
+  renderResults();
+});
+
+// Instant search query input listener (with 200ms debounce)
+let searchTimer;
+document.getElementById('search-input').addEventListener('input', (e) => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    filterState.q = e.target.value;
+    renderResults();
+  }, 200);
+});
+
+/* Mobile Drawer Logic */
+const drawer = document.getElementById('mobile-filter-drawer');
+const drawerOverlay = document.getElementById('mobile-drawer-overlay');
+const drawerPanel = document.getElementById('mobile-drawer-panel');
+
+document.getElementById('mobile-filter-btn').addEventListener('click', () => {
+  const sidebarContent = document.getElementById('sidebar-filters').innerHTML;
+  
+  // Render sidebar inside mobile drawer but customize headers and hooks
+  drawerPanel.innerHTML = `
+  <div class="filter-sidebar-head" style="margin-bottom:16px">
+    <h3 style="font-size:14px; font-weight:700; color:var(--col-text)">🎛️ Bộ lọc tìm kiếm</h3>
+    <button class="filter-reset" onclick="closeMobileDrawer()">✕ Đóng</button>
+  </div>
+  ${sidebarContent}
+  <div style="position:sticky; bottom:0; background:var(--col-surface); padding-top:12px; border-top:1px solid var(--col-border)">
+    <button class="btn btn-primary" style="width:100%" onclick="applyMobileFilters()">✅ Áp dụng bộ lọc</button>
+  </div>`;
+  
+  // Custom interactive listener for rating options inside mobile drawer panel
+  drawerPanel.querySelector('#rating-options-wrap')?.addEventListener('change', (e) => {
+    drawerPanel.querySelectorAll('.rating-option').forEach(o => o.classList.remove('sel'));
+    e.target.closest('.rating-option')?.classList.add('sel');
+  });
+
+  drawer.classList.add('on');
+  document.body.style.overflow = 'hidden';
+});
+
+drawerOverlay.addEventListener('click', closeMobileDrawer);
+function closeMobileDrawer() {
+  drawer.classList.remove('on');
+  document.body.style.overflow = '';
+}
+
+// Initial draw invocation
+renderResults();
+
+/* Toast Notification Helper */
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>

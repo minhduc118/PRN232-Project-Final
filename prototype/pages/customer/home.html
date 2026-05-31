@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="SportsCourt — Nền tảng đặt sân thể thao #1 Việt Nam. Tìm và đặt sân Pickleball, Cầu lông, Bóng đá mini, Tennis chỉ trong 30 giây." />
+  <title>SportsCourt — Đặt sân thể thao nhanh chóng</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="css/customer.css?v=4.5" />
+</head>
+
+<body>
+
+  <!-- navbar mount point -->
+  <div id="navbar-root"></div>
+
+  <!-- ── HERO SECTION ── -->
+  <section class="hero" id="hero" style="background: linear-gradient(135deg, rgba(8, 12, 20, 0.72) 0%, rgba(12, 20, 38, 0.58) 50%, rgba(8, 12, 20, 0.72) 100%), url('../../assets/images/hero_bg.jpg'); background-size: cover; background-position: center;">
+    <div class="hero-mesh" aria-hidden="true"></div>
+    <div class="hero-dots" aria-hidden="true"></div>
+    <div class="hero-orb"
+      style="width:500px; height:500px; background:rgba(79,110,247,0.15); top:-150px; right:-100px; animation:float 8s ease-in-out infinite"
+      aria-hidden="true"></div>
+    <div class="hero-orb"
+      style="width:400px; height:400px; background:rgba(16,185,129,0.12); bottom:-100px; left:-50px; animation:float 10s ease-in-out infinite reverse"
+      aria-hidden="true"></div>
+
+    <div class="container hero-inner">
+      <!-- Hero Left -->
+      <div class="hero-text anim-fade-up">
+        <div class="hero-eyebrow">
+          <span></span>
+          Nền tảng đặt sân thể thao #1 Việt Nam
+        </div>
+        <h1 class="hero-title">
+          Tìm &amp; đặt sân
+          <span class="line2"><span class="hero-grad">thể thao</span> dễ dàng</span>
+        </h1>
+        <p class="hero-desc">
+          Pickleball, cầu lông, bóng đá mini, tennis — hơn <strong>500 sân</strong> chất lượng cao tại TP.HCM.
+          Đặt sân chỉ trong <span class="text-accent" style="font-weight:700">30 giây</span>, xác nhận ngay lập tức.
+        </p>
+        <div class="hero-cta">
+          <a href="courts.html" class="btn btn-accent btn-xl">⚡ Đặt sân ngay</a>
+          <a href="#featured" class="btn btn-ghost btn-xl">Xem sân nổi bật</a>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="hero-stat-num" id="stat-courts">0+</div>
+            <div class="hero-stat-lbl">Sân thể thao</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-num" id="stat-bookings">0+</div>
+            <div class="hero-stat-lbl">Lượt đặt sân</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-num" id="stat-rating">0★</div>
+            <div class="hero-stat-lbl">Đánh giá TB</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hero Right (Glass Phone Mockup) -->
+      <div class="hero-visual anim-fade-up" style="animation-delay: 0.15s" aria-hidden="true">
+        <div class="hero-phone">
+          <div class="hero-phone-header">
+            <div class="hero-phone-dots">
+              <div class="hero-phone-dot" style="background:#ef4444"></div>
+              <div class="hero-phone-dot" style="background:#f59e0b"></div>
+              <div class="hero-phone-dot" style="background:#10b981"></div>
+            </div>
+            <div class="hero-phone-addr">sportscourt.vn</div>
+          </div>
+          <div class="hero-phone-img">
+            <img src="../../assets/images/pickleball.png" alt="Pickleball Court" />
+          </div>
+          <div class="hero-phone-body">
+            <div class="hero-phone-title">Sân Pickleball A1 ⭐ 4.8</div>
+            <div class="hero-phone-meta">📍 Khu A – Tầng 1 &nbsp;|&nbsp; ⏰ 06:00–22:00</div>
+            <div class="hero-phone-row">
+              <div class="hero-phone-price">100.000đ<span
+                  style="font-size:12px; font-weight:400; color:var(--col-subtext)">/giờ</span></div>
+              <div class="hero-phone-btn">Đặt ngay</div>
+            </div>
+            <div class="hero-phone-slots">
+              <div class="hero-phone-slot">
+                <div class="hero-phone-slot-left">
+                  <div class="slot-dot" style="background:#10b981"></div>08:00–09:00
+                </div>
+                <span style="color:#10b981; font-weight:600">Còn trống</span>
+              </div>
+              <div class="hero-phone-slot">
+                <div class="hero-phone-slot-left">
+                  <div class="slot-dot" style="background:#ef4444"></div>09:00–10:00
+                </div>
+                <span style="color:#ef4444; font-weight:600">Đã đặt</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Floating Badges -->
+        <div class="hero-badge badge-1">
+          <div class="hero-badge-icon" style="background:rgba(245,158,11,0.12); color:#f59e0b">⭐</div>
+          <div>
+            <div class="hero-badge-val">4.8 / 5.0</div>
+            <div class="hero-badge-sub">1.200+ đánh giá</div>
+          </div>
+        </div>
+        <div class="hero-badge badge-2">
+          <div class="hero-badge-icon" style="background:rgba(16,185,129,0.12); color:#10b981">✅</div>
+          <div>
+            <div class="hero-badge-val">Xác nhận ngay</div>
+            <div class="hero-badge-sub">Đặt sân tức thì</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── QUICK SEARCH BAR ── -->
+  <div class="quick-search-section">
+    <div class="container">
+      <div class="quick-search-card glass-card">
+        <div class="quick-search-title">
+          <div class="hero-badge-icon"
+            style="width:30px; height:30px; font-size:14px; background:var(--col-primary-bg); color:var(--col-primary-lt)">
+            🔍</div>
+          Tìm kiếm sân nhanh
+        </div>
+        <form class="quick-search-form" id="quick-search-form">
+          <div class="form-group">
+            <label class="form-label" for="qs-type">Loại sân</label>
+            <select class="input" id="qs-type">
+              <option value="">Tất cả loại sân</option>
+              <option value="1">🏓 Pickleball</option>
+              <option value="2">🏸 Cầu lông</option>
+              <option value="3">⚽ Bóng đá mini</option>
+              <option value="4">🎾 Tennis</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="qs-date">Ngày chơi</label>
+            <input class="input" type="date" id="qs-date" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="qs-time">Khung giờ</label>
+            <select class="input" id="qs-time">
+              <option value="">Tất cả khung giờ</option>
+              <option value="morning">☀️ Sáng (06–12h)</option>
+              <option value="afternoon">🌤️ Chiều (12–18h)</option>
+              <option value="evening">🌙 Tối (18–22h)</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg" style="height:40px; margin-top:2px">🔍 Tìm kiếm</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── FEATURED COURTS ── -->
+  <section class="section" id="featured">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-eyebrow">⭐ Sân nổi bật</div>
+        <h2>Được yêu thích nhất</h2>
+        <p>Những sân đấu chất lượng cao được cộng đồng thành viên đánh giá xuất sắc nhất</p>
+      </div>
+      <!-- Interactive Category Switcher -->
+      <div class="sport-switcher-wrap anim-fade-up" style="animation-delay: 0.05s">
+        <div class="sport-switcher-title">Lọc nhanh theo bộ môn</div>
+        <div class="sport-switcher">
+          <button class="sport-switch-btn active" data-type="all">🔥 Tất cả</button>
+          <button class="sport-switch-btn" data-type="1">🏓 Pickleball</button>
+          <button class="sport-switch-btn" data-type="2">🏸 Cầu lông</button>
+          <button class="sport-switch-btn" data-type="3">⚽ Bóng đá</button>
+          <button class="sport-switch-btn" data-type="4">🎾 Tennis</button>
+        </div>
+      </div>
+
+      <div class="courts-grid-3" id="featured-grid">
+        <!-- loaded dynamically -->
+      </div>
+      <div style="text-align:center; margin-top:40px">
+        <a href="courts.html" class="btn btn-ghost btn-lg">Xem tất cả sân đấu →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── WHY CHOOSE US ── -->
+  <section class="section"
+    style="background:var(--col-surface-2); border-top:1px solid var(--col-border); border-bottom:1px solid var(--col-border)">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-eyebrow">🏆 Trải nghiệm tuyệt vời</div>
+        <h2>Tại sao chọn SportsCourt?</h2>
+        <p>Nền tảng mang lại dịch vụ đặt sân hoàn hảo, uy tín và thông suốt 24/7</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon feature-icon-1">⚡</div>
+          <h3>Đặt sân siêu tốc</h3>
+          <p>Tìm kiếm, chọn khung giờ và thanh toán chỉ trong 30 giây. Xác nhận tự động qua email.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon feature-icon-2">🏟️</div>
+          <h3>Đa dạng loại hình sân</h3>
+          <p>Hơn 500 sân đấu Pickleball, cầu lông, bóng đá và tennis chuẩn quốc tế tại TP.HCM.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon feature-icon-3">💰</div>
+          <h3>Giá cả minh bạch</h3>
+          <p>Bảng giá chi tiết từng khung giờ. Cam kết không phí ẩn, hỗ trợ hoàn tiền cực linh hoạt.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon feature-icon-4">🎧</div>
+          <h3>Hỗ trợ tận tình</h3>
+          <p>Đội ngũ tổng đài hỗ trợ hoạt động liên tục. Giải quyết nhanh chóng mọi yêu cầu hủy/đổi lịch.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PROMOTIONS ── -->
+  <section class="section" id="promos">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-eyebrow">🎁 Ưu đãi ngập tràn</div>
+        <h2>Khuyến mãi đang diễn ra</h2>
+        <p>Săn mã giảm giá cực khủng để thỏa đam mê thể thao với mức chi phí tối ưu nhất</p>
+      </div>
+      <div class="promos-grid" id="promotions-grid">
+        <!-- loaded dynamically -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CUSTOMER REVIEWS SHOWCASE ── -->
+  <section class="home-reviews-section">
+    <div class="container">
+      <div class="section-head text-center">
+        <div class="section-eyebrow">💬 Khách hàng chia sẻ</div>
+        <h2>Nhận xét từ cộng đồng</h2>
+        <p>Hàng ngàn người chơi đã trải nghiệm dịch vụ đặt sân chuyên nghiệp của SportsCourt</p>
+      </div>
+      <div class="home-reviews-grid">
+        <article class="home-review-card anim-fade-up">
+          <div class="home-review-quote">
+            Sân chơi cầu lông cực kỳ rộng rãi, thảm gỗ chuẩn thi đấu BWF bật nhảy rất êm. Hệ thống đặt lịch nhanh chỉ mất 30 giây, nhận email báo lịch tức thì, dịch vụ tuyệt vời!
+          </div>
+          <div class="home-review-user">
+            <div class="home-review-avatar" style="background: linear-gradient(135deg, #4f6ef7, #a855f7);">NT</div>
+            <div>
+              <div style="font-weight: 700; font-size: 13.5px; color: var(--col-text);">Nguyễn Thanh Trung</div>
+              <div style="font-size: 11.5px; color: var(--col-subtext);">⭐ 5.0 • Người chơi Cầu Lông</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="home-review-card anim-fade-up" style="animation-delay: 0.1s">
+          <div class="home-review-quote">
+            Đặt sân Pickleball A1 ở đây cực kỳ thích, sân mới bóng và lưới chuẩn quốc tế. Giá cả hiển thị minh bạch, phụ thu cuối tuần cũng được báo trước rõ ràng, rất hài lòng!
+          </div>
+          <div class="home-review-user">
+            <div class="home-review-avatar" style="background: linear-gradient(135deg, #10b981, #06b6d4);">AH</div>
+            <div>
+              <div style="font-weight: 700; font-size: 13.5px; color: var(--col-text);">Trần Anh Huy</div>
+              <div style="font-size: 11.5px; color: var(--col-subtext);">⭐ 4.9 • Hội Pickleball Quận 1</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="home-review-card anim-fade-up" style="animation-delay: 0.2s">
+          <div class="home-review-quote">
+            Sân cỏ mini 5 người cỏ thế hệ mới đá cực bám. Dàn đèn LED cao áp siêu sáng hỗ trợ đá tối rất tốt. Nhân viên thân thiện, có nước lọc và quạt gió mát mẻ!
+          </div>
+          <div class="home-review-user">
+            <div class="home-review-avatar" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">KM</div>
+            <div>
+              <div style="font-weight: 700; font-size: 13.5px; color: var(--col-text);">Phan Khánh Minh</div>
+              <div style="font-size: 11.5px; color: var(--col-subtext);">⭐ 5.0 • Đội trưởng FC Family</div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CTA SECTION ── -->
+  <section class="section-sm">
+    <div class="container">
+      <div class="cta-section">
+        <div
+          style="display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; color:var(--col-accent); background:var(--col-accent-bg); padding:5px 13px; border-radius:999px; margin-bottom:16px; border:1px solid rgba(16,185,129,0.2)">
+          🚀 Đăng ký thành viên mới
+        </div>
+        <h2>Sẵn sàng bắt đầu trận đấu?</h2>
+        <p>Đăng ký tài khoản hoàn toàn miễn phí ngay hôm nay và nhận ưu đãi giảm giá <strong>10%</strong> cho lượt đặt
+          sân đầu tiên.</p>
+        <div class="cta-btns">
+          <a href="#" class="btn btn-accent btn-xl">✨ Nhận mã giảm 10%</a>
+          <a href="courts.html" class="btn btn-ghost btn-xl">Tìm sân ngay</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- footer mount point -->
+  <div id="footer-root"></div>
+
+  <!-- notification toast -->
+  <div class="toast" id="toast"></div>
+
+  <script src="js/data.js?v=4.5"></script>
+  <script>
+    // Render Navbar & Footer dynamically
+    document.getElementById('navbar-root').innerHTML = renderNavbar('home');
+    document.getElementById('footer-root').innerHTML = renderFooter();
+    initNavbar();
+
+    // Render Featured Courts Grid dynamically with category filtering
+    function renderFeaturedGrid(typeId = null) {
+      let filtered = [...COURTS].filter(c => c.status === 'Available');
+      if (typeId) {
+        filtered = filtered.filter(c => c.courtTypeId === typeId);
+      }
+      
+      // Sort by rating desc
+      filtered.sort((a, b) => b.rating - a.rating);
+      
+      // Limit to top 3 only if showing all sports (to keep layout tidy)
+      if (!typeId) {
+        filtered = filtered.slice(0, 3);
+      }
+
+      const grid = document.getElementById('featured-grid');
+      grid.innerHTML = filtered.map(c => courtCardHTML(c)).join('');
+
+      // Staggered fadeUp animation
+      grid.querySelectorAll('.court-card').forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(18px)';
+        card.style.animation = 'fadeUp 0.4s cubic-bezier(0.19, 1, 0.22, 1) forwards';
+        card.style.animationDelay = `${index * 0.08}s`;
+      });
+    }
+
+    // Initial render
+    renderFeaturedGrid();
+
+    // Category Switcher tab clicks listener
+    document.querySelectorAll('.sport-switch-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.sport-switch-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const type = btn.getAttribute('data-type');
+        if (type === 'all') {
+          renderFeaturedGrid(null);
+        } else {
+          renderFeaturedGrid(parseInt(type));
+        }
+      });
+    });
+
+    // Load Promotions
+    document.getElementById('promotions-grid').innerHTML = PROMOTIONS
+      .map(p => promoCardHTML(p))
+      .join('');
+
+    // Staggered fadeUp delay for promos
+    document.querySelectorAll('#promotions-grid .promo-card').forEach((card, index) => {
+      card.style.animation = `fadeUp 0.5s ease both`;
+      card.style.animationDelay = `${index * 0.12}s`;
+    });
+
+    // Copy Code function (hooks into the helper)
+    function copyPromoCode(code, id) {
+      navigator.clipboard.writeText(code).then(() => {
+        showToast(`✅ Đã sao chép mã ưu đãi: ${code}`);
+        const btn = document.querySelector(`#pc-${id}`)?.nextElementSibling;
+        if (btn) {
+          const originalText = btn.textContent;
+          btn.textContent = 'Copied! ✅';
+          btn.style.background = 'var(--col-accent-bg)';
+          btn.style.color = 'var(--col-accent)';
+          setTimeout(() => {
+            btn.textContent = originalText;
+            btn.style.background = '';
+            btn.style.color = '';
+          }, 2000);
+        }
+      }).catch(() => {
+        showToast('⚠️ Không thể sao chép tự động');
+      });
+    }
+
+    // Quick Search Form submission redirect
+    document.getElementById('quick-search-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const typeVal = document.getElementById('qs-type').value;
+      const dateVal = document.getElementById('qs-date').value;
+      const timeVal = document.getElementById('qs-time').value;
+
+      const params = new URLSearchParams();
+      if (typeVal) params.set('type', typeVal);
+      if (dateVal) params.set('date', dateVal);
+      if (timeVal) params.set('time', timeVal);
+
+      window.location.href = `courts.html?${params.toString()}`;
+    });
+
+    // Default Search Date to Today and enforce Minimum Date
+    document.addEventListener('DOMContentLoaded', () => {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const dateInput = document.getElementById('qs-date');
+      if (dateInput) {
+        dateInput.value = todayStr;
+        dateInput.min = todayStr;
+      }
+    });
+
+    // Stats Counter IntersectionObserver Animation
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries[0].isIntersecting) return;
+      observer.disconnect(); // Fire once
+
+      animateCounter('stat-courts', 500, '+');
+      animateCounter('stat-bookings', 10000, '+');
+      animateCounter('stat-rating', 4.8, '★', true);
+    }, { threshold: 0.2 });
+
+    observer.observe(document.getElementById('hero'));
+
+    function animateCounter(id, target, suffix, isDecimal = false) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const duration = 1500;
+      const startTime = performance.now();
+
+      function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const ease = 1 - Math.pow(1 - progress, 3); // cubic ease-out
+
+        let currentVal;
+        if (isDecimal) {
+          currentVal = (ease * target).toFixed(1);
+        } else {
+          currentVal = Math.floor(ease * target).toLocaleString('vi-VN');
+        }
+
+        el.textContent = currentVal + suffix;
+
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        }
+      }
+      requestAnimationFrame(update);
+    }
+
+    // Toast Notification
+    let toastTimer;
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+    }
+  </script>
+</body>
+
+</html>

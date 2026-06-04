@@ -95,6 +95,8 @@ Nhiều cơ sở thể thao vẫn quản lý thủ công qua sổ sách, tin nh�
          |-- Thống kê doanh thu
          |-- Phân quyền người dùng
          |-- Quản lý khuyến mãi
+         |-- Cấu hình hệ thống toàn cục
+         |-- Xem nhật ký hoạt động hệ thống (Audit Logs)
 
 +------------------+
 |      Quản lý     |
@@ -106,6 +108,26 @@ Nhiều cơ sở thể thao vẫn quản lý thủ công qua sổ sách, tin nh�
          |-- Quản lý tình trạng sân khu vực
          |-- Phê duyệt lịch đặt sân đặc biệt
          |-- Quản lý và giao việc cho nhân viên
+
++------------------+
+|     Nhân viên    |
++--------+---------+
+         |
+         |-- Đặt sân trực tiếp tại quầy (Walk-in)
+         |-- Thanh toán tại quầy & In hóa đơn
+         |-- Check-in / Điểm danh khách hàng
+         |-- Xem lịch ca trực làm việc
+         |-- Quản lý kho và cho thuê dụng cụ
+         |-- Thực hiện công việc được giao
+
++------------------+
+|  Huấn luyện viên |
++--------+---------+
+         |
+         |-- Quản lý lịch dạy rảnh (Teachable slots)
+         |-- Thiết lập gói khóa học huấn luyện
+         |-- Điểm danh học viên lớp học
+         |-- Cập nhật tiến độ dạy học
 ```
 
 ---
@@ -695,6 +717,160 @@ Promotions ──< Bookings
      - Hệ thống tự động tạo task vệ sinh khi một booking kết thúc.
      - Tự động giao task chuẩn bị dụng cụ/nước uống khi có đơn hàng dịch vụ.
      - Tự động nhắc lịch bảo trì định kỳ dựa trên cấu hình hệ thống.
+
+---
+
+### FE-21: Đặt sân trực tiếp tại quầy (Walk-in Booking)
+
+| Mục               | Chi tiết                                                                                   |
+| ----------------- | ------------------------------------------------------------------------------------------ |
+| **Mô tả**         | Nhân viên hỗ trợ đặt sân trực tiếp tại quầy tiếp tân cho khách vãng lai                    |
+| **Actor**         | Nhân viên (Staff)                                                                          |
+| **Precondition**  | Đăng nhập tài khoản Nhân viên, đang trong ca trực hoạt động                                |
+| **Postcondition** | Booking trực tiếp được lưu trên hệ thống, sân tương ứng bị khóa trạng thái theo thời gian thực |
+
+**Luồng chính:**
+1. Khách hàng trực tiếp yêu cầu đặt sân tại quầy.
+2. Nhân viên nhập thông tin tìm kiếm (loại sân, ngày giờ, thời lượng chơi).
+3. Hệ thống hiển thị các sân trống phù hợp.
+4. Nhân viên nhập số điện thoại khách hàng (hoặc tạo hồ sơ khách hàng mới nếu chưa có).
+5. Nhân viên xác nhận đặt sân và tiến hành luồng thanh toán tại quầy.
+
+---
+
+### FE-22: Thanh toán tại quầy và In hóa đơn (Over-the-counter Payment & Invoice Printing)
+
+| Mục               | Chi tiết                                                                              |
+| ----------------- | ------------------------------------------------------------------------------------- |
+| **Mô tả**         | Nhân viên thực hiện nhận tiền thanh toán từ khách và in hóa đơn bán lẻ trực tiếp từ quầy |
+| **Actor**         | Nhân viên (Staff)                                                                     |
+| **Precondition**  | Có booking chưa thanh toán cần xử lý                                                   |
+| **Postcondition** | Trạng thái booking chuyển thành `Paid`, hóa đơn lẻ được in ra cho khách               |
+
+**Luồng chính:**
+1. Nhân viên mở chi tiết booking cần thanh toán.
+2. Chọn phương thức thanh toán: Tiền mặt, Quét mã QR chuyển khoản ngân hàng, hoặc Thẻ.
+3. Nhân viên xác nhận đã nhận đủ tiền thanh toán của khách.
+4. Hệ thống cập nhật trạng thái thanh toán và hiển thị lệnh in.
+5. Nhân viên in hóa đơn bàn giao cho khách hàng cùng các phụ kiện kèm theo.
+
+---
+
+### FE-23: Điểm danh và Check-in khách hàng (Customer Check-in)
+
+| Mục               | Chi tiết                                                                               |
+| ----------------- | -------------------------------------------------------------------------------------- |
+| **Mô tả**         | Nhân viên kiểm tra và xác nhận sự có mặt của khách hàng khi họ đến giờ sử dụng sân      |
+| **Actor**         | Nhân viên (Staff)                                                                      |
+| **Precondition**  | Đã đến khung giờ đặt sân của khách hàng, booking ở trạng thái hợp lệ                    |
+| **Postcondition** | Trạng thái sân chuyển từ `Booked` sang `InUse`, hệ thống ghi nhận thời điểm check-in   |
+
+**Luồng chính:**
+1. Khách hàng đọc số điện thoại hoặc quét mã QR code của booking tại quầy tiếp tân.
+2. Nhân viên xác thực thông tin booking trên màn hình điều khiển.
+3. Nhân viên bấm nút "Check-in" xác nhận khách đã nhận sân.
+4. Hệ thống tự động chuyển trạng thái sân và bật đèn sân (nếu có tích hợp thiết bị IoT tự động).
+
+---
+
+### FE-24: Đăng ký lịch dạy rảnh (Teachable Slots Scheduling)
+
+| Mục               | Chi tiết                                                                                |
+| ----------------- | --------------------------------------------------------------------------------------- |
+| **Mô tả**         | Huấn luyện viên đăng ký các khung giờ rảnh có thể nhận lịch dạy học hoặc huấn luyện kèm |
+| **Actor**         | Huấn luyện viên (Coach)                                                                 |
+| **Precondition**  | Đăng nhập quyền Coach, tài khoản đã được phê duyệt hồ sơ chuyên môn                     |
+| **Postcondition** | Lịch rảnh của Coach được công khai cho học sinh/khách hàng đặt chỗ                      |
+
+**Luồng chính:**
+1. Coach vào mục quản lý lịch dạy trên ứng dụng.
+2. Chọn ngày và kéo/chọn các slot giờ rảnh trong ngày.
+3. Xác nhận lưu lịch dạy.
+4. Hệ thống cập nhật trạng thái rảnh của Coach lên trang cá nhân công khai của Coach.
+
+---
+
+### FE-25: Thiết lập gói dịch vụ huấn luyện (Coaching Course Packages)
+
+| Mục               | Chi tiết                                                                          |
+| ----------------- | --------------------------------------------------------------------------------- |
+| **Mô tả**         | Huấn luyện viên tạo và quản lý các khóa học, gói tập kèm (1 kèm 1, 1 kèm 4,...)   |
+| **Actor**         | Huấn luyện viên (Coach)                                                           |
+| **Precondition**  | Đăng nhập với quyền Coach                                                         |
+| **Postcondition** | Gói dịch vụ hiển thị lên danh sách dịch vụ bổ sung để khách hàng đặt thuê kèm     |
+
+**Luồng chính:**
+1. Coach bấm chọn "Tạo gói dịch vụ mới".
+2. Nhập thông tin: Tên khóa học (VD: Nhập môn Pickleball), số buổi, đơn giá/giờ, số lượng học viên tối đa.
+3. Coach đăng tải mô tả khóa học và giáo trình tóm tắt.
+4. Gửi yêu cầu thiết lập gói cho Admin hoặc Manager duyệt.
+
+---
+
+### FE-26: Điểm danh lớp học và Cập nhật nhật ký dạy học (Student Attendance & Teaching Log)
+
+| Mục               | Chi tiết                                                                           |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| **Mô tả**         | Huấn luyện viên thực hiện điểm danh học viên và ghi chép tiến độ dạy học từng buổi |
+| **Actor**         | Huấn luyện viên (Coach)                                                            |
+| **Precondition**  | Khóa học đang diễn ra và có buổi dạy đến lịch                                      |
+| **Postcondition** | Ghi nhận sự tham gia của học sinh, buổi học được hoàn thành và giải ngân thù lao   |
+
+**Luồng chính:**
+1. Coach mở chi tiết buổi dạy hiện tại.
+2. Chọn danh sách học viên tham gia và bấm tick điểm danh có mặt/vắng mặt.
+3. Điền nhận xét đánh giá năng lực, nội dung đã dạy và bài tập về nhà.
+4. Xác nhận hoàn tất buổi học để hệ thống giải ngân thù lao từ tài khoản tạm giữ.
+
+---
+
+### FE-27: Cấu hình hệ thống toàn cục (Global System Configurations)
+
+| Mục               | Chi tiết                                                                                   |
+| ----------------- | ------------------------------------------------------------------------------------------ |
+| **Mô tả**         | Quản trị viên điều chỉnh các tham số cấu hình vận hành của toàn bộ hệ thống                |
+| **Actor**         | Quản trị viên (Admin)                                                                      |
+| **Precondition**  | Đăng nhập tài khoản Admin                                                                  |
+| **Postcondition** | Các tham số mới được áp dụng ngay lập tức cho các giao dịch và tính toán trên toàn hệ thống |
+
+**Luồng chính:**
+1. Admin truy cập trang "Cấu hình hệ thống".
+2. Điều chỉnh các thông số: Thuế VAT (%), Phí dịch vụ sân (%), Thời gian giữ chỗ chờ thanh toán (phút), Tỷ lệ hoàn tiền khi hủy đặt sân.
+3. Bấm "Lưu cấu hình".
+4. Hệ thống ghi nhận cấu hình mới và ghi log audit.
+
+---
+
+### FE-28: Xem nhật ký hoạt động hệ thống (System Audit Logs)
+
+| Mục               | Chi tiết                                                                           |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| **Mô tả**         | Admin kiểm tra nhật ký ghi chép chi tiết các hành động thay đổi dữ liệu của nhân sự |
+| **Actor**         | Quản trị viên (Admin)                                                              |
+| **Precondition**  | Đăng nhập tài khoản Admin                                                          |
+| **Postcondition** | Hiển thị danh sách log chi tiết phục vụ tra cứu thông tin bảo mật                  |
+
+**Luồng chính:**
+1. Admin truy cập màn hình "Nhật ký hệ thống (Audit Logs)".
+2. Sử dụng bộ lọc: Lọc theo người thực hiện, thời gian, loại hành động (Delete, Update, Insert).
+3. Hệ thống trả về danh sách lịch sử chi tiết (VD: Admin A đã sửa giá thuê sân 1 vào lúc 12:00).
+
+---
+
+### FE-29: Thực hiện công việc được giao (Task Execution & Update)
+
+| Mục               | Chi tiết                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------ |
+| **Mô tả**         | Nhân viên xem và cập nhật tiến độ công việc được giao (quét dọn, sửa lưới, hỗ trợ...) |
+| **Actor**         | Nhân viên (Staff)                                                                    |
+| **Precondition**  | Được quản lý giao việc (thủ công hoặc tự động qua hệ thống)                          |
+| **Postcondition** | Trạng thái công việc được cập nhật thành hoàn thành, thông báo lại cho quản lý       |
+
+**Luồng chính:**
+1. Nhân viên xem danh sách việc cần làm (To-Do List) trong ca trực của mình.
+2. Bấm nhận việc (chuyển trạng thái sang `In Progress`).
+3. Sau khi xử lý xong (VD: dọn dẹp sân 3 xong), nhân viên chụp ảnh nghiệm thu (nếu cần) và bấm nút "Hoàn thành".
+4. Hệ thống gửi thông báo hoàn tất công việc cho Manager kiểm tra.
 
 ---
 

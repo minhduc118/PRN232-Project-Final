@@ -54,6 +54,13 @@ public class User
   /// <summary>Refresh token expiry date-time.</summary>
   public DateTime? RefreshTokenExpiry { get; set; }
 
+  /// <summary>OTP code for email verification (6 digits). Null once verified.</summary>
+  [MaxLength(10)]
+  public string? VerificationToken { get; set; }
+
+  /// <summary>OTP expiry date-time (typically 10 minutes from generation).</summary>
+  public DateTime? VerificationTokenExpiry { get; set; }
+
   /// <summary>Account creation timestamp.</summary>
   public DateTime CreatedAt { get; set; }
 

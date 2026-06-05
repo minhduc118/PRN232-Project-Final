@@ -7,8 +7,9 @@ import { ROUTES } from '@/constants/routes';
 const HomePage         = lazy(() => import('@/pages/public/HomePage'));
 const CourtListPage    = lazy(() => import('@/pages/public/CourtListPage'));
 const CourtDetailPage  = lazy(() => import('@/pages/public/CourtDetailPage'));
-const LoginPage        = lazy(() => import('@/pages/auth/LoginPage'));
-const RegisterPage     = lazy(() => import('@/pages/auth/RegisterPage'));
+const LoginPage          = lazy(() => import('@/pages/auth/LoginPage'));
+const RegisterPage       = lazy(() => import('@/pages/auth/RegisterPage'));
+const VerifyEmailPage    = lazy(() => import('@/pages/auth/VerifyEmailPage'));
 const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage'));
 
 const BookingPage      = lazy(() => import('@/pages/customer/BookingPage'));
@@ -47,10 +48,11 @@ export function AppRouter() {
           <Route path={ROUTES.HOME}           element={<HomePage />} />
           <Route path={ROUTES.COURTS}         element={<CourtListPage />} />
           <Route path={ROUTES.COURT_DETAIL}   element={<CourtDetailPage />} />
-          <Route path={ROUTES.LOGIN}          element={<LoginPage />} />
-          <Route path={ROUTES.REGISTER}       element={<RegisterPage />} />
+          <Route path={ROUTES.LOGIN}           element={<LoginPage />} />
+          <Route path={ROUTES.REGISTER}        element={<RegisterPage />} />
+          <Route path='/verify-email'          element={<VerifyEmailPage />} />
           <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
-          <Route path='/unauthorized'         element={<UnauthorizedPage />} />
+          <Route path='/unauthorized'          element={<UnauthorizedPage />} />
 
           {/* ─── Customer Protected ─── */}
           <Route element={<ProtectedRoute allowedRoles={['Customer', 'Admin', 'Staff', 'Coach']} />}>

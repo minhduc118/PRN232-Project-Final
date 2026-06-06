@@ -4,8 +4,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SportCourtManagerment.Data;
+using SportCourtManagerment.DataAccess.Implementation;
+using SportCourtManagerment.DataAccess.Interface;
 using SportCourtManagerment.Services;
 using SportCourtManagerment.Services.Email;
+using SportCourtManagerment.Services.Implementation;
+using SportCourtManagerment.Services.Interface;
 
 namespace SportCourtManagerment;
 
@@ -33,6 +37,11 @@ public class Program
     builder.Services.AddScoped<TokenService>();
     builder.Services.AddScoped<IEmailService, EmailService>();
     builder.Services.AddSingleton<CloudinaryService>();
+
+    // ── Staff & Shift ───────
+    builder.Services.AddScoped<IStaffRepository,      StaffRepository>();
+    builder.Services.AddScoped<IStaffShiftRepository, StaffShiftRepository>();
+    builder.Services.AddScoped<IStaffService,         StaffService>();
 
     // ── JWT Authentication ────────────────────
     var jwtSection = builder.Configuration.GetSection("Jwt");

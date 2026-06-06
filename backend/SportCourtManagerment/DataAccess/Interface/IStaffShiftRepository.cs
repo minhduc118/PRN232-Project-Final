@@ -5,33 +5,33 @@ namespace SportCourtManagerment.DataAccess.Interface;
 
 public interface IStaffShiftRepository
 {
-  // ─── Queries ──────────────────────────────────────────────────
+    // ─── Queries ──────────────────────────────────────────────────
 
-  Task<StaffShift?> GetByIdAsync(int shiftId);
+    Task<StaffShift?> GetByIdAsync(int shiftId);
 
-  Task<List<StaffShift>> GetShiftsByComplexAndDateRangeAsync(
-    int      complexId,
-    DateOnly dateFrom,
-    DateOnly dateTo);
+    Task<List<StaffShift>> GetShiftsByComplexAndDateRangeAsync(
+      int complexId,
+      DateOnly dateFrom,
+      DateOnly dateTo);
 
-  Task<List<StaffShift>> GetShiftsByStaffAndDateRangeAsync(
-    int      staffId,
-    DateOnly dateFrom,
-    DateOnly dateTo);
+    Task<List<StaffShift>> GetShiftsByStaffAndDateRangeAsync(
+      int staffId,
+      DateOnly dateFrom,
+      DateOnly dateTo);
 
-  Task<StaffShift?> GetTodayShiftAsync(int staffId);
+    Task<StaffShift?> GetTodayShiftAsync(int staffId);
 
-  Task<int> CountShiftsThisWeekAsync(int staffId);
+    Task<int> CountShiftsThisWeekAsync(int staffId);
 
-  Task<bool> ExistsAsync(int staffId, DateOnly shiftDate, ShiftType shiftType);
+    Task<bool> ExistsAsync(int staffId, DateOnly shiftDate, ShiftType shiftType);
 
-  // ─── Commands ─────────────────────────────────────────────────
+    // ─── Commands ─────────────────────────────────────────────────
 
-  Task<StaffShift> CreateAsync(StaffShift shift);
+    Task<StaffShift> CreateAsync(StaffShift shift);
 
-  Task<List<StaffShift>> CreateBulkAsync(List<StaffShift> shifts);
+    Task<List<StaffShift>> CreateBulkAsync(List<StaffShift> shifts);
 
-  Task<StaffShift> UpdateAsync(StaffShift shift);
+    Task<bool> UpdateAsync(StaffShift shift);
 
-  Task DeleteAsync(StaffShift shift);
+    Task<bool> DeleteAsync(StaffShift shift);
 }

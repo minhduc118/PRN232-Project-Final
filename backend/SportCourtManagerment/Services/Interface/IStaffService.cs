@@ -4,26 +4,26 @@ namespace SportCourtManagerment.Services.Interface;
 
 public interface IStaffService
 {
-  // ─── FR-ST-01: Xem danh sách nhân sự ────────────────────────
+    // ─── FR-ST-01: Xem danh sách nhân sự ────────────────────────
 
-  Task<PagedStaffResponse> GetStaffListAsync(
-    int     complexId,
-    string? search   = null,
-    bool?   isActive = null,
-    int     page     = 1,
-    int     pageSize = 20);
+    Task<PagedStaffResponse> GetStaffListAsync(
+      int complexId,
+      string? search = null,
+      bool? isActive = null,
+      int page = 1,
+      int pageSize = 20);
 
-  // ─── FR-ST-02: Xếp ca làm việc ──────────────────────────────
+    // ─── FR-ST-02: Xếp ca làm việc ──────────────────────────────
 
-  Task<WeeklyScheduleResponse> GetWeeklyScheduleAsync(int complexId, DateOnly weekStart);
+    Task<WeeklyScheduleResponse> GetWeeklyScheduleAsync(int complexId, DateOnly weekStart);
 
-  Task<StaffShiftResponse> CreateShiftAsync(int complexId, CreateShiftRequest request);
+    Task<StaffShiftResponse> CreateShiftAsync(int complexId, CreateShiftRequest request);
 
-  Task<BulkCreateShiftResponse> CreateShiftBulkAsync(int complexId, BulkCreateShiftRequest request);
+    Task<BulkCreateShiftResponse> CreateShiftBulkAsync(int complexId, BulkCreateShiftRequest request);
 
-  Task<StaffShiftResponse> UpdateShiftAsync(int complexId, int shiftId, UpdateShiftRequest request);
+    Task<StaffShiftResponse> UpdateShiftAsync(int complexId, int shiftId, UpdateShiftRequest request);
 
-  Task DeleteShiftAsync(int complexId, int shiftId);
+    Task DeleteShiftAsync(int complexId, int shiftId);
 
-  Task<StaffShiftResponse> GetShiftByIdAsync(int shiftId);
+    Task<StaffShiftResponse> GetShiftByIdAsync(int shiftId);
 }

@@ -80,6 +80,7 @@ public class CourtComplexesController : ControllerBase
         ActiveCourts      = cx.Courts.Count(c => !c.IsDeleted && c.Status == Enums.CourtStatus.Available),
         MaintenanceCourts = cx.Courts.Count(c => !c.IsDeleted && c.Status == Enums.CourtStatus.Maintenance),
         InactiveCourts    = cx.Courts.Count(c => !c.IsDeleted && c.Status == Enums.CourtStatus.Inactive),
+        CourtTypeIds      = cx.Courts.Where(c => !c.IsDeleted).Select(c => c.CourtTypeId).Distinct().ToList(),
         CreatedAt         = cx.CreatedAt
       })
       .ToListAsync();
@@ -165,6 +166,7 @@ public class CourtComplexesController : ControllerBase
       ActiveCourts      = cx.Courts.Count(c => !c.IsDeleted && c.Status == Enums.CourtStatus.Available),
       MaintenanceCourts = cx.Courts.Count(c => !c.IsDeleted && c.Status == Enums.CourtStatus.Maintenance),
       InactiveCourts    = cx.Courts.Count(c => !c.IsDeleted && c.Status == Enums.CourtStatus.Inactive),
+      CourtTypeIds      = cx.Courts.Where(c => !c.IsDeleted).Select(c => c.CourtTypeId).Distinct().ToList(),
       CreatedAt         = cx.CreatedAt
     };
 
@@ -192,6 +194,13 @@ public class CourtComplexesController : ControllerBase
       ImageUrl    = dto.ImageUrl,
       CreatedAt   = DateTime.UtcNow
     };
+
+    if (dto.ManagerId.HasValue)
+    {
+      var manager = await _db.Users.FindAsync(dto.ManagerId.Value);
+      if (manager is not null)
+        cx.ManagerName = manager.FullName;
+    }
 
     _db.CourtComplexes.Add(cx);
     await _db.SaveChangesAsync();
@@ -238,6 +247,17 @@ public class CourtComplexesController : ControllerBase
     cx.Description = dto.Description;
     cx.ImageUrl    = dto.ImageUrl;
     cx.UpdatedAt   = DateTime.UtcNow;
+
+    if (dto.ManagerId.HasValue)
+    {
+      var manager = await _db.Users.FindAsync(dto.ManagerId.Value);
+      if (manager is not null)
+        cx.ManagerName = manager.FullName;
+    }
+    else
+    {
+      cx.ManagerName = null;
+    }
 
     await _db.SaveChangesAsync();
 
@@ -289,5 +309,71 @@ public class CourtComplexesController : ControllerBase
     await _db.SaveChangesAsync();
 
     return Ok(ApiResponse<object>.Ok(null, "Xóa tổ hợp sân thành công."));
+  }
+
+  // ─────────────────────────────────────────────
+  // GET /api/complexes/{id}/bookings
+  // ─────────────────────────────────────────────
+  [HttpGet("{id:int}/bookings")]
+  public async Task<IActionResult> GetBookings(
+    int id,
+    [FromQuery] int?    courtId  = null,
+    [FromQuery] string? status   = null,
+    [FromQuery] string? dateFrom = null,
+    [FromQuery] string? dateTo   = null)
+  {
+    var exists = await _db.CourtComplexes.AnyAsync(cx => cx.ComplexId == id && !cx.IsDeleted);
+    if (!exists)
+      return NotFound(ApiResponse<object>.Fail("Không tìm thấy tổ hợp sân hoặc đã bị xóa.", 404));
+
+    var courtIds = await _db.Courts
+      .Where(c => c.ComplexId == id && !c.IsDeleted)
+      .Select(c => c.CourtId)
+      .ToListAsync();
+
+    var query = _db.Bookings
+      .Include(b => b.User)
+      .Include(b => b.Court)
+      .Include(b => b.Payments)
+      .Where(b => courtIds.Contains(b.CourtId))
+      .AsQueryable();
+
+    if (courtId.HasValue)
+      query = query.Where(b => b.CourtId == courtId.Value);
+
+    if (!string.IsNullOrWhiteSpace(status) &&
+        Enum.TryParse<Enums.BookingStatus>(status, true, out var filterStatus))
+      query = query.Where(b => b.Status == filterStatus);
+
+    if (DateOnly.TryParse(dateFrom, out var fromDate))
+      query = query.Where(b => b.BookingDate >= fromDate);
+
+    if (DateOnly.TryParse(dateTo, out var toDate))
+      query = query.Where(b => b.BookingDate <= toDate);
+
+    var bookings = await query
+      .OrderByDescending(b => b.BookingDate)
+      .ThenByDescending(b => b.StartTime)
+      .Select(b => new BookingSummaryDto
+      {
+        BookingId     = b.BookingId,
+        BookingCode   = b.BookingCode,
+        UserId        = b.UserId,
+        CustomerName  = b.User.FullName,
+        CustomerPhone = b.User.Phone,
+        CourtId       = b.CourtId,
+        CourtName     = b.Court.CourtName,
+        BookingDate   = b.BookingDate.ToString("yyyy-MM-dd"),
+        StartTime     = b.StartTime.ToString("HH:mm"),
+        EndTime       = b.EndTime.ToString("HH:mm"),
+        TotalAmount   = b.TotalAmount,
+        Status        = b.Status.ToString(),
+        PaymentMethod = b.Payments.OrderByDescending(p => p.CreatedAt).Select(p => p.PaymentMethod.ToString()).FirstOrDefault(),
+        PaymentStatus = b.Payments.OrderByDescending(p => p.CreatedAt).Select(p => p.Status.ToString()).FirstOrDefault(),
+        CreatedAt     = b.CreatedAt
+      })
+      .ToListAsync();
+
+    return Ok(ApiResponse<List<BookingSummaryDto>>.Ok(bookings, "Lấy lịch sử thuê sân thành công."));
   }
 }

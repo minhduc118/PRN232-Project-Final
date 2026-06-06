@@ -16,6 +16,27 @@ public class CourtComplexDto
   public int ActiveCourts { get; set; }
   public int MaintenanceCourts { get; set; }
   public int InactiveCourts { get; set; }
+  public List<int> CourtTypeIds { get; set; } = new();
+  public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>Booking summary for complex booking history tab.</summary>
+public class BookingSummaryDto
+{
+  public int BookingId { get; set; }
+  public string BookingCode { get; set; } = string.Empty;
+  public int UserId { get; set; }
+  public string? CustomerName { get; set; }
+  public string? CustomerPhone { get; set; }
+  public int CourtId { get; set; }
+  public string? CourtName { get; set; }
+  public string BookingDate { get; set; } = string.Empty;
+  public string StartTime { get; set; } = string.Empty;
+  public string EndTime { get; set; } = string.Empty;
+  public decimal TotalAmount { get; set; }
+  public string Status { get; set; } = string.Empty;
+  public string? PaymentMethod { get; set; }
+  public string? PaymentStatus { get; set; }
   public DateTime CreatedAt { get; set; }
 }
 

@@ -10,19 +10,53 @@ export interface CourtType {
   isActive: boolean;
 }
 
+/** User có role Manager — truy vấn qua API khi cần, không nhúng thẳng vào CourtComplex */
+export interface ManagerUser {
+  userId: number;
+  fullName: string;
+  email: string;
+  phone?: string;
+  avatarUrl?: string;
+  role: 'Manager';
+  isActive: boolean;
+}
+
+/** Booking record — dùng cho lịch sử thuê sân */
+export interface CourtBookingRecord {
+  bookingId: number;
+  bookingCode: string;
+  userId: number;
+  customerName?: string;
+  customerPhone?: string;
+  courtId: number;
+  courtName?: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  totalAmount: number;
+  status: 'Pending' | 'Confirmed' | 'Cancelled' | 'Completed' | 'NoShow';
+  paymentMethod?: string;
+  paymentStatus?: string;
+  createdAt: string;
+}
+
 export interface CourtComplex {
   complexId: number;
   complexName: string;
   address: string;
   phone?: string;
-  managerName?: string;
+  /** Chỉ lưu mã quản lý. Khi cần thông tin đầy đủ gọi getManagerById(managerId) */
   managerId?: number;
+  /** Readonly — populate từ API join, không lưu trong form */
+  managerName?: string;
   description?: string;
   imageUrl?: string;
   totalCourts?: number;
   activeCourts?: number;
   maintenanceCourts?: number;
   inactiveCourts?: number;
+  /** Các loại sân có trong tổ hợp — derive từ courts hoặc API trả về */
+  courtTypeIds?: number[];
   createdAt?: string;
 }
 
@@ -89,7 +123,8 @@ export interface CourtComplexFormData {
   complexName: string;
   address: string;
   phone: string;
-  managerName: string;
+  /** Chỉ truyền mã quản lý. Thông tin hiển thị fetch riêng qua getManagerById() */
+  managerId?: number;
   description: string;
   imageUrl: string;
 }

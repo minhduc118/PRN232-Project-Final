@@ -78,7 +78,7 @@ export default function Navbar() {
                       {user?.fullName}
                     </span>
                     <span className="block text-[10px] text-green-400 leading-none">
-                      {user?.membershipTierName || 'Thành viên'}
+                      {user?.membershipTier || 'Thành viên'}
                     </span>
                   </div>
                   <ChevronDown className="w-4 h-4 text-slate-400" />

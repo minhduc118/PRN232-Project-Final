@@ -16,6 +16,7 @@ public class ApplicationDbContext : DbContext
   public DbSet<User> Users { get; set; }
   public DbSet<UserRole> UserRoles { get; set; }
   public DbSet<CourtType> CourtTypes { get; set; }
+  public DbSet<CourtComplex> CourtComplexes { get; set; }
   public DbSet<Court> Courts { get; set; }
   public DbSet<CourtImage> CourtImages { get; set; }
   public DbSet<TimeSlot> TimeSlots { get; set; }
@@ -48,6 +49,7 @@ public class ApplicationDbContext : DbContext
     ConfigureUsers(modelBuilder);
     ConfigureUserRoles(modelBuilder);
     ConfigureCourtTypes(modelBuilder);
+    ConfigureCourtComplexes(modelBuilder);
     ConfigureCourts(modelBuilder);
     ConfigureCourtImages(modelBuilder);
     ConfigureTimeSlots(modelBuilder);
@@ -158,6 +160,31 @@ public class ApplicationDbContext : DbContext
     });
   }
 
+  private static void ConfigureCourtComplexes(ModelBuilder mb)
+  {
+    mb.Entity<CourtComplex>(e =>
+    {
+      e.HasKey(cx => cx.ComplexId);
+      e.Property(cx => cx.ComplexName).IsRequired().HasMaxLength(150);
+      e.Property(cx => cx.Address).IsRequired().HasMaxLength(300);
+      e.Property(cx => cx.Phone).HasMaxLength(20);
+      e.Property(cx => cx.ManagerName).HasMaxLength(100);
+      e.Property(cx => cx.Description).HasMaxLength(1000);
+      e.Property(cx => cx.ImageUrl).HasMaxLength(500);
+      e.Property(cx => cx.IsDeleted).HasDefaultValue(false);
+      e.Property(cx => cx.CreatedAt).HasDefaultValueSql("GETDATE()");
+      e.HasIndex(cx => cx.IsDeleted);
+
+      // Query filter for soft delete
+      e.HasQueryFilter(cx => !cx.IsDeleted);
+
+      e.HasOne(cx => cx.Manager)
+        .WithMany(u => u.ManagedComplexes)
+        .HasForeignKey(cx => cx.ManagerId)
+        .OnDelete(DeleteBehavior.SetNull);
+    });
+  }
+
   private static void ConfigureCourts(ModelBuilder mb)
   {
     mb.Entity<Court>(e =>
@@ -171,13 +198,25 @@ public class ApplicationDbContext : DbContext
       e.Property(c => c.ImageUrl).HasMaxLength(500);
       e.Property(c => c.Status).HasConversion<string>().HasMaxLength(20)
         .HasDefaultValue(CourtStatus.Available);
+      e.Property(c => c.PricePerHour).HasPrecision(18, 2);
+      e.Property(c => c.CourtSize).HasMaxLength(50);
+      e.Property(c => c.IsDeleted).HasDefaultValue(false);
       e.Property(c => c.CreatedAt).HasDefaultValueSql("GETDATE()");
       e.HasIndex(c => c.CourtCode).IsUnique();
       e.HasIndex(c => c.Status);
+      e.HasIndex(c => c.IsDeleted);
+
+      // Query filter for soft delete
+      e.HasQueryFilter(c => !c.IsDeleted);
 
       e.HasOne(c => c.CourtType)
         .WithMany(ct => ct.Courts)
         .HasForeignKey(c => c.CourtTypeId)
+        .OnDelete(DeleteBehavior.Restrict);
+
+      e.HasOne(c => c.Complex)
+        .WithMany(cx => cx.Courts)
+        .HasForeignKey(c => c.ComplexId)
         .OnDelete(DeleteBehavior.Restrict);
     });
   }

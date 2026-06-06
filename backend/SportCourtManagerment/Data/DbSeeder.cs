@@ -16,6 +16,7 @@ public static class DbSeeder
     await SeedCourtTypesAsync(context);
     await SeedTimeSlotsAsync(context);
     await SeedUsersAsync(context);
+    await SeedCourtComplexesAsync(context);
     await SeedCourtsAsync(context);
     await SeedCourtPricingsAsync(context);
     await SeedServicesAsync(context);
@@ -121,34 +122,91 @@ public static class DbSeeder
     await context.SaveChangesAsync();
   }
 
+  private static async Task SeedCourtComplexesAsync(ApplicationDbContext context)
+  {
+    var admin = context.Users.First(u => u.Email == "admin@sportscourtms.vn");
+    var staff = context.Users.First(u => u.Email == "staff@sportscourtms.vn");
+
+    var complexes = new[]
+    {
+      new CourtComplex
+      {
+        ComplexName = "Tổ hợp thể thao Cầu Giấy",
+        Address = "Dịch Vọng, Cầu Giấy, Hà Nội",
+        Phone = "0912345678",
+        ManagerName = admin.FullName,
+        ManagerId = admin.UserId,
+        Description = "Tổ hợp thể thao hiện đại hàng đầu với các sân trong nhà chất lượng cao.",
+        ImageUrl = "https://images.unsplash.com/photo-1545224497-5d750c673417?q=80&w=800",
+        CreatedAt = DateTime.UtcNow
+      },
+      new CourtComplex
+      {
+        ComplexName = "Tổ hợp thể thao Thanh Xuân",
+        Address = "Nguyễn Trãi, Thanh Xuân, Hà Nội",
+        Phone = "0987654321",
+        ManagerName = staff.FullName,
+        ManagerId = staff.UserId,
+        Description = "Khu phức hợp thể thao ngoài trời và trong nhà đa năng lý tưởng cho mọi hoạt động.",
+        ImageUrl = "https://images.unsplash.com/photo-1526232761682-d26e03ac148e?q=80&w=800",
+        CreatedAt = DateTime.UtcNow
+      }
+    };
+
+    await context.CourtComplexes.AddRangeAsync(complexes);
+    await context.SaveChangesAsync();
+  }
+
   private static async Task SeedCourtsAsync(ApplicationDbContext context)
   {
     var typeMap = context.CourtTypes.ToDictionary(ct => ct.TypeName, ct => ct.CourtTypeId);
+    var complexes = context.CourtComplexes.ToList();
+    var complexCG = complexes.First(c => c.ComplexName.Contains("Cầu Giấy")).ComplexId;
+    var complexTX = complexes.First(c => c.ComplexName.Contains("Thanh Xuân")).ComplexId;
 
     var courts = new[]
     {
       new Court { CourtName = "Sân Cầu Lông A1", CourtCode = "CL-A1", CourtTypeId = typeMap["Cầu lông"],
+                  ComplexId = complexCG, PricePerHour = 100000, CourtSize = "Tiêu chuẩn",
                   Description = "Sân cầu lông tiêu chuẩn, sàn gỗ, điều hòa",
                   Location = "Tầng 1 Khu A", Capacity = 4, Surface = "Gỗ",
                   OpenTime = new TimeOnly(6,0), CloseTime = new TimeOnly(22,0), Status = CourtStatus.Available },
       new Court { CourtName = "Sân Cầu Lông A2", CourtCode = "CL-A2", CourtTypeId = typeMap["Cầu lông"],
+                  ComplexId = complexCG, PricePerHour = 100000, CourtSize = "Tiêu chuẩn",
                   Description = "Sân cầu lông tiêu chuẩn, sàn nhựa PVC",
                   Location = "Tầng 1 Khu A", Capacity = 4, Surface = "Nhựa PVC",
                   OpenTime = new TimeOnly(6,0), CloseTime = new TimeOnly(22,0), Status = CourtStatus.Available },
       new Court { CourtName = "Sân Bóng Đá B1",  CourtCode = "BD-B1", CourtTypeId = typeMap["Bóng đá"],
+                  ComplexId = complexTX, PricePerHour = 300000, CourtSize = "Sân 5 người",
                   Description = "Sân 5v5 cỏ nhân tạo thế hệ 3",
                   Location = "Ngoài trời Khu B", Capacity = 10, Surface = "Cỏ nhân tạo",
                   OpenTime = new TimeOnly(6,0), CloseTime = new TimeOnly(22,0), Status = CourtStatus.Available },
       new Court { CourtName = "Sân Pickleball C1", CourtCode = "PK-C1", CourtTypeId = typeMap["Pickleball"],
+                  ComplexId = complexCG, PricePerHour = 150000, CourtSize = "Tiêu chuẩn",
                   Description = "Sân pickleball tiêu chuẩn",
                   Location = "Tầng 2 Khu C", Capacity = 4, Surface = "Nhựa",
                   OpenTime = new TimeOnly(6,0), CloseTime = new TimeOnly(22,0), Status = CourtStatus.Available },
       new Court { CourtName = "Sân Tennis D1",    CourtCode = "TN-D1", CourtTypeId = typeMap["Tennis"],
+                  ComplexId = complexTX, PricePerHour = 250000, CourtSize = "Tiêu chuẩn",
                   Description = "Sân mặt cứng, đèn cao áp",
                   Location = "Ngoài trời Khu D", Capacity = 4, Surface = "Mặt cứng",
                   OpenTime = new TimeOnly(6,0), CloseTime = new TimeOnly(22,0), Status = CourtStatus.Available }
     };
     await context.Courts.AddRangeAsync(courts);
+    await context.SaveChangesAsync();
+
+    // Seed some secondary images for "Sân Cầu Lông A1" and "Sân Bóng Đá B1"
+    var courtA1 = context.Courts.First(c => c.CourtCode == "CL-A1").CourtId;
+    var courtB1 = context.Courts.First(c => c.CourtCode == "BD-B1").CourtId;
+
+    var extraImages = new[]
+    {
+      new CourtImage { CourtId = courtA1, ImageUrl = "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=600", IsPrimary = false, SortOrder = 1, CreatedAt = DateTime.UtcNow },
+      new CourtImage { CourtId = courtA1, ImageUrl = "https://images.unsplash.com/photo-1521412644187-c49fa049e84d?q=80&w=600", IsPrimary = false, SortOrder = 2, CreatedAt = DateTime.UtcNow },
+      new CourtImage { CourtId = courtB1, ImageUrl = "https://images.unsplash.com/photo-1459865264687-595d652de67e?q=80&w=600", IsPrimary = false, SortOrder = 1, CreatedAt = DateTime.UtcNow },
+      new CourtImage { CourtId = courtB1, ImageUrl = "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=600", IsPrimary = false, SortOrder = 2, CreatedAt = DateTime.UtcNow }
+    };
+    await context.CourtImages.AddRangeAsync(extraImages);
     await context.SaveChangesAsync();
   }
 

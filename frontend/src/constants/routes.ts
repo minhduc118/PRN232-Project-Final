@@ -34,7 +34,8 @@ export const ROUTES = {
 
   // Admin
   ADMIN:           '/admin',
-  ADMIN_COURTS:    '/admin/courts',
+  ADMIN_COURTS:         '/admin/courts',
+  ADMIN_COMPLEX_DETAIL: '/admin/courts/:complexId',
   ADMIN_BOOKINGS:  '/admin/bookings',
   ADMIN_USERS:     '/admin/users',
   ADMIN_PAYMENTS:  '/admin/payments',

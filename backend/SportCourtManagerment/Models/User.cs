@@ -80,4 +80,5 @@ public class User
   public ICollection<PlayerRequestMember> PlayerRequestMembers { get; set; } = new List<PlayerRequestMember>();
   public ICollection<Waitlist> Waitlists { get; set; } = new List<Waitlist>();
   public ICollection<MaintenanceSchedule> AssignedMaintenances { get; set; } = new List<MaintenanceSchedule>();
+  public ICollection<CourtComplex> ManagedComplexes { get; set; } = new List<CourtComplex>();
 }

@@ -167,8 +167,6 @@ public class ApplicationDbContext : DbContext
       e.HasKey(cx => cx.ComplexId);
       e.Property(cx => cx.ComplexName).IsRequired().HasMaxLength(150);
       e.Property(cx => cx.Address).IsRequired().HasMaxLength(300);
-      e.Property(cx => cx.Phone).HasMaxLength(20);
-      e.Property(cx => cx.ManagerName).HasMaxLength(100);
       e.Property(cx => cx.Description).HasMaxLength(1000);
       e.Property(cx => cx.ImageUrl).HasMaxLength(500);
       e.Property(cx => cx.IsDeleted).HasDefaultValue(false);

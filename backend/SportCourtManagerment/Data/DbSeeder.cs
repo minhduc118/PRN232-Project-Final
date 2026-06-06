@@ -133,8 +133,6 @@ public static class DbSeeder
       {
         ComplexName = "Tổ hợp thể thao Cầu Giấy",
         Address = "Dịch Vọng, Cầu Giấy, Hà Nội",
-        Phone = "0912345678",
-        ManagerName = admin.FullName,
         ManagerId = admin.UserId,
         Description = "Tổ hợp thể thao hiện đại hàng đầu với các sân trong nhà chất lượng cao.",
         ImageUrl = "https://images.unsplash.com/photo-1545224497-5d750c673417?q=80&w=800",
@@ -144,8 +142,6 @@ public static class DbSeeder
       {
         ComplexName = "Tổ hợp thể thao Thanh Xuân",
         Address = "Nguyễn Trãi, Thanh Xuân, Hà Nội",
-        Phone = "0987654321",
-        ManagerName = staff.FullName,
         ManagerId = staff.UserId,
         Description = "Khu phức hợp thể thao ngoài trời và trong nhà đa năng lý tưởng cho mọi hoạt động.",
         ImageUrl = "https://images.unsplash.com/photo-1526232761682-d26e03ac148e?q=80&w=800",

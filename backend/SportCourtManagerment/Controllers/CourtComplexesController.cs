@@ -5,6 +5,7 @@ using SportCourtManagerment.Data;
 using SportCourtManagerment.DTOs;
 using SportCourtManagerment.DTOs.Courts;
 using SportCourtManagerment.Models;
+using SportCourtManagerment.Services;
 
 namespace SportCourtManagerment.Controllers;
 
@@ -13,10 +14,12 @@ namespace SportCourtManagerment.Controllers;
 public class CourtComplexesController : ControllerBase
 {
   private readonly ApplicationDbContext _db;
+  private readonly CloudinaryService _cloudinary;
 
-  public CourtComplexesController(ApplicationDbContext db)
+  public CourtComplexesController(ApplicationDbContext db, CloudinaryService cloudinary)
   {
     _db = db;
+    _cloudinary = cloudinary;
   }
 
   // ─────────────────────────────────────────────
@@ -30,38 +33,36 @@ public class CourtComplexesController : ControllerBase
     [FromQuery] int     page        = 1,
     [FromQuery] int     pageSize    = 8)
   {
-    // Clamp page size to reasonable bounds
     pageSize = Math.Clamp(pageSize, 1, 100);
     page     = Math.Max(1, page);
 
-    // Base query: non-deleted complexes with their courts
+    // Include Manager for dynamic phone/name resolution
     var query = _db.CourtComplexes
       .Include(cx => cx.Courts)
+      .Include(cx => cx.Manager)
       .Where(cx => !cx.IsDeleted)
       .AsQueryable();
 
-    // 1️⃣ Full-text search across name / address / phone / manager
+    // Full-text search across name / address / manager name/phone
     if (!string.IsNullOrWhiteSpace(search))
     {
       var term = search.Trim();
       query = query.Where(cx =>
         cx.ComplexName.Contains(term) ||
         cx.Address.Contains(term) ||
-        (cx.Phone != null && cx.Phone.Contains(term)) ||
-        (cx.ManagerName != null && cx.ManagerName.Contains(term)));
+        (cx.Manager != null && cx.Manager.FullName.Contains(term)) ||
+        (cx.Manager != null && cx.Manager.Phone != null && cx.Manager.Phone.Contains(term)));
     }
 
-    // 2️⃣ Filter by court type: keep only complexes that have at least one court of that type
+    // Filter by court type
     if (courtTypeId.HasValue)
     {
       query = query.Where(cx =>
         cx.Courts.Any(c => !c.IsDeleted && c.CourtTypeId == courtTypeId.Value));
     }
 
-    // 3️⃣ Total count for pagination meta (before paging)
     var totalCount = await query.CountAsync();
 
-    // 4️⃣ Order + page
     var items = await query
       .OrderByDescending(cx => cx.CreatedAt)
       .Skip((page - 1) * pageSize)
@@ -71,8 +72,9 @@ public class CourtComplexesController : ControllerBase
         ComplexId         = cx.ComplexId,
         ComplexName       = cx.ComplexName,
         Address           = cx.Address,
-        Phone             = cx.Phone,
-        ManagerName       = cx.ManagerName,
+        // Derived from Manager navigation property
+        Phone             = cx.Manager != null ? cx.Manager.Phone : null,
+        ManagerName       = cx.Manager != null ? cx.Manager.FullName : null,
         ManagerId         = cx.ManagerId,
         Description       = cx.Description,
         ImageUrl          = cx.ImageUrl,
@@ -85,7 +87,7 @@ public class CourtComplexesController : ControllerBase
       })
       .ToListAsync();
 
-    var totalComplexes = await _db.CourtComplexes.CountAsync(cx => !cx.IsDeleted);
+    var totalComplexes    = await _db.CourtComplexes.CountAsync(cx => !cx.IsDeleted);
     var totalCourts       = await _db.Courts.CountAsync(c => !c.IsDeleted);
     var activeCourts      = await _db.Courts.CountAsync(c => !c.IsDeleted && c.Status == Enums.CourtStatus.Available);
     var maintenanceCourts = await _db.Courts.CountAsync(c => !c.IsDeleted && c.Status == Enums.CourtStatus.Maintenance);
@@ -115,13 +117,11 @@ public class CourtComplexesController : ControllerBase
 
   // ─────────────────────────────────────────────
   // GET /api/complexes/stats
-  // Aggregate statistics across the entire system
   // ─────────────────────────────────────────────
   [HttpGet("stats")]
   public async Task<IActionResult> GetStats()
   {
-    var totalComplexes = await _db.CourtComplexes.CountAsync(cx => !cx.IsDeleted);
-
+    var totalComplexes    = await _db.CourtComplexes.CountAsync(cx => !cx.IsDeleted);
     var totalCourts       = await _db.Courts.CountAsync(c => !c.IsDeleted);
     var activeCourts      = await _db.Courts.CountAsync(c => !c.IsDeleted && c.Status == Enums.CourtStatus.Available);
     var maintenanceCourts = await _db.Courts.CountAsync(c => !c.IsDeleted && c.Status == Enums.CourtStatus.Maintenance);
@@ -147,6 +147,7 @@ public class CourtComplexesController : ControllerBase
   {
     var cx = await _db.CourtComplexes
       .Include(c => c.Courts)
+      .Include(c => c.Manager)
       .FirstOrDefaultAsync(c => c.ComplexId == id && !c.IsDeleted);
 
     if (cx is null)
@@ -157,8 +158,8 @@ public class CourtComplexesController : ControllerBase
       ComplexId         = cx.ComplexId,
       ComplexName       = cx.ComplexName,
       Address           = cx.Address,
-      Phone             = cx.Phone,
-      ManagerName       = cx.ManagerName,
+      Phone             = cx.Manager?.Phone,
+      ManagerName       = cx.Manager?.FullName,
       ManagerId         = cx.ManagerId,
       Description       = cx.Description,
       ImageUrl          = cx.ImageUrl,
@@ -183,35 +184,37 @@ public class CourtComplexesController : ControllerBase
     if (!ModelState.IsValid)
       return BadRequest(ApiResponse<object>.Fail("Dữ liệu đầu vào không hợp lệ."));
 
+    // Validate ManagerId exists if provided
+    if (dto.ManagerId.HasValue)
+    {
+      var managerExists = await _db.Users.AnyAsync(u => u.UserId == dto.ManagerId.Value && u.IsActive);
+      if (!managerExists)
+        return BadRequest(ApiResponse<object>.Fail($"Không tìm thấy quản lý với mã #{dto.ManagerId.Value}."));
+    }
+
     var cx = new CourtComplex
     {
       ComplexName = dto.ComplexName,
       Address     = dto.Address,
-      Phone       = dto.Phone,
-      ManagerName = dto.ManagerName,
       ManagerId   = dto.ManagerId,
       Description = dto.Description,
       ImageUrl    = dto.ImageUrl,
       CreatedAt   = DateTime.UtcNow
     };
 
-    if (dto.ManagerId.HasValue)
-    {
-      var manager = await _db.Users.FindAsync(dto.ManagerId.Value);
-      if (manager is not null)
-        cx.ManagerName = manager.FullName;
-    }
-
     _db.CourtComplexes.Add(cx);
     await _db.SaveChangesAsync();
+
+    // Reload with Manager for response DTO
+    await _db.Entry(cx).Reference(c => c.Manager).LoadAsync();
 
     var result = new CourtComplexDto
     {
       ComplexId         = cx.ComplexId,
       ComplexName       = cx.ComplexName,
       Address           = cx.Address,
-      Phone             = cx.Phone,
-      ManagerName       = cx.ManagerName,
+      Phone             = cx.Manager?.Phone,
+      ManagerName       = cx.Manager?.FullName,
       ManagerId         = cx.ManagerId,
       Description       = cx.Description,
       ImageUrl          = cx.ImageUrl,
@@ -235,39 +238,39 @@ public class CourtComplexesController : ControllerBase
     if (!ModelState.IsValid)
       return BadRequest(ApiResponse<object>.Fail("Dữ liệu đầu vào không hợp lệ."));
 
-    var cx = await _db.CourtComplexes.FirstOrDefaultAsync(c => c.ComplexId == id && !c.IsDeleted);
+    var cx = await _db.CourtComplexes
+      .Include(c => c.Manager)
+      .FirstOrDefaultAsync(c => c.ComplexId == id && !c.IsDeleted);
     if (cx is null)
       return NotFound(ApiResponse<object>.Fail("Không tìm thấy tổ hợp sân cần cập nhật.", 404));
 
+    // Validate ManagerId exists if provided
+    if (dto.ManagerId.HasValue)
+    {
+      var managerExists = await _db.Users.AnyAsync(u => u.UserId == dto.ManagerId.Value && u.IsActive);
+      if (!managerExists)
+        return BadRequest(ApiResponse<object>.Fail($"Không tìm thấy quản lý với mã #{dto.ManagerId.Value}."));
+    }
+
     cx.ComplexName = dto.ComplexName;
     cx.Address     = dto.Address;
-    cx.Phone       = dto.Phone;
-    cx.ManagerName = dto.ManagerName;
     cx.ManagerId   = dto.ManagerId;
     cx.Description = dto.Description;
     cx.ImageUrl    = dto.ImageUrl;
     cx.UpdatedAt   = DateTime.UtcNow;
 
-    if (dto.ManagerId.HasValue)
-    {
-      var manager = await _db.Users.FindAsync(dto.ManagerId.Value);
-      if (manager is not null)
-        cx.ManagerName = manager.FullName;
-    }
-    else
-    {
-      cx.ManagerName = null;
-    }
-
     await _db.SaveChangesAsync();
+
+    // Reload Manager after potential change of ManagerId
+    await _db.Entry(cx).Reference(c => c.Manager).LoadAsync();
 
     var updatedDto = new CourtComplexDto
     {
       ComplexId         = cx.ComplexId,
       ComplexName       = cx.ComplexName,
       Address           = cx.Address,
-      Phone             = cx.Phone,
-      ManagerName       = cx.ManagerName,
+      Phone             = cx.Manager?.Phone,
+      ManagerName       = cx.Manager?.FullName,
       ManagerId         = cx.ManagerId,
       Description       = cx.Description,
       ImageUrl          = cx.ImageUrl,
@@ -295,7 +298,6 @@ public class CourtComplexesController : ControllerBase
     if (cx is null)
       return NotFound(ApiResponse<object>.Fail("Không tìm thấy tổ hợp sân cần xóa.", 404));
 
-    // Kiểm tra xem tổ hợp này có sân con nào chưa bị xóa mềm không
     var hasActiveCourts = cx.Courts.Any(c => !c.IsDeleted);
     if (hasActiveCourts)
     {
@@ -303,12 +305,35 @@ public class CourtComplexesController : ControllerBase
         "Không thể xóa tổ hợp sân khi đang có các sân hoạt động bên trong. Vui lòng di chuyển hoặc xóa hết các sân con trước.", 400));
     }
 
-    // Xóa mềm tổ hợp
     cx.IsDeleted = true;
     cx.UpdatedAt = DateTime.UtcNow;
     await _db.SaveChangesAsync();
 
     return Ok(ApiResponse<object>.Ok(null, "Xóa tổ hợp sân thành công."));
+  }
+
+  // ─────────────────────────────────────────────
+  // POST /api/complexes/upload-image
+  // Upload ảnh tổ hợp sân lên Cloudinary
+  // ─────────────────────────────────────────────
+  [Authorize]
+  [HttpPost("upload-image")]
+  public async Task<IActionResult> UploadImage([FromForm] IFormFile file)
+  {
+    if (file == null || file.Length == 0)
+      return BadRequest(ApiResponse<object>.Fail("File ảnh không được để trống."));
+
+    try
+    {
+      var url = await _cloudinary.UploadImageAsync(file);
+      return Ok(ApiResponse<ImageUploadResultDto>.Ok(
+        new ImageUploadResultDto { Url = url },
+        "Upload ảnh thành công."));
+    }
+    catch (Exception ex)
+    {
+      return StatusCode(500, ApiResponse<object>.Fail($"Upload ảnh thất bại: {ex.Message}"));
+    }
   }
 
   // ─────────────────────────────────────────────

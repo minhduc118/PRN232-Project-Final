@@ -32,6 +32,7 @@ public class Program
     // ── Application Services ──────────────────
     builder.Services.AddScoped<TokenService>();
     builder.Services.AddScoped<IEmailService, EmailService>();
+    builder.Services.AddSingleton<CloudinaryService>();
 
     // ── JWT Authentication ────────────────────
     var jwtSection = builder.Configuration.GetSection("Jwt");

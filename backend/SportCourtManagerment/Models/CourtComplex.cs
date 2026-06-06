@@ -16,13 +16,7 @@ public class CourtComplex
   [Required, MaxLength(300)]
   public string Address { get; set; } = string.Empty;
 
-  /// <summary>Contact phone number for the complex.</summary>
-  [MaxLength(20)]
-  public string? Phone { get; set; }
 
-  /// <summary>Contact name of the manager.</summary>
-  [MaxLength(100)]
-  public string? ManagerName { get; set; }
 
   /// <summary>FK to the user managing this complex.</summary>
   public int? ManagerId { get; set; }

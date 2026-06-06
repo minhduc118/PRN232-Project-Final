@@ -7,7 +7,9 @@ public class CourtComplexDto
   public int ComplexId { get; set; }
   public string ComplexName { get; set; } = string.Empty;
   public string Address { get; set; } = string.Empty;
+  /// <summary>Derived from Manager.Phone — not stored on complex itself.</summary>
   public string? Phone { get; set; }
+  /// <summary>Derived from Manager.FullName — not stored on complex itself.</summary>
   public string? ManagerName { get; set; }
   public int? ManagerId { get; set; }
   public string? Description { get; set; }
@@ -50,12 +52,6 @@ public class CreateComplexDto
   [MaxLength(300, ErrorMessage = "Địa chỉ không vượt quá 300 ký tự.")]
   public string Address { get; set; } = string.Empty;
 
-  [MaxLength(20, ErrorMessage = "Số điện thoại không vượt quá 20 ký tự.")]
-  public string? Phone { get; set; }
-
-  [MaxLength(100)]
-  public string? ManagerName { get; set; }
-
   public int? ManagerId { get; set; }
 
   [MaxLength(1000)]
@@ -75,12 +71,6 @@ public class UpdateComplexDto
   [MaxLength(300, ErrorMessage = "Địa chỉ không vượt quá 300 ký tự.")]
   public string Address { get; set; } = string.Empty;
 
-  [MaxLength(20, ErrorMessage = "Số điện thoại không vượt quá 20 ký tự.")]
-  public string? Phone { get; set; }
-
-  [MaxLength(100)]
-  public string? ManagerName { get; set; }
-
   public int? ManagerId { get; set; }
 
   [MaxLength(1000)]
@@ -88,6 +78,12 @@ public class UpdateComplexDto
 
   [MaxLength(500)]
   public string? ImageUrl { get; set; }
+}
+
+/// <summary>Response DTO for image upload endpoints.</summary>
+public class ImageUploadResultDto
+{
+  public string Url { get; set; } = string.Empty;
 }
 
 /// <summary>Kết quả phân trang cho danh sách tổ hợp sân.</summary>

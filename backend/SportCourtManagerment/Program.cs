@@ -44,6 +44,10 @@ public class Program
     builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
     builder.Services.AddScoped<IStaffService,           StaffService>();
 
+    // ── Maintenance ─────────
+    builder.Services.AddScoped<IMaintenanceRepository,  MaintenanceRepository>();
+    builder.Services.AddScoped<IMaintenanceService,     MaintenanceService>();
+
     // ── JWT Authentication ────────────────────
     var jwtSection = builder.Configuration.GetSection("Jwt");
     var secretKey  = jwtSection["Secret"]!;

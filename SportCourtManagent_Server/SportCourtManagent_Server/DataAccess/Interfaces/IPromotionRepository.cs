@@ -10,5 +10,6 @@ namespace SportCourtManagent_Server.DataAccess.Interfaces
         void Add(Promotion entity);
         void Update(Promotion entity);
         void Delete(int id);
+        Promotion? GetByCode(string code);
     }
 }

@@ -117,11 +117,12 @@ public class BookingService : IBookingService
             return ApiResponse<BookingAdminDto>.Fail("Giờ kết thúc phải lớn hơn giờ bắt đầu.");
         }
 
-        // 3. Check overlap
+        // 3. Check overlap by time (not just SlotId)
         var overlap = await _context.Bookings.AnyAsync(b => 
             b.CourtId == dto.CourtId && 
             b.BookingDate == dto.BookingDate && 
-            b.SlotId == dto.SlotId &&
+            b.StartTime < dto.EndTime && 
+            b.EndTime > dto.StartTime &&
             (b.Status == BookingStatus.Pending || b.Status == BookingStatus.Confirmed));
             
         if (overlap)

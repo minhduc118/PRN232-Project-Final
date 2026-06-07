@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using SportCourtManagerment.Data;
 using SportCourtManagerment.Services;
 using SportCourtManagerment.Services.Email;
+using SportCourtManagerment.Services.Bookings;
 
 namespace SportCourtManagerment;
 
@@ -32,6 +33,7 @@ public class Program
     // ── Application Services ──────────────────
     builder.Services.AddScoped<TokenService>();
     builder.Services.AddScoped<IEmailService, EmailService>();
+    builder.Services.AddScoped<IBookingService, BookingService>();
     builder.Services.AddSingleton<CloudinaryService>();
 
     // ── JWT Authentication ────────────────────
@@ -63,7 +65,14 @@ public class Program
     builder.Services.AddAuthorization();
 
     // ── Controllers ───────────────────────────
-    builder.Services.AddControllers();
+    builder.Services.AddControllers()
+      .AddJsonOptions(opts =>
+      {
+        // Serialize enums as strings (e.g. "Pending" not 0)
+        opts.JsonSerializerOptions.Converters.Add(
+          new System.Text.Json.Serialization.JsonStringEnumConverter()
+        );
+      });
 
     // ── CORS (allow React dev server) ─────────
     builder.Services.AddCors(options =>

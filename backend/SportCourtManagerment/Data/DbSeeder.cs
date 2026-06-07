@@ -23,6 +23,7 @@ public static class DbSeeder
     await SeedEquipmentInventoryAsync(context);
     await SeedPromotionsAsync(context);
     await SeedStaffShiftsAsync(context);
+    await SeedBookingsAsync(context);
     await context.SaveChangesAsync();
 
     Console.WriteLine("=== SportsCourtDB seeded successfully! ===");
@@ -297,6 +298,62 @@ public static class DbSeeder
       new StaffShift { StaffId = staff.UserId, ShiftDate = new DateOnly(2026,5,16), ShiftType = ShiftType.Morning,   StartTime = new TimeOnly(6,0),  EndTime = new TimeOnly(14,0) }
     };
     await context.StaffShifts.AddRangeAsync(shifts);
+    await context.SaveChangesAsync();
+  }
+  private static async Task SeedBookingsAsync(ApplicationDbContext context)
+  {
+    var customer = context.Users.First(u => u.Email == "customer@gmail.com");
+    var courtCL = context.Courts.First(c => c.CourtCode == "CL-A1");
+    var courtBD = context.Courts.First(c => c.CourtCode == "BD-B1");
+    var slotMorning = context.TimeSlots.First(s => s.SlotName == "Buổi sáng");
+    var slotEvening = context.TimeSlots.First(s => s.SlotName == "Giờ vàng");
+
+    var bookings = new[]
+    {
+      new Booking
+      {
+        BookingCode = "BK-" + DateTime.Now.ToString("yyyyMMdd") + "-0001",
+        UserId = customer.UserId,
+        CourtId = courtCL.CourtId,
+        SlotId = slotMorning.SlotId,
+        BookingDate = DateOnly.FromDateTime(DateTime.Today),
+        StartTime = slotMorning.StartTime,
+        EndTime = slotMorning.EndTime,
+        SubTotal = 100000,
+        TotalAmount = 100000,
+        Status = BookingStatus.Confirmed,
+        CreatedAt = DateTime.UtcNow
+      },
+      new Booking
+      {
+        BookingCode = "BK-" + DateTime.Now.ToString("yyyyMMdd") + "-0002",
+        UserId = customer.UserId,
+        CourtId = courtBD.CourtId,
+        SlotId = slotEvening.SlotId,
+        BookingDate = DateOnly.FromDateTime(DateTime.Today),
+        StartTime = slotEvening.StartTime,
+        EndTime = slotEvening.EndTime,
+        SubTotal = 500000,
+        TotalAmount = 500000,
+        Status = BookingStatus.Pending,
+        CreatedAt = DateTime.UtcNow
+      },
+      new Booking
+      {
+        BookingCode = "BK-" + DateTime.Now.ToString("yyyyMMdd") + "-0003",
+        UserId = customer.UserId,
+        CourtId = courtCL.CourtId,
+        SlotId = slotEvening.SlotId,
+        BookingDate = DateOnly.FromDateTime(DateTime.Today),
+        StartTime = slotEvening.StartTime,
+        EndTime = slotEvening.EndTime,
+        SubTotal = 200000,
+        TotalAmount = 200000,
+        Status = BookingStatus.Pending,
+        CreatedAt = DateTime.UtcNow
+      }
+    };
+    await context.Bookings.AddRangeAsync(bookings);
     await context.SaveChangesAsync();
   }
 }

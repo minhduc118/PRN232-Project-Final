@@ -8,6 +8,8 @@ import { userApi } from '@/api/userApi';
 import type { UserSummary } from '@/api/userApi';
 import { timeSlotApi } from '@/api/timeSlotApi';
 import type { TimeSlot } from '@/api/timeSlotApi';
+import { promotionApi } from '@/api/promotionApi';
+import type { Promotion } from '@/types/promotion.types';
 import type { Booking } from '@/types/booking.types';
 
 /**
@@ -37,6 +39,7 @@ export default function ManageBookingsPage() {
   const [courtTypes, setCourtTypes] = useState<{ courtTypeId: number; typeName: string }[]>([]);
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [activePromotions, setActivePromotions] = useState<Promotion[]>([]);
 
   // ── Filters ──
   const [search, setSearch] = useState('');
@@ -65,18 +68,22 @@ export default function ManageBookingsPage() {
   const loadAllData = async () => {
     try {
       setLoading(true);
-      const [bData, cData, ctData, uData, tData] = await Promise.all([
+      const [bData, cData, ctData, uData, tData, pData] = await Promise.all([
         getAdminBookings(),
         getCourts(),
         getCourtTypes(),
         userApi.getAll(),
         timeSlotApi.getAll(),
+        promotionApi.getAllPromotions(),
       ]);
       setBookings(bData);
       setCourts(cData);
       setCourtTypes(ctData);
       setUsers(uData);
       setTimeSlots(tData);
+      
+      const now = new Date();
+      setActivePromotions(pData.filter(p => p.isActive && new Date(p.endDate) >= now && new Date(p.startDate) <= now));
     } catch {
       toast.error('Lỗi khi tải dữ liệu trang đặt sân');
     } finally {
@@ -503,6 +510,25 @@ export default function ManageBookingsPage() {
                 </select>
               </div>
 
+                {/* Promotion Dropdown (Create Mode) */}
+                {!drawerBookingId && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Mã Khuyến Mãi</label>
+                    <select
+                      className="w-full bg-slate-900 border border-surface-border text-slate-300 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500/50 transition-all"
+                      value={promotionCode}
+                      onChange={(e) => setPromotionCode(e.target.value)}
+                    >
+                      <option value="">Không sử dụng khuyến mãi</option>
+                      {activePromotions.map(p => (
+                        <option key={p.promotionId} value={p.promoCode}>
+                          {p.promoCode} - {p.promoName} ({p.discountType === 'Percent' ? `Giảm ${p.discountValue}%` : `Giảm ${(p.discountValue).toLocaleString('vi-VN')}đ`})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
               {/* Sân */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">Chọn Sân *</label>
@@ -538,13 +564,6 @@ export default function ManageBookingsPage() {
               {/* Extras — chỉ hiện khi tạo mới */}
               {!drawerBookingId && (
                 <>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1.5">Mã Khuyến Mãi</label>
-                    <input type="text" className="input-field w-full uppercase"
-                      placeholder="Nhập mã (nếu có)" value={promotionCode}
-                      onChange={e => setPromotionCode(e.target.value)} />
-                  </div>
-
                   <div className="flex gap-3">
                     <div className="flex-1">
                       <label className="block text-sm font-medium text-slate-300 mb-1.5">Thanh toán</label>
@@ -562,6 +581,30 @@ export default function ManageBookingsPage() {
                     </div>
                   </div>
                 </>
+              )}
+
+              {/* Chi tiết Tiền tệ (View Mode) */}
+              {drawerBookingId && viewingBooking && (
+                <div className="pt-4 border-t border-surface-border space-y-2">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Thông tin thanh toán</p>
+                  
+                  <div className="flex justify-between items-center text-sm text-slate-400">
+                    <span>Tạm tính:</span>
+                    <span className="font-medium text-slate-300">{(viewingBooking.subTotal).toLocaleString('vi-VN')}đ</span>
+                  </div>
+                  
+                  {viewingBooking.discountAmount > 0 && (
+                    <div className="flex justify-between items-center text-sm text-emerald-400">
+                      <span>Khuyến mãi:</span>
+                      <span className="font-medium">-{(viewingBooking.discountAmount).toLocaleString('vi-VN')}đ</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center text-base pt-2 border-t border-surface-border/50">
+                    <span className="font-semibold text-slate-300">Tổng cộng:</span>
+                    <span className="font-bold text-white">{(viewingBooking.totalAmount).toLocaleString('vi-VN')}đ</span>
+                  </div>
+                </div>
               )}
 
               {/* Action buttons — khi xem booking, chỉ hiện nút hợp lệ theo trạng thái */}

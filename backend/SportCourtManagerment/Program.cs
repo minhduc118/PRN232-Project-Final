@@ -39,9 +39,10 @@ public class Program
     builder.Services.AddSingleton<CloudinaryService>();
 
     // ── Staff & Shift ───────
-    builder.Services.AddScoped<IStaffRepository,      StaffRepository>();
-    builder.Services.AddScoped<IStaffShiftRepository, StaffShiftRepository>();
-    builder.Services.AddScoped<IStaffService,         StaffService>();
+    builder.Services.AddScoped<IStaffRepository,        StaffRepository>();
+    builder.Services.AddScoped<IStaffShiftRepository,   StaffShiftRepository>();
+    builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+    builder.Services.AddScoped<IStaffService,           StaffService>();
 
     // ── JWT Authentication ────────────────────
     var jwtSection = builder.Configuration.GetSection("Jwt");

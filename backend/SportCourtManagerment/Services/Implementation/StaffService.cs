@@ -10,6 +10,7 @@ public class StaffService : IStaffService
 {
     private readonly IStaffRepository _staffRepo;
     private readonly IStaffShiftRepository _shiftRepo;
+    private readonly INotificationRepository _notificationRepo;
 
     private static readonly Dictionary<ShiftType, (TimeOnly Start, TimeOnly End)> ShiftTimes = new()
     {
@@ -18,10 +19,14 @@ public class StaffService : IStaffService
         [ShiftType.Evening] = (new TimeOnly(22, 0), new TimeOnly(6, 0)), // qua đêm
     };
 
-    public StaffService(IStaffRepository staffRepo, IStaffShiftRepository shiftRepo)
+    public StaffService(
+        IStaffRepository staffRepo,
+        IStaffShiftRepository shiftRepo,
+        INotificationRepository notificationRepo)
     {
         _staffRepo = staffRepo;
         _shiftRepo = shiftRepo;
+        _notificationRepo = notificationRepo;
     }
 
     // ─── FR-ST-01 ─────────────────────────────────────────────────
@@ -125,6 +130,20 @@ public class StaffService : IStaffService
         };
 
         var created = await _shiftRepo.CreateAsync(shift);
+
+        // FR-ST-04: Tạo thông báo gán cho UserId của Staff
+        var notification = new Notification
+        {
+            UserId = created.StaffId,
+            Title = "Lịch làm việc mới",
+            Body = $"Bạn đã được phân công ca {created.ShiftType} ngày {created.ShiftDate:yyyy-MM-dd} ({created.StartTime:HH:mm} - {created.EndTime:HH:mm}).",
+            Type = NotificationType.System,
+            ReferenceId = created.ShiftId,
+            IsRead = false,
+            CreatedAt = DateTime.UtcNow
+        };
+        await _notificationRepo.CreateNotificationAsync(notification);
+
         return MapToShiftResponse(created);
     }
 
@@ -148,7 +167,7 @@ public class StaffService : IStaffService
             if (!staff.UserRoles.Any(ur => ur.Role.RoleName == "Staff"))
             {
                 result.Errors.Add(
-                  $"Người dùng #{item.StaffId} ({staff.FullName}) không có vai trò Staff.");
+                   $"Người dùng #{item.StaffId} ({staff.FullName}) không có vai trò Staff.");
                 result.Skipped++;
                 continue;
             }
@@ -182,6 +201,20 @@ public class StaffService : IStaffService
             var created = await _shiftRepo.CreateBulkAsync(toCreate);
             result.Created = created.Count;
             result.CreatedShifts = created.Select(MapToShiftResponse).ToList();
+
+            // FR-ST-04: Tạo thông báo gán cho UserId của các Staff trong danh sách
+            var notifications = created.Select(s => new Notification
+            {
+                UserId = s.StaffId,
+                Title = "Lịch làm việc mới",
+                Body = $"Bạn đã được phân công ca {s.ShiftType} ngày {s.ShiftDate:yyyy-MM-dd} ({s.StartTime:HH:mm} - {s.EndTime:HH:mm}).",
+                Type = NotificationType.System,
+                ReferenceId = s.ShiftId,
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            }).ToList();
+
+            await _notificationRepo.CreateNotificationsBulkAsync(notifications);
         }
 
         return result;
@@ -212,6 +245,20 @@ public class StaffService : IStaffService
         var success = await _shiftRepo.UpdateAsync(shift);
         if (!success)
             throw new InvalidOperationException("Cập nhật ca làm việc thất bại.");
+
+        // FR-ST-04: Tạo thông báo khi ca làm việc thay đổi
+        var notification = new Notification
+        {
+            UserId = shift.StaffId,
+            Title = "Lịch làm việc thay đổi",
+            Body = $"Ca làm việc của bạn ngày {shift.ShiftDate:yyyy-MM-dd} đã được đổi thành ca {shift.ShiftType} ({shift.StartTime:HH:mm} - {shift.EndTime:HH:mm}).",
+            Type = NotificationType.System,
+            ReferenceId = shift.ShiftId,
+            IsRead = false,
+            CreatedAt = DateTime.UtcNow
+        };
+        await _notificationRepo.CreateNotificationAsync(notification);
+
         return MapToShiftResponse(shift);
     }
 
@@ -226,9 +273,26 @@ public class StaffService : IStaffService
               "Không thể xóa ca làm việc khi nhân viên đã thực hiện check-in. " +
               "Hãy liên hệ quản trị viên.");
 
+        // Lưu thông tin để tạo thông báo
+        var staffId = shift.StaffId;
+        var shiftDate = shift.ShiftDate;
+        var shiftType = shift.ShiftType;
+
         var success = await _shiftRepo.DeleteAsync(shift);
         if (!success)
             throw new InvalidOperationException("Xóa ca làm việc thất bại.");
+
+        // FR-ST-04: Tạo thông báo khi ca làm việc bị xóa
+        var notification = new Notification
+        {
+            UserId = staffId,
+            Title = "Lịch làm việc đã hủy",
+            Body = $"Ca làm việc {shiftType} ngày {shiftDate:yyyy-MM-dd} của bạn đã bị hủy.",
+            Type = NotificationType.System,
+            IsRead = false,
+            CreatedAt = DateTime.UtcNow
+        };
+        await _notificationRepo.CreateNotificationAsync(notification);
     }
 
     public async Task<StaffShiftResponse> GetShiftByIdAsync(int shiftId)
@@ -239,6 +303,83 @@ public class StaffService : IStaffService
         return MapToShiftResponse(shift);
     }
 
+    // ─── FR-ST-03: Theo dõi chấm công ───────────────────────────
+
+    public async Task<StaffShiftResponse> CheckInShiftAsync(int staffId, int shiftId)
+    {
+        var shift = await _shiftRepo.GetByIdAsync(shiftId)
+          ?? throw new KeyNotFoundException($"Không tìm thấy ca làm việc #{shiftId}.");
+
+        if (shift.StaffId != staffId)
+            throw new UnauthorizedAccessException("Bạn không được phép check-in ca làm việc của nhân viên khác.");
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        if (shift.ShiftDate != today)
+            throw new InvalidOperationException("Chỉ có thể check-in ca làm việc của ngày hôm nay.");
+
+        if (shift.CheckInTime.HasValue)
+            throw new InvalidOperationException("Bạn đã thực hiện check-in ca làm việc này rồi.");
+
+        shift.CheckInTime = DateTime.UtcNow;
+        var success = await _shiftRepo.UpdateAsync(shift);
+        if (!success)
+            throw new InvalidOperationException("Check-in thất bại.");
+
+        return MapToShiftResponse(shift);
+    }
+
+    public async Task<StaffShiftResponse> CheckOutShiftAsync(int staffId, int shiftId)
+    {
+        var shift = await _shiftRepo.GetByIdAsync(shiftId)
+          ?? throw new KeyNotFoundException($"Không tìm thấy ca làm việc #{shiftId}.");
+
+        if (shift.StaffId != staffId)
+            throw new UnauthorizedAccessException("Bạn không được phép check-out ca làm việc của nhân viên khác.");
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var isAllowedDate = shift.ShiftDate == today || 
+                            (shift.ShiftDate.AddDays(1) == today && shift.ShiftType == ShiftType.Evening);
+        if (!isAllowedDate)
+            throw new InvalidOperationException("Chỉ có thể check-out ca làm việc của ngày hôm nay.");
+
+        if (!shift.CheckInTime.HasValue)
+            throw new InvalidOperationException("Bạn phải check-in trước khi check-out.");
+
+        if (shift.CheckOutTime.HasValue)
+            throw new InvalidOperationException("Bạn đã thực hiện check-out ca làm việc này rồi.");
+
+        shift.CheckOutTime = DateTime.UtcNow;
+        var success = await _shiftRepo.UpdateAsync(shift);
+        if (!success)
+            throw new InvalidOperationException("Check-out thất bại.");
+
+        return MapToShiftResponse(shift);
+    }
+
+    public async Task<List<StaffShiftResponse>> GetAttendanceReportAsync(
+      int complexId,
+      DateOnly? dateFrom,
+      DateOnly? dateTo,
+      int? staffId = null)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var dayOfWeek = (int)today.DayOfWeek;
+        var start = dateFrom ?? today.AddDays(-(dayOfWeek == 0 ? 6 : dayOfWeek - 1));
+        var end = dateTo ?? start.AddDays(6);
+
+        List<StaffShift> shifts;
+        if (staffId.HasValue)
+        {
+            shifts = await _shiftRepo.GetShiftsByStaffAndDateRangeAsync(staffId.Value, start, end);
+        }
+        else
+        {
+            shifts = await _shiftRepo.GetShiftsByComplexAndDateRangeAsync(complexId, start, end);
+        }
+
+        return shifts.Select(MapToShiftResponse).ToList();
+    }
+
     // ─── Private Mapping Helpers ──────────────────────────────────
 
     private static StaffSummaryResponse MapToStaffSummaryResponse(
@@ -246,6 +387,44 @@ public class StaffService : IStaffService
       StaffShift? todayShift,
       int shiftsThisWeek)
     {
+        ShiftSummaryResponse? todayShiftDto = null;
+        if (todayShift != null)
+        {
+            todayShiftDto = new ShiftSummaryResponse
+            {
+                ShiftId = todayShift.ShiftId,
+                ShiftType = todayShift.ShiftType.ToString(),
+                StartTime = todayShift.StartTime.ToString("HH:mm"),
+                EndTime = todayShift.EndTime.ToString("HH:mm"),
+                CheckInTime = todayShift.CheckInTime,
+                CheckOutTime = todayShift.CheckOutTime
+            };
+
+            if (todayShift.CheckInTime.HasValue)
+            {
+                var scheduledStartLocal = todayShift.ShiftDate.ToDateTime(todayShift.StartTime);
+                var checkInLocal = todayShift.CheckInTime.Value.AddHours(7);
+                if (checkInLocal > scheduledStartLocal)
+                {
+                    todayShiftDto.LateMinutes = (int)Math.Max(0, (checkInLocal - scheduledStartLocal).TotalMinutes);
+                }
+            }
+
+            if (todayShift.CheckOutTime.HasValue)
+            {
+                var scheduledEndLocal = todayShift.ShiftDate.ToDateTime(todayShift.EndTime);
+                if (todayShift.EndTime < todayShift.StartTime)
+                {
+                    scheduledEndLocal = todayShift.ShiftDate.AddDays(1).ToDateTime(todayShift.EndTime);
+                }
+                var checkOutLocal = todayShift.CheckOutTime.Value.AddHours(7);
+                if (checkOutLocal < scheduledEndLocal)
+                {
+                    todayShiftDto.EarlyLeaveMinutes = (int)Math.Max(0, (scheduledEndLocal - checkOutLocal).TotalMinutes);
+                }
+            }
+        }
+
         return new StaffSummaryResponse
         {
             UserId = staff.UserId,
@@ -255,21 +434,13 @@ public class StaffService : IStaffService
             AvatarUrl = staff.AvatarUrl,
             IsActive = staff.IsActive,
             ShiftsThisWeek = shiftsThisWeek,
-            TodayShift = todayShift is null ? null : new ShiftSummaryResponse
-            {
-                ShiftId = todayShift.ShiftId,
-                ShiftType = todayShift.ShiftType.ToString(),
-                StartTime = todayShift.StartTime.ToString("HH:mm"),
-                EndTime = todayShift.EndTime.ToString("HH:mm"),
-                CheckInTime = todayShift.CheckInTime,
-                CheckOutTime = todayShift.CheckOutTime
-            }
+            TodayShift = todayShiftDto
         };
     }
 
     private static StaffShiftResponse MapToShiftResponse(StaffShift shift)
     {
-        return new StaffShiftResponse
+        var response = new StaffShiftResponse
         {
             ShiftId = shift.ShiftId,
             StaffId = shift.StaffId,
@@ -285,5 +456,31 @@ public class StaffService : IStaffService
             Note = shift.Note,
             CreatedAt = shift.CreatedAt
         };
+
+        if (shift.CheckInTime.HasValue)
+        {
+            var scheduledStartLocal = shift.ShiftDate.ToDateTime(shift.StartTime);
+            var checkInLocal = shift.CheckInTime.Value.AddHours(7);
+            if (checkInLocal > scheduledStartLocal)
+            {
+                response.LateMinutes = (int)Math.Max(0, (checkInLocal - scheduledStartLocal).TotalMinutes);
+            }
+        }
+
+        if (shift.CheckOutTime.HasValue)
+        {
+            var scheduledEndLocal = shift.ShiftDate.ToDateTime(shift.EndTime);
+            if (shift.EndTime < shift.StartTime)
+            {
+                scheduledEndLocal = shift.ShiftDate.AddDays(1).ToDateTime(shift.EndTime);
+            }
+            var checkOutLocal = shift.CheckOutTime.Value.AddHours(7);
+            if (checkOutLocal < scheduledEndLocal)
+            {
+                response.EarlyLeaveMinutes = (int)Math.Max(0, (scheduledEndLocal - checkOutLocal).TotalMinutes);
+            }
+        }
+
+        return response;
     }
 }

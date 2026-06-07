@@ -26,4 +26,16 @@ public interface IStaffService
     Task DeleteShiftAsync(int complexId, int shiftId);
 
     Task<StaffShiftResponse> GetShiftByIdAsync(int shiftId);
+
+    // ─── FR-ST-03: Theo dõi chấm công ───────────────────────────
+
+    Task<StaffShiftResponse> CheckInShiftAsync(int staffId, int shiftId);
+
+    Task<StaffShiftResponse> CheckOutShiftAsync(int staffId, int shiftId);
+
+    Task<List<StaffShiftResponse>> GetAttendanceReportAsync(
+      int complexId,
+      DateOnly? dateFrom,
+      DateOnly? dateTo,
+      int? staffId = null);
 }

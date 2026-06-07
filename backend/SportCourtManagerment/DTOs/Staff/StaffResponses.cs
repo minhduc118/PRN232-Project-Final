@@ -38,6 +38,9 @@ public class ShiftSummaryResponse
     public string EndTime { get; set; } = string.Empty;
     public DateTime? CheckInTime { get; set; }
     public DateTime? CheckOutTime { get; set; }
+
+    public int LateMinutes { get; set; }
+    public int EarlyLeaveMinutes { get; set; }
 }
 
 public class StaffShiftResponse
@@ -58,6 +61,9 @@ public class StaffShiftResponse
 
     public string? Note { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    public int LateMinutes { get; set; }
+    public int EarlyLeaveMinutes { get; set; }
 }
 
 public class WeeklyScheduleResponse

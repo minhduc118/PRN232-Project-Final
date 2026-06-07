@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SportCourtManagerment.Models;
 
-/// <summary>System access role (Admin, Staff, Coach, Customer).</summary>
+/// <summary>System access role (Admin, Staff, Coach, Customer, Manager).</summary>
 public class Role
 {
   /// <summary>Primary key.</summary>

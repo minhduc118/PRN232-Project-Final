@@ -194,4 +194,26 @@ public class StaffManagementController : ControllerBase
             return StatusCode(500, ApiResponse<object>.Fail($"Lỗi hệ thống: {ex.Message}", 500));
         }
     }
+
+    // GET /api/manager/complexes/{complexId}/staff/attendance
+    [HttpGet("attendance")]
+    public async Task<IActionResult> GetAttendanceReport(
+      int complexId,
+      [FromQuery] string? dateFrom = null,
+      [FromQuery] string? dateTo = null,
+      [FromQuery] int? staffId = null)
+    {
+        DateOnly? from = dateFrom != null && DateOnly.TryParse(dateFrom, out var parsedFrom) ? parsedFrom : null;
+        DateOnly? to = dateTo != null && DateOnly.TryParse(dateTo, out var parsedTo) ? parsedTo : null;
+
+        try
+        {
+            var report = await _staffService.GetAttendanceReportAsync(complexId, from, to, staffId);
+            return Ok(ApiResponse<List<StaffShiftResponse>>.Ok(report, "Lấy báo cáo chấm công thành công."));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ApiResponse<object>.Fail($"Lỗi hệ thống: {ex.Message}", 500));
+        }
+    }
 }

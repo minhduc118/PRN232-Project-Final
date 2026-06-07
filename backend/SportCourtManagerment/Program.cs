@@ -7,6 +7,7 @@ using SportCourtManagerment.Data;
 using SportCourtManagerment.Services;
 using SportCourtManagerment.Services.Email;
 using SportCourtManagerment.Services.Bookings;
+using SportCourtManagerment.Services.Promotions;
 
 namespace SportCourtManagerment;
 
@@ -34,6 +35,7 @@ public class Program
     builder.Services.AddScoped<TokenService>();
     builder.Services.AddScoped<IEmailService, EmailService>();
     builder.Services.AddScoped<IBookingService, BookingService>();
+    builder.Services.AddScoped<IPromotionService, PromotionService>();
     builder.Services.AddSingleton<CloudinaryService>();
 
     // ── JWT Authentication ────────────────────

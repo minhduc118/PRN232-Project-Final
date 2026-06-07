@@ -24,6 +24,7 @@ const AdminDashboardPage = lazy(() => import('@/pages/admin/DashboardPage'));
 const ManageCourtsPage   = lazy(() => import('@/pages/admin/ManageCourtsPage'));
 const ComplexDetailPage  = lazy(() => import('@/pages/admin/ComplexDetailPage'));
 const ManageBookingsPage = lazy(() => import('@/pages/admin/ManageBookingsPage'));
+const ManagePromotionsPage = lazy(() => import('@/pages/admin/ManagePromotionsPage'));
 const ManageUsersPage    = lazy(() => import('@/pages/admin/ManageUsersPage'));
 const ReportsPage        = lazy(() => import('@/pages/admin/ReportsPage'));
 
@@ -73,6 +74,7 @@ export function AppRouter() {
               <Route path={ROUTES.ADMIN_COURTS}   element={<ManageCourtsPage />} />
               <Route path={ROUTES.ADMIN_COMPLEX_DETAIL} element={<ComplexDetailPage />} />
               <Route path={ROUTES.ADMIN_BOOKINGS} element={<ManageBookingsPage />} />
+              <Route path={ROUTES.ADMIN_PROMOTIONS} element={<ManagePromotionsPage />} />
               <Route path={ROUTES.ADMIN_USERS}    element={<ManageUsersPage />} />
               <Route path={ROUTES.ADMIN_REPORTS}  element={<ReportsPage />} />
             </Route>

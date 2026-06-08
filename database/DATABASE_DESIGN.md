@@ -147,6 +147,34 @@ erDiagram
         bit IsBooked
     }
 
+    CourtComplexes {
+        int ComplexId PK
+        nvarchar ComplexName
+        nvarchar Address
+        int ManagerId FK
+        nvarchar Description
+        varchar ImageUrl
+        bit IsDeleted
+        datetime CreatedAt
+    }
+
+    Tasks {
+        int TaskId PK
+        nvarchar Title
+        nvarchar Description
+        varchar TaskType
+        varchar Category
+        varchar Priority
+        varchar Status
+        int ComplexId FK
+        int AssignedStaffId FK
+        int CreatedById FK
+        int BookingId FK
+        datetime DueDate
+        datetime CreatedAt
+        datetime CompletedAt
+    }
+
     %% Relationships
     Users         ||--o{ UserRoles       : "có"
     Roles         ||--o{ UserRoles       : "thuộc"
@@ -167,6 +195,12 @@ erDiagram
     Users         ||--o{ Notifications   : "nhận"
     Users         ||--o{ CoachSchedules  : "lịch dạy"
     Courts        ||--o{ CoachSchedules  : "địa điểm"
+    CourtComplexes ||--o{ Courts          : "chứa"
+    CourtComplexes ||--o{ Tasks           : "có"
+    Users         ||--o{ Tasks           : "thực hiện"
+    Users         ||--o{ Tasks           : "giao việc"
+    Bookings      ||--o{ Tasks           : "liên kết"
+    Users         ||--o{ CourtComplexes  : "quản lý"
 ```
 
 ---
@@ -201,6 +235,8 @@ erDiagram
 | 24 | `StaffShifts` | Ca làm việc nhân viên | **v2.0** |
 | 25 | `PlayerRequests` | Tin tìm đối thủ | **v2.0** |
 | 26 | `PlayerRequestMembers` | Thành viên tham gia | **v2.0** |
+| 27 | `CourtComplexes` | Tổ hợp sân (Khu vực) | **v2.0** |
+| 28 | `Tasks` | Quản lý công việc | **v2.0** |
 
 ---
 
@@ -391,6 +427,36 @@ NoShow (không đến, không hủy trước)
 | GenderPref | VARCHAR | Male/Female/Any |
 | Status | VARCHAR | Open/Full/Closed/Cancelled |
 
+### `CourtComplexes` — Tổ hợp sân (Khu vực)
+| Cột | Kiểu | Mô tả |
+|-----|------|-------|
+| ComplexId | INT PK | Mã tổ hợp sân |
+| ComplexName | NVARCHAR(150) | Tên tổ hợp sân |
+| Address | NVARCHAR(300) | Địa chỉ |
+| ManagerId | INT FK | Quản lý tổ hợp (User) |
+| Description | NVARCHAR(1000) | Mô tả |
+| ImageUrl | VARCHAR(500) | Ảnh tổ hợp |
+| IsDeleted | BIT | Trạng thái xóa mềm |
+| CreatedAt | DATETIME | Ngày tạo |
+
+### `Tasks` — Quản lý công việc
+| Cột | Kiểu | Mô tả |
+|-----|------|-------|
+| TaskId | INT PK | Mã công việc |
+| Title | NVARCHAR(150) | Tiêu đề công việc |
+| Description | NVARCHAR(500) | Mô tả chi tiết |
+| TaskType | VARCHAR(20) | Phân loại: Manual |
+| Category | VARCHAR(30) | Danh mục: Cleanup/ServicePrep/Repair/Complaint |
+| Priority | VARCHAR(20) | Độ ưu tiên: Urgent/High/Medium/Low |
+| Status | VARCHAR(20) | Trạng thái: Pending/InProgress/Completed/Approved |
+| ComplexId | INT FK | Thuộc tổ hợp sân (CourtComplexes) |
+| AssignedStaffId | INT FK | Nhân viên thực hiện |
+| CreatedById | INT FK | Người giao việc (Manager) |
+| BookingId | INT FK | Liên kết booking |
+| DueDate | DATETIME | Hạn hoàn thành |
+| CreatedAt | DATETIME | Thời gian tạo |
+| CompletedAt | DATETIME | Thời điểm hoàn thành |
+
 ---
 
 ## Cách chạy database
@@ -406,5 +472,5 @@ dotnet ef database update
 
 ---
 
-*Database Design — PRN232 Sports Court Management System — v2.0 (26 tables)*
+*Database Design — PRN232 Sports Court Management System — v2.0 (28 tables)*
 

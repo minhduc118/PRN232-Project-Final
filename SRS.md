@@ -482,6 +482,24 @@ Promotions ──< Bookings
 | Status        | VARCHAR(20)   | Trạng thái           |
 | PaidAt        | DATETIME      | Thời gian thanh toán |
 
+#### Tasks
+| Cột             | Kiểu dữ liệu   | Mô tả                                                   |
+| --------------- | -------------- | ------------------------------------------------------- |
+| TaskId          | INT (PK)       | Mã công việc                                           |
+| Title           | NVARCHAR(150)  | Tiêu đề công việc                                      |
+| Description     | NVARCHAR(500)  | Mô tả chi tiết                                         |
+| TaskType        | VARCHAR(20)    | Phân loại: Manual                                      |
+| Category        | VARCHAR(30)    | Danh mục: Cleanup / ServicePrep / Repair / Complaint   |
+| Priority        | VARCHAR(20)    | Độ ưu tiên: Urgent / High / Medium / Low               |
+| Status          | VARCHAR(20)    | Trạng thái: Pending / InProgress / Completed / Approved |
+| ComplexId       | INT (FK)       | Thuộc tổ hợp sân (CourtComplexes)                      |
+| AssignedStaffId | INT (FK, Null) | Nhân viên thực hiện                                    |
+| CreatedById     | INT (FK, Null) | Người giao việc (Manager)                               |
+| BookingId       | INT (FK, Null) | Liên kết booking                                       |
+| DueDate         | DATETIME       | Hạn hoàn thành                                         |
+| CreatedAt       | DATETIME       | Thời gian tạo                                          |
+| CompletedAt     | DATETIME       | Thời điểm hoàn thành                                   |
+
 ---
 
 ## 6. Giao diện hệ thống
@@ -691,10 +709,6 @@ Promotions ──< Bookings
      - Quản lý tạo các đầu việc phát sinh (sửa chữa, vệ sinh đột xuất, xử lý khiếu nại).
      - Chỉ định nhân viên cụ thể thực hiện.
      - Kiểm tra và xác nhận hoàn thành (Review & Approval).
-   - **Giao việc tự động (Automated Tasks - System):**
-     - Hệ thống tự động tạo task vệ sinh khi một booking kết thúc.
-     - Tự động giao task chuẩn bị dụng cụ/nước uống khi có đơn hàng dịch vụ.
-     - Tự động nhắc lịch bảo trì định kỳ dựa trên cấu hình hệ thống.
 
 ---
 
@@ -730,6 +744,7 @@ Promotions ──< Bookings
 | 24  | PlayerRequests       | Tin tìm đối thủ / đồng đội         |
 | 25  | Complexes            | Thông tin tổ hợp sân (Khu vực)     |
 | 26  | AuditLogs            | Lịch sử thao tác hệ thống          |
+| 27  | Tasks                | Quản lý công việc                  |
 
 ### 5.2 Sơ đồ ERD (Entity Relationship)
 
@@ -759,6 +774,8 @@ Users ──< UserRoles >── Roles
 Courts ──< CourtPricing >── TimeSlots
 Courts ──< MaintenanceSchedules
 Promotions ──< Bookings
+Complexes ──< Tasks
+Users (Manager/Staff) ──< Tasks
 ```
 
 ---

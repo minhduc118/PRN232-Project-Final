@@ -13,11 +13,12 @@ const VerifyEmailPage    = lazy(() => import('@/pages/auth/VerifyEmailPage'));
 const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage'));
 
 const BookingPage      = lazy(() => import('@/pages/customer/BookingPage'));
-const MyBookingsPage   = lazy(() => import('@/pages/customer/MyBookingsPage'));
-const ProfilePage      = lazy(() => import('@/pages/customer/ProfilePage'));
+const MyBookingsPage   = lazy(() => import('@/pages/customer/history/HistoryPage'));
+const ProfilePage      = lazy(() => import('@/pages/customer/profile/ProfilePage'));
 const PaymentPage      = lazy(() => import('@/pages/customer/PaymentPage'));
 const PaymentResultPage = lazy(() => import('@/pages/customer/PaymentResultPage'));
 const NotificationsPage = lazy(() => import('@/pages/customer/NotificationsPage'));
+const NotificationsMockupPage = lazy(() => import('@/pages/shared/notifications/NotificationsMockupPage'));
 
 const AdminDashboardPage    = lazy(() => import('@/pages/admin/DashboardPage'));
 const ManageCourtsPage      = lazy(() => import('@/pages/admin/ManageCourtsPage'));
@@ -71,6 +72,7 @@ export function AppRouter() {
             <Route path={ROUTES.ADMIN_BOOKINGS}   element={<ManageBookingsPage />} />
             <Route path={ROUTES.ADMIN_USERS}      element={<ManageUsersPage />} />
             <Route path={ROUTES.ADMIN_REPORTS}    element={<ReportsPage />} />
+            <Route path={ROUTES.ADMIN_NOTIFICATIONS} element={<NotificationsMockupPage />} />
           </Route>
 
           {/* ─── Fallback ─── */}

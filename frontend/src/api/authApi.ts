@@ -66,6 +66,7 @@ export async function login(credentials: LoginRequest): Promise<AuthResponse> {
       (u) => u.email === credentials.email && u.password === credentials.password,
     );
     if (!user) throw new Error('Email hoặc mật khẩu không đúng.');
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _p, ...safeUser } = user;
     const fakeToken = btoa(JSON.stringify({ userId: safeUser.userId, role: safeUser.role }));
     return {
@@ -101,6 +102,7 @@ export async function getMe(): Promise<User | null> {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const user = (users as any[]).find((u) => u.userId === payload.userId);
       if (!user) return null;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password: _p, ...safeUser } = user;
       return safeUser as User;
     } catch {

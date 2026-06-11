@@ -2,13 +2,16 @@
 export type UserRole = 'Admin' | 'Staff' | 'Coach' | 'Customer';
 
 export interface User {
-  userId:        number;
-  fullName:      string;
-  email:         string;
-  phone?:        string;
-  avatarUrl?:    string;
-  role:          UserRole;
-  membershipTier?: string; // "Bronze" | "Silver" | "Gold" | "Platinum"
+  userId:              number;
+  fullName:            string;
+  email:               string;
+  phone?:              string;
+  avatarUrl?:          string;
+  role:                UserRole;
+  membershipTier?:     string; // "Bronze" | "Silver" | "Gold" | "Platinum"
+  loyaltyPoints?:      number;
+  membershipTierId?:   number;
+  membershipTierName?: string;
 }
 
 export interface LoginRequest {

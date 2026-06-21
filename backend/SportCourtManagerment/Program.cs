@@ -1,11 +1,20 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OData.Edm;
+using Microsoft.OData.ModelBuilder;
 using Microsoft.OpenApi.Models;
 using SportCourtManagerment.Data;
+using SportCourtManagerment.DTOs.Courts;
+using SportCourtManagerment.DTOs.Reviews;
+using SportCourtManagerment.Repositories.Implementations;
+using SportCourtManagerment.Repositories.Interfaces;
 using SportCourtManagerment.Services;
 using SportCourtManagerment.Services.Email;
+using SportCourtManagerment.Services.Implementations;
+using SportCourtManagerment.Services.Interfaces;
 
 namespace SportCourtManagerment;
 
@@ -32,6 +41,18 @@ public class Program
     // ── Application Services ──────────────────
     builder.Services.AddScoped<TokenService>();
     builder.Services.AddScoped<IEmailService, EmailService>();
+
+    // ── Repositories (Clean Architecture) ─────
+    builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+    builder.Services.AddScoped<ICourtRepository, CourtRepository>();
+    builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+    builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
+
+    // ── Business Services ─────────────────────
+    builder.Services.AddScoped<ICourtService, CourtService>();
+    builder.Services.AddScoped<IReviewService, ReviewService>();
+    builder.Services.AddScoped<IPromotionService, PromotionService>();
+    builder.Services.AddScoped<IHomeService, HomeService>();
 
     // ── JWT Authentication ────────────────────
     var jwtSection = builder.Configuration.GetSection("Jwt");
@@ -61,8 +82,16 @@ public class Program
     // ── Authorization ─────────────────────────
     builder.Services.AddAuthorization();
 
-    // ── Controllers ───────────────────────────
-    builder.Services.AddControllers();
+    // ── Controllers + OData ───────────────────
+    builder.Services.AddControllers()
+      .AddOData(options => options
+        .Select()
+        .Filter()
+        .OrderBy()
+        .SetMaxTop(100)
+        .Count()
+        .Expand()
+        .AddRouteComponents("odata", GetEdmModel()));
 
     // ── CORS (allow React dev server) ─────────
     builder.Services.AddCors(options =>
@@ -137,7 +166,6 @@ public class Program
       app.UseSwaggerUI(c =>
       {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Sports Court API v1");
-        c.RoutePrefix = string.Empty; // Swagger at root "/"
       });
     }
 
@@ -151,5 +179,14 @@ public class Program
     app.MapControllers();
 
     await app.RunAsync();
+  }
+
+  /// <summary>Builds the OData Entity Data Model for queryable endpoints.</summary>
+  private static IEdmModel GetEdmModel()
+  {
+    var builder = new ODataConventionModelBuilder();
+    builder.EntitySet<CourtListDto>("Courts").EntityType.HasKey(c => c.CourtId);
+    builder.EntitySet<ReviewDto>("Reviews").EntityType.HasKey(r => r.ReviewId);
+    return builder.GetEdmModel();
   }
 }

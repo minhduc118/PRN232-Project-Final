@@ -38,6 +38,7 @@ namespace SportCourtManagent_Server.Models
 
         public ICollection<Court> Courts { get; set; } = new List<Court>();
         public ICollection<TaskItem> Tasks { get; set; } = new List<TaskItem>();
+        public ICollection<StaffShift> StaffShifts { get; set; } = new List<StaffShift>();
     }
 }
 

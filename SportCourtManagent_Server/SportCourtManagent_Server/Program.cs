@@ -34,10 +34,13 @@ builder.Services.AddScoped<IWaitlistRepository, WaitlistRepository>();
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 builder.Services.AddScoped<IEquipmentInventoryRepository, EquipmentInventoryRepository>();
 builder.Services.AddScoped<IMaintenanceScheduleRepository, MaintenanceScheduleRepository>();
+builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<IStaffShiftRepository, StaffShiftRepository>();
 builder.Services.AddScoped<IPlayerRequestRepository, PlayerRequestRepository>();
 builder.Services.AddScoped<IPlayerRequestMemberRepository, PlayerRequestMemberRepository>();
 builder.Services.AddScoped<ITaskItemRepository, TaskItemRepository>();
+
+builder.Services.AddScoped<IStaffService, StaffService>();
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {

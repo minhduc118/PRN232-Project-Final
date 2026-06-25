@@ -324,6 +324,19 @@ namespace SportCourtManagent_Server.Models
                 .HasForeignKey(ss => ss.StaffId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<StaffShift>()
+                .HasOne(ss => ss.Complex)
+                .WithMany(cc => cc.StaffShifts)
+                .HasForeignKey(ss => ss.ComplexId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StaffShift>()
+                .HasIndex(ss => new { ss.StaffId, ss.ShiftDate, ss.ShiftType })
+                .IsUnique();
+
+            modelBuilder.Entity<StaffShift>()
+                .HasIndex(ss => new { ss.ComplexId, ss.ShiftDate });
+
             // PlayerRequest
             modelBuilder.Entity<PlayerRequest>()
                 .HasOne(pr => pr.Booking)

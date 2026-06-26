@@ -19,6 +19,10 @@ const PaymentPage      = lazy(() => import('@/pages/customer/PaymentPage'));
 const PaymentResultPage = lazy(() => import('@/pages/customer/PaymentResultPage'));
 const NotificationsPage = lazy(() => import('@/pages/customer/NotificationsPage'));
 
+const StaffDashboardPage = lazy(() => import('@/pages/staff/DashboardPage'));
+const StaffEquipmentPage = lazy(() => import('@/pages/staff/EquipmentPage'));
+const StaffCustomersPage = lazy(() => import('@/pages/staff/CustomersPage'));
+
 const AdminDashboardPage    = lazy(() => import('@/pages/admin/DashboardPage'));
 const ManageCourtsPage      = lazy(() => import('@/pages/admin/ManageCourtsPage'));
 const ManageBookingsPage    = lazy(() => import('@/pages/admin/ManageBookingsPage'));
@@ -62,6 +66,13 @@ export function AppRouter() {
             <Route path={ROUTES.PAYMENT}       element={<PaymentPage />} />
             <Route path={ROUTES.PAYMENT_RESULT} element={<PaymentResultPage />} />
             <Route path={ROUTES.NOTIFICATIONS} element={<NotificationsPage />} />
+          </Route>
+
+          {/* ─── Staff Protected ─── */}
+          <Route element={<ProtectedRoute allowedRoles={['Staff', 'Admin']} />}>
+            <Route path={ROUTES.STAFF_DASHBOARD} element={<StaffDashboardPage />} />
+            <Route path={ROUTES.STAFF_EQUIPMENT} element={<StaffEquipmentPage />} />
+            <Route path={ROUTES.STAFF_CUSTOMERS} element={<StaffCustomersPage />} />
           </Route>
 
           {/* ─── Admin Protected ─── */}

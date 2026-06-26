@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.Models;
 
@@ -16,27 +17,34 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
 
         public IEnumerable<User> GetAll()
         {
-            throw new NotImplementedException();
+            return _context.Users.ToList();
         }
 
         public User? GetById(int id)
         {
-            throw new NotImplementedException();
+            return _context.Users.Find(id);
         }
 
         public void Add(User entity)
         {
-            throw new NotImplementedException();
+            _context.Users.Add(entity);
+            _context.SaveChanges();
         }
 
         public void Update(User entity)
         {
-            throw new NotImplementedException();
+            _context.Users.Update(entity);
+            _context.SaveChanges();
         }
 
         public void Delete(int id)
         {
-            throw new NotImplementedException();
+            var entity = _context.Users.Find(id);
+            if (entity != null)
+            {
+                _context.Users.Remove(entity);
+                _context.SaveChanges();
+            }
         }
     }
 }

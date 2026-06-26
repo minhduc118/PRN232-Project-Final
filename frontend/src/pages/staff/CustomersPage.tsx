@@ -25,6 +25,7 @@ export default function StaffCustomersPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [gender, setGender] = useState('Other');
   const [skillLevel, setSkillLevel] = useState('Beginner');
   const [loyaltyPoints, setLoyaltyPoints] = useState('0');
@@ -65,6 +66,7 @@ export default function StaffCustomersPage() {
     setEmail('');
     setPhone('');
     setPassword('');
+    setConfirmPassword('');
     setGender('Other');
     setSkillLevel('Beginner');
     setLoyaltyPoints('0');
@@ -80,6 +82,7 @@ export default function StaffCustomersPage() {
     setEmail(cust.email);
     setPhone(cust.phone || '');
     setPassword('');
+    setConfirmPassword('');
     setGender(cust.gender || 'Other');
     setSkillLevel(cust.skillLevel || 'Beginner');
     setLoyaltyPoints(cust.loyaltyPoints.toString());
@@ -102,6 +105,16 @@ export default function StaffCustomersPage() {
     if (Number(loyaltyPoints) < 0) {
       toast.error('Điểm tích lũy không hợp lệ.');
       return;
+    }
+    if (!editingId && password.trim()) {
+      if (password.length < 6) {
+        toast.error('Mật khẩu phải có ít nhất 6 ký tự.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        toast.error('Mật khẩu xác nhận không khớp.');
+        return;
+      }
     }
 
     setModalSubmitting(true);
@@ -406,6 +419,22 @@ export default function StaffCustomersPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Nhập mật khẩu"
+                      className="input-field"
+                    />
+                  </div>
+                )}
+
+                {/* Confirm Password (Only show on Create) */}
+                {!editingId && (
+                  <div className="col-span-2 sm:col-span-1">
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                      Xác nhận mật khẩu
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Nhập lại mật khẩu"
                       className="input-field"
                     />
                   </div>

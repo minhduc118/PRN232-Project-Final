@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getStaffStats } from "@/api/staffApi";
 import { ROUTES } from "@/constants/routes";
+import Navbar from "@/components/Navbar";
 import {
   Users,
   Package,
@@ -87,7 +88,9 @@ export default function StaffDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 py-10 px-4 md:px-8 relative overflow-hidden">
+    <>
+      <Navbar />
+      <div className="min-h-screen bg-slate-950 text-slate-100 py-10 px-4 md:px-8 relative overflow-hidden">
       {/* Background Glowing Blobs */}
       <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-green-500/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -270,28 +273,34 @@ export default function StaffDashboardPage() {
                 Hướng dẫn nhiệm vụ Staff
               </h3>
               <div className="space-y-4 text-xs text-slate-400">
-                <div className="p-3 bg-slate-800/40 rounded-xl border border-slate-850">
-                  <strong className="block text-slate-200 mb-1">
-                    1. Quản lý kho dụng cụ
+                <Link 
+                  to={ROUTES.STAFF_EQUIPMENT} 
+                  className="block p-3 bg-slate-800/40 rounded-xl border border-slate-850 hover:bg-slate-800/80 hover:border-emerald-500/20 transition-all duration-300 group text-slate-400"
+                >
+                  <strong className="block text-slate-200 mb-1 group-hover:text-emerald-400 transition-colors">
+                    1. Quản lý kho dụng cụ &rarr;
                   </strong>
                   <span>
                     Theo dõi tình trạng hỏng hóc, sửa đổi thiết bị và cập nhật
                     số lượng tồn kho liên kết với dịch vụ cho thuê tương ứng.
                   </span>
-                </div>
+                </Link>
 
-                <div className="p-3 bg-slate-800/40 rounded-xl border border-slate-850">
-                  <strong className="block text-slate-200 mb-1">
-                    2. Quản lý thông tin khách hàng
+                <Link 
+                  to={ROUTES.STAFF_CUSTOMERS} 
+                  className="block p-3 bg-slate-800/40 rounded-xl border border-slate-850 hover:bg-slate-800/80 hover:border-green-500/20 transition-all duration-300 group text-slate-400"
+                >
+                  <strong className="block text-slate-200 mb-1 group-hover:text-green-400 transition-colors">
+                    2. Quản lý thông tin khách hàng &rarr;
                   </strong>
                   <span>
                     Hỗ trợ tạo mới tài khoản cho khách đặt sân trực tiếp, điều
                     chỉnh tích lũy loyalty points và cập nhật phân hạng thành
                     viên.
                   </span>
-                </div>
+                </Link>
 
-                <div className="p-3 bg-slate-800/40 rounded-xl border border-slate-850">
+                <div className="p-3 bg-slate-800/40 rounded-xl border border-slate-850 text-slate-400">
                   <strong className="block text-slate-200 mb-1">
                     3. Kiểm tra check-in sân
                   </strong>
@@ -343,5 +352,6 @@ export default function StaffDashboardPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

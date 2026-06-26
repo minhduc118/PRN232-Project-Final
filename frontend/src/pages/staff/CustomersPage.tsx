@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Navbar from '@/components/Navbar';
 import { 
   getCustomers, addCustomer, updateCustomer, 
   toggleCustomerStatus 
@@ -177,7 +178,9 @@ export default function StaffCustomersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 py-10 px-4 md:px-8 relative overflow-hidden">
+    <>
+      <Navbar />
+      <div className="min-h-screen bg-slate-950 text-slate-100 py-10 px-4 md:px-8 relative overflow-hidden">
       {/* Background Blurs */}
       <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-green-500/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -554,5 +557,6 @@ export default function StaffCustomersPage() {
       )}
 
     </div>
+    </>
   );
 }

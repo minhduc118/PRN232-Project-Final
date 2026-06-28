@@ -251,7 +251,7 @@ export default function AdminLayout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 flex flex-col overflow-y-auto relative">
           <Outlet />
         </main>
       </div>

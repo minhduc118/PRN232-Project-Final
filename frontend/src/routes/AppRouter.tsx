@@ -19,13 +19,18 @@ const PaymentPage       = lazy(() => import('@/pages/customer/PaymentPage'));
 const PaymentResultPage = lazy(() => import('@/pages/customer/PaymentResultPage'));
 const NotificationsPage = lazy(() => import('@/pages/customer/NotificationsPage'));
 
-const AdminLayout        = lazy(() => import('@/components/layout/AdminLayout'));
-const AdminDashboardPage = lazy(() => import('@/pages/admin/DashboardPage'));
-const ManageCourtsPage   = lazy(() => import('@/pages/admin/ManageCourtsPage'));
-const ComplexDetailPage  = lazy(() => import('@/pages/admin/ComplexDetailPage'));
-const ManageBookingsPage = lazy(() => import('@/pages/admin/ManageBookingsPage'));
-const ManageUsersPage    = lazy(() => import('@/pages/admin/ManageUsersPage'));
-const ReportsPage        = lazy(() => import('@/pages/admin/ReportsPage'));
+const AdminLayout          = lazy(() => import('@/components/layout/AdminLayout'));
+const AdminDashboardPage   = lazy(() => import('@/pages/admin/DashboardPage'));
+const ManageCourtsPage     = lazy(() => import('@/pages/admin/ManageCourtsPage'));
+const ComplexDetailPage    = lazy(() => import('@/pages/admin/ComplexDetailPage'));
+const ManageBookingsPage   = lazy(() => import('@/pages/admin/ManageBookingsPage'));
+const ManagePromotionsPage = lazy(() => import('@/pages/admin/ManagePromotionsPage'));
+const ManageUsersPage      = lazy(() => import('@/pages/admin/ManageUsersPage'));
+const ReportsPage          = lazy(() => import('@/pages/admin/ReportsPage'));
+
+const StaffDashboardPage   = lazy(() => import('@/pages/staff/DashboardPage'));
+const StaffEquipmentPage   = lazy(() => import('@/pages/staff/EquipmentPage'));
+const StaffCustomersPage   = lazy(() => import('@/pages/staff/CustomersPage'));
 
 const UnauthorizedPage = lazy(() => import('@/pages/public/UnauthorizedPage'));
 
@@ -66,6 +71,13 @@ export function AppRouter() {
             <Route path={ROUTES.NOTIFICATIONS}  element={<NotificationsPage />} />
           </Route>
 
+          {/* ─── Staff Protected ─── */}
+          <Route element={<ProtectedRoute allowedRoles={['Staff', 'Admin']} />}>
+            <Route path={ROUTES.STAFF_DASHBOARD} element={<StaffDashboardPage />} />
+            <Route path={ROUTES.STAFF_EQUIPMENT} element={<StaffEquipmentPage />} />
+            <Route path={ROUTES.STAFF_CUSTOMERS} element={<StaffCustomersPage />} />
+          </Route>
+
           {/* ─── Admin Protected (wrapped in AdminLayout) ─── */}
           <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
             <Route element={<AdminLayout />}>
@@ -73,6 +85,7 @@ export function AppRouter() {
               <Route path={ROUTES.ADMIN_COURTS}   element={<ManageCourtsPage />} />
               <Route path={ROUTES.ADMIN_COMPLEX_DETAIL} element={<ComplexDetailPage />} />
               <Route path={ROUTES.ADMIN_BOOKINGS} element={<ManageBookingsPage />} />
+              <Route path={ROUTES.ADMIN_PROMOTIONS} element={<ManagePromotionsPage />} />
               <Route path={ROUTES.ADMIN_USERS}    element={<ManageUsersPage />} />
               <Route path={ROUTES.ADMIN_REPORTS}  element={<ReportsPage />} />
             </Route>

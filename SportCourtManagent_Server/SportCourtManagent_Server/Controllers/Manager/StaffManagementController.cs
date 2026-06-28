@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using SportCourtManagent_Server.DTOs.Staff;
 using SportCourtManagent_Server.Services.Interfaces;
 
@@ -20,11 +20,11 @@ namespace SportCourtManagent_Server.Controllers.Manager
         // GET /api/manager/complexes/{complexId}/staff
         [HttpGet]
         public async Task<IActionResult> GetStaffList(
-          int complexId,
-          [FromQuery] string? search = null,
-          [FromQuery] bool? isActive = null,
-          [FromQuery] int page = 1,
-          [FromQuery] int pageSize = 20)
+            int complexId,
+            [FromQuery] string? search = null,
+            [FromQuery] bool? isActive = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
             try
             {
@@ -42,8 +42,8 @@ namespace SportCourtManagent_Server.Controllers.Manager
         // GET /api/manager/complexes/{complexId}/staff/shifts/weekly?weekStart=2026-06-02
         [HttpGet("shifts/weekly")]
         public async Task<IActionResult> GetWeeklySchedule(
-          int complexId,
-          [FromQuery] string? weekStart = null)
+            [FromRoute] int complexId,
+            [FromQuery] string? weekStart = null)
         {
             var date = weekStart != null && DateOnly.TryParse(weekStart, out var parsed)
               ? parsed
@@ -62,7 +62,7 @@ namespace SportCourtManagent_Server.Controllers.Manager
 
         // GET /api/manager/complexes/{complexId}/staff/shifts/{shiftId}
         [HttpGet("shifts/{shiftId:int}")]
-        public async Task<IActionResult> GetShiftById(int complexId, int shiftId)
+        public async Task<IActionResult> GetShiftById([FromRoute] int complexId, [FromRoute] int shiftId)
         {
             try
             {
@@ -82,8 +82,8 @@ namespace SportCourtManagent_Server.Controllers.Manager
         // POST /api/manager/complexes/{complexId}/staff/shifts
         [HttpPost("shifts")]
         public async Task<IActionResult> CreateShift(
-          int complexId,
-          [FromBody] CreateShiftRequest request)
+            [FromRoute] int complexId,
+            [FromBody] CreateShiftRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest();
@@ -106,8 +106,8 @@ namespace SportCourtManagent_Server.Controllers.Manager
         // POST /api/manager/complexes/{complexId}/staff/shifts/bulk
         [HttpPost("shifts/bulk")]
         public async Task<IActionResult> CreateShiftBulk(
-          int complexId,
-          [FromBody] BulkCreateShiftRequest request)
+            [FromRoute] int complexId,
+            [FromBody] BulkCreateShiftRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest();
@@ -126,9 +126,9 @@ namespace SportCourtManagent_Server.Controllers.Manager
         // PUT /api/manager/complexes/{complexId}/staff/shifts/{shiftId}
         [HttpPut("shifts/{shiftId:int}")]
         public async Task<IActionResult> UpdateShift(
-          int complexId,
-          int shiftId,
-          [FromBody] UpdateShiftRequest request)
+            [FromRoute] int complexId,
+            [FromRoute] int shiftId,
+            [FromBody] UpdateShiftRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -150,7 +150,7 @@ namespace SportCourtManagent_Server.Controllers.Manager
 
         // DELETE /api/manager/complexes/{complexId}/staff/shifts/{shiftId}
         [HttpDelete("shifts/{shiftId:int}")]
-        public async Task<IActionResult> DeleteShift(int complexId, int shiftId)
+        public async Task<IActionResult> DeleteShift([FromRoute] int complexId, [FromRoute] int shiftId)
         {
             try
             {
@@ -170,10 +170,10 @@ namespace SportCourtManagent_Server.Controllers.Manager
         // GET /api/manager/complexes/{complexId}/staff/attendance
         [HttpGet("attendance")]
         public async Task<IActionResult> GetAttendanceReport(
-          int complexId,
-          [FromQuery] string? dateFrom = null,
-          [FromQuery] string? dateTo = null,
-          [FromQuery] int? staffId = null)
+            int complexId,
+            [FromQuery] string? dateFrom = null,
+            [FromQuery] string? dateTo = null,
+            [FromQuery] int? staffId = null)
         {
             DateOnly? from = null;
             if (DateOnly.TryParse(dateFrom, out var parsedFrom))

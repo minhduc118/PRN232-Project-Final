@@ -43,6 +43,7 @@ builder.Services.AddScoped<IPlayerRequestMemberRepository, PlayerRequestMemberRe
 builder.Services.AddScoped<ITaskItemRepository, TaskItemRepository>();
 
 builder.Services.AddScoped<IStaffService, StaffService>();
+builder.Services.AddScoped<IMaintenanceScheduleService, MaintenanceScheduleService>();
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {

@@ -3,10 +3,6 @@ using SportCourtManagent_Server.DTOs.Staff;
 using SportCourtManagent_Server.Enums;
 using SportCourtManagent_Server.Models;
 using SportCourtManagent_Server.Services.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace SportCourtManagent_Server.Services.Implements
 {
@@ -94,16 +90,24 @@ namespace SportCourtManagent_Server.Services.Implements
 
         public async Task<StaffShiftResponse> CreateShiftAsync(int complexId, CreateShiftRequest request)
         {
+            if (!request.StaffId.HasValue || !request.ShiftDate.HasValue || !request.ShiftType.HasValue)
+            {
+                throw new ArgumentException("Thông tin ca trực không hợp lệ (thiếu StaffId, ShiftDate hoặc ShiftType).");
+            }
+            int staffId = request.StaffId.Value;
+            DateOnly shiftDate = request.ShiftDate.Value;
+            ShiftType shiftType = request.ShiftType.Value;
+
             var complex = _complexRepository.GetById(complexId);
             if (complex == null)
             {
                 throw new KeyNotFoundException($"Không tìm thấy cơ sở với Id {complexId}");
             }
 
-            var staffUser = await _staffRepository.GetStaffWithRolesAsync(request.StaffId);
+            var staffUser = await _staffRepository.GetStaffWithRolesAsync(staffId);
             if (staffUser == null)
             {
-                throw new KeyNotFoundException($"Không tìm thấy nhân viên với Id {request.StaffId}");
+                throw new KeyNotFoundException($"Không tìm thấy nhân viên với Id {staffId}");
             }
 
             if (!staffUser.IsActive)
@@ -111,19 +115,19 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new InvalidOperationException($"Nhân viên {staffUser.FullName} đang bị khóa/ngưng hoạt động.");
             }
 
-            var exists = await _staffShiftRepository.ExistsAsync(request.StaffId, request.ShiftDate, request.ShiftType);
+            var exists = await _staffShiftRepository.ExistsAsync(staffId, shiftDate, shiftType);
             if (exists)
             {
-                throw new InvalidOperationException($"Nhân viên {staffUser.FullName} đã được xếp ca {request.ShiftType} ngày {request.ShiftDate} trước đó.");
+                throw new InvalidOperationException($"Nhân viên {staffUser.FullName} đã được xếp ca {shiftType} ngày {shiftDate} trước đó.");
             }
 
-            var (startTime, endTime) = GetShiftTimes(request.ShiftType);
+            var (startTime, endTime) = GetShiftTimes(shiftType);
             var shift = new StaffShift
             {
-                StaffId = request.StaffId,
+                StaffId = staffId,
                 ComplexId = complexId,
-                ShiftDate = request.ShiftDate,
-                ShiftType = request.ShiftType,
+                ShiftDate = shiftDate,
+                ShiftType = shiftType,
                 StartTime = startTime,
                 EndTime = endTime
             };
@@ -146,11 +150,21 @@ namespace SportCourtManagent_Server.Services.Implements
 
             foreach (var shiftReq in request.Shifts)
             {
-                var staffUser = await _staffRepository.GetStaffWithRolesAsync(shiftReq.StaffId);
+                if (!shiftReq.StaffId.HasValue || !shiftReq.ShiftDate.HasValue || !shiftReq.ShiftType.HasValue)
+                {
+                    response.Skipped++;
+                    response.Errors.Add("Thông tin ca trực trong danh sách không hợp lệ (thiếu StaffId, ShiftDate hoặc ShiftType).");
+                    continue;
+                }
+                int staffId = shiftReq.StaffId.Value;
+                DateOnly shiftDate = shiftReq.ShiftDate.Value;
+                ShiftType shiftType = shiftReq.ShiftType.Value;
+
+                var staffUser = await _staffRepository.GetStaffWithRolesAsync(staffId);
                 if (staffUser == null)
                 {
                     response.Skipped++;
-                    response.Errors.Add($"Nhân viên với Id {shiftReq.StaffId} không tồn tại.");
+                    response.Errors.Add($"Nhân viên với Id {staffId} không tồn tại.");
                     continue;
                 }
 
@@ -161,29 +175,29 @@ namespace SportCourtManagent_Server.Services.Implements
                     continue;
                 }
 
-                var existsInDb = await _staffShiftRepository.ExistsAsync(shiftReq.StaffId, shiftReq.ShiftDate, shiftReq.ShiftType);
+                var existsInDb = await _staffShiftRepository.ExistsAsync(staffId, shiftDate, shiftType);
                 if (existsInDb)
                 {
                     response.Skipped++;
-                    response.Errors.Add($"Nhân viên {staffUser.FullName} đã được xếp ca {shiftReq.ShiftType} ngày {shiftReq.ShiftDate} trước đó.");
+                    response.Errors.Add($"Nhân viên {staffUser.FullName} đã được xếp ca {shiftType} ngày {shiftDate} trước đó.");
                     continue;
                 }
 
-                var existsInBatch = shiftsToCreate.Any(s => s.StaffId == shiftReq.StaffId && s.ShiftDate == shiftReq.ShiftDate && s.ShiftType == shiftReq.ShiftType);
+                var existsInBatch = shiftsToCreate.Any(s => s.StaffId == staffId && s.ShiftDate == shiftDate && s.ShiftType == shiftType);
                 if (existsInBatch)
                 {
                     response.Skipped++;
-                    response.Errors.Add($"Nhân viên {staffUser.FullName} có ca {shiftReq.ShiftType} ngày {shiftReq.ShiftDate} bị trùng lặp trong danh sách gửi lên.");
+                    response.Errors.Add($"Nhân viên {staffUser.FullName} có ca {shiftType} ngày {shiftDate} bị trùng lặp trong danh sách gửi lên.");
                     continue;
                 }
 
-                var (startTime, endTime) = GetShiftTimes(shiftReq.ShiftType);
+                var (startTime, endTime) = GetShiftTimes(shiftType);
                 var shift = new StaffShift
                 {
-                    StaffId = shiftReq.StaffId,
+                    StaffId = staffId,
                     ComplexId = complexId,
-                    ShiftDate = shiftReq.ShiftDate,
-                    ShiftType = shiftReq.ShiftType,
+                    ShiftDate = shiftDate,
+                    ShiftType = shiftType,
                     StartTime = startTime,
                     EndTime = endTime
                 };
@@ -318,6 +332,12 @@ namespace SportCourtManagent_Server.Services.Implements
 
         public async Task<StaffShiftResponse> UpdateShiftAsync(int complexId, int shiftId, UpdateShiftRequest request)
         {
+            if (!request.ShiftType.HasValue)
+            {
+                throw new ArgumentException("Loại ca trực không được để trống.");
+            }
+            ShiftType shiftType = request.ShiftType.Value;
+
             var complex = _complexRepository.GetById(complexId);
             if (complex == null)
             {
@@ -335,16 +355,16 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new InvalidOperationException("Không thể sửa ca làm việc đã chấm công.");
             }
 
-            if (request.ShiftType != shift.ShiftType)
+            if (shiftType != shift.ShiftType)
             {
-                var exists = await _staffShiftRepository.ExistsAsync(shift.StaffId, shift.ShiftDate, request.ShiftType);
+                var exists = await _staffShiftRepository.ExistsAsync(shift.StaffId, shift.ShiftDate, shiftType);
                 if (exists)
                 {
-                    throw new InvalidOperationException($"Nhân viên đã được xếp ca {request.ShiftType} ngày {shift.ShiftDate} trước đó.");
+                    throw new InvalidOperationException($"Nhân viên đã được xếp ca {shiftType} ngày {shift.ShiftDate} trước đó.");
                 }
 
-                shift.ShiftType = request.ShiftType;
-                var (startTime, endTime) = GetShiftTimes(request.ShiftType);
+                shift.ShiftType = shiftType;
+                var (startTime, endTime) = GetShiftTimes(shiftType);
                 shift.StartTime = startTime;
                 shift.EndTime = endTime;
             }

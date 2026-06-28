@@ -16,27 +16,34 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
 
         public IEnumerable<Court> GetAll()
         {
-            throw new NotImplementedException();
+            return _context.Courts;
         }
 
         public Court? GetById(int id)
         {
-            throw new NotImplementedException();
+            return _context.Courts.Find(id);
         }
 
         public void Add(Court entity)
         {
-            throw new NotImplementedException();
+            _context.Courts.Add(entity);
+            _context.SaveChanges();
         }
 
         public void Update(Court entity)
         {
-            throw new NotImplementedException();
+            _context.Courts.Update(entity);
+            _context.SaveChanges();
         }
 
         public void Delete(int id)
         {
-            throw new NotImplementedException();
+            var court = _context.Courts.Find(id);
+            if (court != null)
+            {
+                _context.Courts.Remove(court);
+                _context.SaveChanges();
+            }
         }
     }
 }

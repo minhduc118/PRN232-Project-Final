@@ -1,5 +1,5 @@
 import axiosInstance from './axiosInstance';
-import type { User, LoginRequest, AuthResponse } from '@/types/auth.types';
+import type { User, LoginRequest, AuthResponse, MembershipTier, UpdateProfileRequest, ChangePasswordRequest } from '@/types/auth.types';
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
@@ -68,6 +68,7 @@ export async function login(credentials: LoginRequest): Promise<AuthResponse> {
     if (!user) throw new Error('Email hoặc mật khẩu không đúng.');
     const { password: _p, ...safeUser } = user;
     const fakeToken = btoa(JSON.stringify({ userId: safeUser.userId, role: safeUser.role }));
+    localStorage.setItem('mock_current_user', JSON.stringify(safeUser));
     return {
       accessToken:  `mock.${fakeToken}.signature`,
       refreshToken: `refresh.${fakeToken}`,
@@ -96,6 +97,8 @@ export async function getMe(): Promise<User | null> {
     const token = localStorage.getItem('accessToken');
     if (!token) return null;
     try {
+      const localUser = localStorage.getItem('mock_current_user');
+      if (localUser) return JSON.parse(localUser);
       const payload = JSON.parse(atob(token.split('.')[1]));
       const { default: users } = await import('@/mocks/users.json');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -128,6 +131,7 @@ export async function getMe(): Promise<User | null> {
 export async function logoutApi(): Promise<void> {
   if (USE_MOCK) {
     await new Promise((r) => setTimeout(r, 200));
+    localStorage.removeItem('mock_current_user');
     return;
   }
   try {
@@ -136,5 +140,57 @@ export async function logoutApi(): Promise<void> {
     // Always clear local storage regardless of server response
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('mock_current_user');
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Update profile
+// ─────────────────────────────────────────────────────────────────────────────
+export async function updateProfile(payload: UpdateProfileRequest): Promise<User> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 400));
+    const currentUser = await getMe();
+    if (!currentUser) throw new Error('Chưa đăng nhập.');
+    const updated = {
+      ...currentUser,
+      fullName: payload.fullName,
+      phone: payload.phone,
+      gender: payload.gender,
+      avatarUrl: payload.avatarUrl,
+      skillLevel: payload.skillLevel,
+    };
+    localStorage.setItem('mock_current_user', JSON.stringify(updated));
+    return updated;
+  }
+  const response = await axiosInstance.put<{ data: User }>('/users/profile', payload);
+  return response.data.data;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Change password
+// ─────────────────────────────────────────────────────────────────────────────
+export async function changePassword(payload: ChangePasswordRequest): Promise<void> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 400));
+    return;
+  }
+  await axiosInstance.post('/users/change-password', payload);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Get membership tiers
+// ─────────────────────────────────────────────────────────────────────────────
+export async function getMembershipTiers(): Promise<MembershipTier[]> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 300));
+    return [
+      { tierId: 1, tierName: 'Bronze', minPoints: 0, discountPercent: 0 },
+      { tierId: 2, tierName: 'Silver', minPoints: 500, discountPercent: 5 },
+      { tierId: 3, tierName: 'Gold', minPoints: 2000, discountPercent: 10 },
+      { tierId: 4, tierName: 'Platinum', minPoints: 5000, discountPercent: 15 }
+    ];
+  }
+  const response = await axiosInstance.get<{ data: MembershipTier[] }>('/membershiptiers');
+  return response.data.data;
 }

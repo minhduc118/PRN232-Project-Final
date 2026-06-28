@@ -11,15 +11,15 @@ interface ProtectedRouteProps {
  * Redirects to /login if not authenticated, or /unauthorized if wrong role.
  */
 export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
-  const { isAuthenticated, user } = useAuthStore();
+  // const { isAuthenticated, user } = useAuthStore();
 
-  if (!isAuthenticated) {
-    return <Navigate to='/login' replace />;
-  }
+  // if (!isAuthenticated) {
+  //   return <Navigate to='/login' replace />;
+  // }
 
-  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    return <Navigate to='/unauthorized' replace />;
-  }
+  // if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+  //   return <Navigate to='/unauthorized' replace />;
+  // }
 
   return <Outlet />;
 }

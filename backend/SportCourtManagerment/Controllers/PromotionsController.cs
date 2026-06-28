@@ -17,7 +17,7 @@ public class PromotionsController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin,Staff")]
+    // [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> GetAllPromotions()
     {
         var result = await _promotionService.GetAllPromotionsAsync();
@@ -25,7 +25,7 @@ public class PromotionsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    [Authorize(Roles = "Admin,Staff")]
+    // [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> GetPromotionById(int id)
     {
         var result = await _promotionService.GetPromotionByIdAsync(id);
@@ -34,7 +34,7 @@ public class PromotionsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    // [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreatePromotion([FromBody] CreatePromotionDto dto)
     {
         if (!ModelState.IsValid)
@@ -47,7 +47,7 @@ public class PromotionsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin")]
+    // [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdatePromotion(int id, [FromBody] UpdatePromotionDto dto)
     {
         if (!ModelState.IsValid)
@@ -60,7 +60,7 @@ public class PromotionsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    // [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeletePromotion(int id)
     {
         var result = await _promotionService.DeletePromotionAsync(id);

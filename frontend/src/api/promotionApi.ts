@@ -24,5 +24,10 @@ export const promotionApi = {
 
   deletePromotion: async (id: number): Promise<void> => {
     await axiosInstance.delete(`/promotions/${id}`);
+  },
+
+  validateCoupon: async (promoCode: string, orderAmount: number): Promise<any> => {
+    const response = await axiosInstance.post<{ data: any }>('/promotions/validate', { promoCode, orderAmount });
+    return response.data.data;
   }
 };

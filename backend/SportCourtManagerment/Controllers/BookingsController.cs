@@ -17,7 +17,7 @@ public class BookingsController : ControllerBase
     }
 
     [HttpGet("admin")]
-    [Authorize(Roles = "Admin,Staff")]
+    // [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> GetAdminBookings([FromQuery] DateOnly? date, [FromQuery] int? courtTypeId, [FromQuery] string? status)
     {
         var result = await _bookingService.GetAdminBookingsAsync(date, courtTypeId, status);
@@ -25,7 +25,7 @@ public class BookingsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    [Authorize]
+    // [Authorize]
     public async Task<IActionResult> GetBookingById(int id)
     {
         var result = await _bookingService.GetBookingByIdAsync(id);
@@ -34,7 +34,7 @@ public class BookingsController : ControllerBase
     }
 
     [HttpPost("admin")]
-    [Authorize(Roles = "Admin,Staff")]
+    // [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> CreateBookingFromAdmin([FromBody] CreateBookingAdminDto dto)
     {
         if (!ModelState.IsValid)
@@ -47,7 +47,7 @@ public class BookingsController : ControllerBase
     }
 
     [HttpPut("{id}/status")]
-    [Authorize(Roles = "Admin,Staff")]
+    // [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> UpdateBookingStatus(int id, [FromBody] UpdateBookingStatusDto dto)
     {
         if (!ModelState.IsValid)

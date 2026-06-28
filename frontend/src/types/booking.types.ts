@@ -18,6 +18,8 @@ export interface Booking {
   bookingId: number;
   bookingCode: string;
   userId: number;
+  customerName?: string;
+  customerPhone?: string;
   courtId: number;
   courtName: string;
   slotId: number;

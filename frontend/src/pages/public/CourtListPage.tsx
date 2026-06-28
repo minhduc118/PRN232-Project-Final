@@ -16,7 +16,7 @@ export default function CourtListPage() {
     async function fetchCourts() {
       try {
         setLoading(true);
-        const data = await getCourts(selectedType);
+        const data = await getCourts(selectedType ? { courtTypeId: selectedType } : undefined);
         setCourts(data);
       } catch {
         toast.error('Lỗi khi tải danh sách sân.');

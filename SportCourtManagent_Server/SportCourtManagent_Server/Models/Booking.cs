@@ -64,6 +64,14 @@ namespace SportCourtManagent_Server.Models
         [ForeignKey("PromotionId")]
         public Promotion? Promotion { get; set; }
 
+        [MaxLength(500)]
+        public string? Note { get; set; }
+
+        [MaxLength(500)]
+        public string? CancelReason { get; set; }
+
+        [Required]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public ICollection<BookingService> BookingServices { get; set; } = new List<BookingService>();
         public Payment? Payment { get; set; }
         public Review? Review { get; set; }

@@ -54,5 +54,47 @@
     "role": "Coach",
     "isActive": true,
     "createdAt": "2026-01-20T00:00:00Z"
+  },
+  {
+    "userId": 10,
+    "fullName": "Trần Văn Quản Lý",
+    "email": "manager1@sportplex.vn",
+    "password": "manager123",
+    "phone": "0912 111 222",
+    "avatarUrl": "https://api.dicebear.com/8.x/avataaars/svg?seed=quanly1",
+    "loyaltyPoints": 0,
+    "membershipTierId": 1,
+    "membershipTierName": "Bronze",
+    "role": "Manager",
+    "isActive": true,
+    "createdAt": "2026-01-05T00:00:00Z"
+  },
+  {
+    "userId": 11,
+    "fullName": "Nguyễn Thị Quản Lý",
+    "email": "manager2@sportplex.vn",
+    "password": "manager123",
+    "phone": "0987 333 444",
+    "avatarUrl": "https://api.dicebear.com/8.x/avataaars/svg?seed=quanly2",
+    "loyaltyPoints": 0,
+    "membershipTierId": 1,
+    "membershipTierName": "Bronze",
+    "role": "Manager",
+    "isActive": true,
+    "createdAt": "2026-01-10T00:00:00Z"
+  },
+  {
+    "userId": 12,
+    "fullName": "Phạm Đức Huy",
+    "email": "manager3@sportplex.vn",
+    "password": "manager123",
+    "phone": "0933 555 666",
+    "avatarUrl": "https://api.dicebear.com/8.x/avataaars/svg?seed=huy",
+    "loyaltyPoints": 0,
+    "membershipTierId": 1,
+    "membershipTierName": "Bronze",
+    "role": "Manager",
+    "isActive": true,
+    "createdAt": "2026-02-01T00:00:00Z"
   }
 ]

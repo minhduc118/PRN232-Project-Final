@@ -11,7 +11,7 @@ async function getLocalStorageBookings(): Promise<Booking[]> {
   // Load default from json
   const { default: defaultBookings } = await import('@/mocks/bookings.json');
   localStorage.setItem('mock_bookings', JSON.stringify(defaultBookings));
-  return defaultBookings as Booking[];
+  return defaultBookings as unknown as Booking[];
 }
 
 function saveLocalStorageBookings(bookings: Booking[]) {
@@ -172,6 +172,27 @@ export async function updateBookingPayment(
     method,
     transactionId,
   });
+  return response.data.data;
+}
+
+/**
+ * Fetch all bookings for Admin
+ */
+export async function getAdminBookings(params?: { date?: string; courtTypeId?: number; status?: string }): Promise<Booking[]> {
+  const { default: axiosInstance } = await import('./axiosInstance');
+  const response = await axiosInstance.get<{ data: Booking[] }>('/bookings/admin', { params });
+  return response.data.data;
+}
+
+export async function createBookingFromAdmin(payload: any): Promise<Booking> {
+  const { default: axiosInstance } = await import('./axiosInstance');
+  const response = await axiosInstance.post<{ data: Booking }>('/bookings/admin', payload);
+  return response.data.data;
+}
+
+export async function updateBookingStatus(bookingId: number, payload: { status: string; cancelReason?: string }): Promise<Booking> {
+  const { default: axiosInstance } = await import('./axiosInstance');
+  const response = await axiosInstance.put<{ data: Booking }>(`/bookings/${bookingId}/status`, payload);
   return response.data.data;
 }
 

@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.Models;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.DataAccess.Implementation;
+using SportCourtManagent_Server.Services.Interfaces;
+using SportCourtManagent_Server.Services.Implements;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -43,6 +45,9 @@ builder.Services.AddScoped<IPlayerRequestRepository, PlayerRequestRepository>();
 builder.Services.AddScoped<IPlayerRequestMemberRepository, PlayerRequestMemberRepository>();
 builder.Services.AddScoped<ITaskItemRepository, TaskItemRepository>();
 
+// Service DI registration
+builder.Services.AddScoped<IPromotionService, PromotionService>();
+builder.Services.AddScoped<IBookingManagementService, BookingManagementService>();
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler =
@@ -113,26 +118,34 @@ builder.Services.AddSwaggerGen(c =>
             Array.Empty<string>()
         }
     });
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = System.IO.Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (System.IO.File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath);
+    }
 });
 
 var app = builder.Build();
 
-// Auto-migrate and seed in development
-if (app.Environment.IsDevelopment())
+// Auto-migrate and seed database
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    
     await dbContext.Database.MigrateAsync();
     await DbSeeder.SeedAsync(dbContext);
 }
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Configure the HTTP request pipeline. Always enable Swagger for checking
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "SportCourtManagent_Server API v1");
+    c.RoutePrefix = "swagger";
+});
+
+// Redirect root URL directly to Swagger UI
+app.MapGet("/", () => Results.Redirect("/swagger"));
 
 app.UseHttpsRedirection();
 

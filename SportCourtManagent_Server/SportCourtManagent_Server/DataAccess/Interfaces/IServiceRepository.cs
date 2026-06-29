@@ -1,14 +1,16 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using SportCourtManagent_Server.Models;
 
 namespace SportCourtManagent_Server.DataAccess.Interfaces
 {
     public interface IServiceRepository
     {
-        IEnumerable<Service> GetAll();
-        Service? GetById(int id);
-        void Add(Service entity);
-        void Update(Service entity);
-        void Delete(int id);
+        Task<IEnumerable<Service>> GetAllAsync(bool activeOnly = false);
+        Task<Service?> GetByIdAsync(int id);
+        Task<bool> ExistsByNameAsync(string name, int? excludeId = null);
+        Task AddAsync(Service entity);
+        Task UpdateAsync(Service entity);
+        Task DeleteAsync(int id);
     }
 }

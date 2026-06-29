@@ -41,19 +41,12 @@ namespace SportCourtManagent_Server.Models
             // 3. Seed Services catalog
             if (!await context.Services.AnyAsync())
             {
-                var services = new[]
-                {
-                    new Service { ServiceName = "Thuê vợt cầu lông", Category = "Equipment", Price = 30000m, Unit = "cây/giờ", Description = "Vợt Yonex tiêu chuẩn", IsActive = true },
-                    new Service { ServiceName = "Thuê vợt Pickleball", Category = "Equipment", Price = 35000m, Unit = "cây/giờ", Description = "Vợt carbon cao cấp", IsActive = true },
-                    new Service { ServiceName = "Thuê bóng", Category = "Equipment", Price = 10000m, Unit = "quả", Description = "Bóng tập tiêu chuẩn", IsActive = true },
-                    new Service { ServiceName = "Nước suối", Category = "Drink", Price = 10000m, Unit = "chai", Description = "Aquafina 500ml", IsActive = true },
-                    new Service { ServiceName = "Nước tăng lực", Category = "Drink", Price = 20000m, Unit = "chai", Description = "Redbull/Sting", IsActive = true },
-                    new Service { ServiceName = "Huấn luyện viên", Category = "Coach", Price = 200000m, Unit = "giờ", Description = "HLV có chứng chỉ", IsActive = true },
-                    new Service { ServiceName = "Tổ chức giải đấu", Category = "Event", Price = 5000000m, Unit = "buổi", Description = "Hỗ trợ tổ chức giải mini", IsActive = true },
-                    new Service { ServiceName = "Khăn lạnh", Category = "Drink", Price = 5000m, Unit = "khăn", Description = "Khăn lạnh sau tập", IsActive = true }
-                };
-                await context.Services.AddRangeAsync(services);
+                await context.Services.AddRangeAsync(GetDefaultServices());
                 await context.SaveChangesAsync();
+            }
+            else
+            {
+                await EnsureServicesExistAsync(context);
             }
 
             // 4. Seed Users
@@ -254,6 +247,35 @@ namespace SportCourtManagent_Server.Models
                 await context.EquipmentInventories.AddRangeAsync(equipment);
                 await context.SaveChangesAsync();
             }
+        }
+
+        private static Service[] GetDefaultServices() =>
+        [
+            new Service { ServiceName = "Thuê vợt cầu lông", Category = "Equipment", Price = 30000m, Unit = "cây/giờ", Description = "Vợt Yonex tiêu chuẩn", IsActive = true },
+            new Service { ServiceName = "Thuê vợt Pickleball", Category = "Equipment", Price = 35000m, Unit = "cây/giờ", Description = "Vợt carbon cao cấp", IsActive = true },
+            new Service { ServiceName = "Thuê bóng", Category = "Equipment", Price = 10000m, Unit = "quả", Description = "Bóng tập tiêu chuẩn", IsActive = true },
+            new Service { ServiceName = "Nước suối", Category = "Drink", Price = 10000m, Unit = "chai", Description = "Aquafina 500ml", IsActive = true },
+            new Service { ServiceName = "Nước tăng lực", Category = "Drink", Price = 20000m, Unit = "chai", Description = "Redbull/Sting", IsActive = true },
+            new Service { ServiceName = "Huấn luyện viên", Category = "Coach", Price = 200000m, Unit = "giờ", Description = "HLV có chứng chỉ", IsActive = true },
+            new Service { ServiceName = "Tổ chức giải đấu", Category = "Event", Price = 5000000m, Unit = "buổi", Description = "Hỗ trợ tổ chức giải mini", IsActive = true },
+            new Service { ServiceName = "Khăn lạnh", Category = "Drink", Price = 5000m, Unit = "khăn", Description = "Khăn lạnh sau tập", IsActive = true }
+        ];
+
+        private static async Task EnsureServicesExistAsync(AppDbContext context)
+        {
+            var existingNames = await context.Services
+                .Select(s => s.ServiceName)
+                .ToListAsync();
+
+            var missing = GetDefaultServices()
+                .Where(s => !existingNames.Contains(s.ServiceName))
+                .ToList();
+
+            if (missing.Count == 0)
+                return;
+
+            await context.Services.AddRangeAsync(missing);
+            await context.SaveChangesAsync();
         }
     }
 }

@@ -11,88 +11,49 @@ namespace SportCourtManagent_Server.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<DateTime>(
-                name: "CreatedAt",
-                table: "Services",
-                type: "datetime2",
-                nullable: false,
-                defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
+            migrationBuilder.Sql("""
+                IF COL_LENGTH('Services', 'CreatedAt') IS NULL
+                    ALTER TABLE [Services] ADD [CreatedAt] datetime2 NOT NULL CONSTRAINT DF_Services_CreatedAt DEFAULT (GETUTCDATE());
 
-            migrationBuilder.AddColumn<string>(
-                name: "Description",
-                table: "Services",
-                type: "nvarchar(300)",
-                maxLength: 300,
-                nullable: true);
+                IF COL_LENGTH('Services', 'Description') IS NULL
+                    ALTER TABLE [Services] ADD [Description] nvarchar(300) NULL;
 
-            migrationBuilder.AddColumn<bool>(
-                name: "IsActive",
-                table: "Services",
-                type: "bit",
-                nullable: false,
-                defaultValue: false);
+                IF COL_LENGTH('Services', 'IsActive') IS NULL
+                    ALTER TABLE [Services] ADD [IsActive] bit NOT NULL CONSTRAINT DF_Services_IsActive DEFAULT (1);
 
-            migrationBuilder.AddColumn<string>(
-                name: "Unit",
-                table: "Services",
-                type: "nvarchar(30)",
-                maxLength: 30,
-                nullable: false,
-                defaultValue: "");
+                IF COL_LENGTH('Services', 'Unit') IS NULL
+                    ALTER TABLE [Services] ADD [Unit] nvarchar(30) NOT NULL CONSTRAINT DF_Services_Unit DEFAULT (N'cái');
+                """);
 
-            migrationBuilder.CreateTable(
-                name: "ComplexCourtTypeServices",
-                columns: table => new
-                {
-                    OfferingId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ComplexId = table.Column<int>(type: "int", nullable: false),
-                    CourtTypeId = table.Column<int>(type: "int", nullable: false),
-                    ServiceId = table.Column<int>(type: "int", nullable: false),
-                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    StockQty = table.Column<int>(type: "int", nullable: false),
-                    ServiceMode = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ComplexCourtTypeServices", x => x.OfferingId);
-                    table.ForeignKey(
-                        name: "FK_ComplexCourtTypeServices_CourtComplexes_ComplexId",
-                        column: x => x.ComplexId,
-                        principalTable: "CourtComplexes",
-                        principalColumn: "ComplexId",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_ComplexCourtTypeServices_CourtTypes_CourtTypeId",
-                        column: x => x.CourtTypeId,
-                        principalTable: "CourtTypes",
-                        principalColumn: "CourtTypeId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_ComplexCourtTypeServices_Services_ServiceId",
-                        column: x => x.ServiceId,
-                        principalTable: "Services",
-                        principalColumn: "ServiceId",
-                        onDelete: ReferentialAction.Restrict);
-                });
+            migrationBuilder.Sql("""
+                IF OBJECT_ID(N'[ComplexCourtTypeServices]', N'U') IS NULL
+                BEGIN
+                    CREATE TABLE [ComplexCourtTypeServices] (
+                        [OfferingId] int NOT NULL IDENTITY,
+                        [ComplexId] int NOT NULL,
+                        [CourtTypeId] int NOT NULL,
+                        [ServiceId] int NOT NULL,
+                        [Price] decimal(18,2) NOT NULL,
+                        [StockQty] int NOT NULL,
+                        [ServiceMode] int NOT NULL,
+                        [IsActive] bit NOT NULL,
+                        [CreatedAt] datetime2 NOT NULL,
+                        CONSTRAINT [PK_ComplexCourtTypeServices] PRIMARY KEY ([OfferingId]),
+                        CONSTRAINT [FK_ComplexCourtTypeServices_CourtComplexes_ComplexId] FOREIGN KEY ([ComplexId]) REFERENCES [CourtComplexes] ([ComplexId]) ON DELETE CASCADE,
+                        CONSTRAINT [FK_ComplexCourtTypeServices_CourtTypes_CourtTypeId] FOREIGN KEY ([CourtTypeId]) REFERENCES [CourtTypes] ([CourtTypeId]) ON DELETE NO ACTION,
+                        CONSTRAINT [FK_ComplexCourtTypeServices_Services_ServiceId] FOREIGN KEY ([ServiceId]) REFERENCES [Services] ([ServiceId]) ON DELETE NO ACTION
+                    );
 
-            migrationBuilder.CreateIndex(
-                name: "IX_ComplexCourtTypeServices_ComplexId_CourtTypeId_ServiceId",
-                table: "ComplexCourtTypeServices",
-                columns: new[] { "ComplexId", "CourtTypeId", "ServiceId" },
-                unique: true);
+                    CREATE UNIQUE INDEX [IX_ComplexCourtTypeServices_ComplexId_CourtTypeId_ServiceId]
+                        ON [ComplexCourtTypeServices] ([ComplexId], [CourtTypeId], [ServiceId]);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_ComplexCourtTypeServices_CourtTypeId",
-                table: "ComplexCourtTypeServices",
-                column: "CourtTypeId");
+                    CREATE INDEX [IX_ComplexCourtTypeServices_CourtTypeId]
+                        ON [ComplexCourtTypeServices] ([CourtTypeId]);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_ComplexCourtTypeServices_ServiceId",
-                table: "ComplexCourtTypeServices",
-                column: "ServiceId");
+                    CREATE INDEX [IX_ComplexCourtTypeServices_ServiceId]
+                        ON [ComplexCourtTypeServices] ([ServiceId]);
+                END
+                """);
         }
 
         /// <inheritdoc />
@@ -101,21 +62,16 @@ namespace SportCourtManagent_Server.Migrations
             migrationBuilder.DropTable(
                 name: "ComplexCourtTypeServices");
 
-            migrationBuilder.DropColumn(
-                name: "CreatedAt",
-                table: "Services");
-
-            migrationBuilder.DropColumn(
-                name: "Description",
-                table: "Services");
-
-            migrationBuilder.DropColumn(
-                name: "IsActive",
-                table: "Services");
-
-            migrationBuilder.DropColumn(
-                name: "Unit",
-                table: "Services");
+            migrationBuilder.Sql("""
+                IF COL_LENGTH('Services', 'CreatedAt') IS NOT NULL
+                    ALTER TABLE [Services] DROP COLUMN [CreatedAt];
+                IF COL_LENGTH('Services', 'Description') IS NOT NULL
+                    ALTER TABLE [Services] DROP COLUMN [Description];
+                IF COL_LENGTH('Services', 'IsActive') IS NOT NULL
+                    ALTER TABLE [Services] DROP COLUMN [IsActive];
+                IF COL_LENGTH('Services', 'Unit') IS NOT NULL
+                    ALTER TABLE [Services] DROP COLUMN [Unit];
+                """);
         }
     }
 }

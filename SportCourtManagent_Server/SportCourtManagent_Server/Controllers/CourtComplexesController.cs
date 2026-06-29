@@ -1,6 +1,9 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DTOs.Court;
@@ -93,6 +96,128 @@ namespace SportCourtManagent_Server.Controllers
                 return NotFound(ApiResults.Fail("Không tìm thấy tổ hợp sân.", 404));
 
             return Ok(ApiResults.Ok(MapToDto(cx), "Lấy thông tin tổ hợp sân thành công."));
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Create([FromBody] UpsertCourtComplexRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.ComplexName))
+                return BadRequest(ApiResults.Fail("Tên tổ hợp không được để trống."));
+            if (string.IsNullOrWhiteSpace(request.Address))
+                return BadRequest(ApiResults.Fail("Địa chỉ không được để trống."));
+            if (request.ManagerId <= 0)
+                return BadRequest(ApiResults.Fail("Vui lòng chọn quản lý phụ trách."));
+
+            var manager = await _context.Users
+                .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.UserId == request.ManagerId && u.IsActive);
+            if (manager == null)
+                return BadRequest(ApiResults.Fail("Quản lý không tồn tại hoặc đã bị vô hiệu hóa."));
+            if (!manager.UserRoles.Any(ur => ur.Role.RoleName == "Staff"))
+                return BadRequest(ApiResults.Fail("Người được chọn phải có vai trò Staff."));
+
+            var complex = new CourtComplex
+            {
+                ComplexName = request.ComplexName.Trim(),
+                Address = request.Address.Trim(),
+                ManagerId = request.ManagerId,
+                Description = request.Description?.Trim(),
+                ImageUrl = request.ImageUrl?.Trim(),
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.CourtComplexes.Add(complex);
+            await _context.SaveChangesAsync();
+
+            await _context.Entry(complex).Reference(c => c.Manager).LoadAsync();
+            await _context.Entry(complex).Collection(c => c.Courts).LoadAsync();
+
+            return StatusCode(201, ApiResults.Ok(MapToDto(complex), "Tạo tổ hợp sân thành công.", 201));
+        }
+
+        [HttpPut("{id:int}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Update(int id, [FromBody] UpsertCourtComplexRequest request)
+        {
+            var complex = await _context.CourtComplexes
+                .Include(c => c.Courts)
+                .Include(c => c.Manager)
+                .FirstOrDefaultAsync(c => c.ComplexId == id && !c.IsDeleted);
+
+            if (complex == null)
+                return NotFound(ApiResults.Fail("Không tìm thấy tổ hợp sân.", 404));
+
+            if (string.IsNullOrWhiteSpace(request.ComplexName))
+                return BadRequest(ApiResults.Fail("Tên tổ hợp không được để trống."));
+            if (string.IsNullOrWhiteSpace(request.Address))
+                return BadRequest(ApiResults.Fail("Địa chỉ không được để trống."));
+            if (request.ManagerId <= 0)
+                return BadRequest(ApiResults.Fail("Vui lòng chọn quản lý phụ trách."));
+
+            var manager = await _context.Users
+                .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.UserId == request.ManagerId && u.IsActive);
+            if (manager == null)
+                return BadRequest(ApiResults.Fail("Quản lý không tồn tại hoặc đã bị vô hiệu hóa."));
+            if (!manager.UserRoles.Any(ur => ur.Role.RoleName == "Staff"))
+                return BadRequest(ApiResults.Fail("Người được chọn phải có vai trò Staff."));
+
+            complex.ComplexName = request.ComplexName.Trim();
+            complex.Address = request.Address.Trim();
+            complex.ManagerId = request.ManagerId;
+            complex.Description = request.Description?.Trim();
+            complex.ImageUrl = request.ImageUrl?.Trim();
+            complex.Manager = manager;
+
+            await _context.SaveChangesAsync();
+            return Ok(ApiResults.Ok(MapToDto(complex), "Cập nhật tổ hợp sân thành công."));
+        }
+
+        [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var complex = await _context.CourtComplexes
+                .Include(c => c.Courts)
+                .FirstOrDefaultAsync(c => c.ComplexId == id && !c.IsDeleted);
+
+            if (complex == null)
+                return NotFound(ApiResults.Fail("Không tìm thấy tổ hợp sân.", 404));
+
+            if (complex.Courts.Any(c => !c.IsDeleted))
+                return BadRequest(ApiResults.Fail("Vui lòng xóa hết sân trước khi xóa tổ hợp."));
+
+            complex.IsDeleted = true;
+            await _context.SaveChangesAsync();
+            return Ok(ApiResults.Ok(null, "Xóa tổ hợp sân thành công."));
+        }
+
+        [HttpPost("upload-image")]
+        [Authorize(Roles = "Admin")]
+        [RequestSizeLimit(5 * 1024 * 1024)]
+        public async Task<IActionResult> UploadImage(IFormFile file)
+        {
+            if (file is null || file.Length == 0)
+                return BadRequest(ApiResults.Fail("Vui lòng chọn ảnh."));
+
+            var allowed = new[] { "image/jpeg", "image/png", "image/webp", "image/gif" };
+            if (!allowed.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
+                return BadRequest(ApiResults.Fail("Chỉ hỗ trợ ảnh JPG, PNG, WEBP, GIF."));
+
+            var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "complexes");
+            Directory.CreateDirectory(uploadsDir);
+
+            var ext = Path.GetExtension(file.FileName);
+            if (string.IsNullOrWhiteSpace(ext)) ext = ".jpg";
+            var fileName = $"{Guid.NewGuid():N}{ext}";
+            var filePath = Path.Combine(uploadsDir, fileName);
+
+            await using (var stream = System.IO.File.Create(filePath))
+                await file.CopyToAsync(stream);
+
+            var url = $"{Request.Scheme}://{Request.Host}/uploads/complexes/{fileName}";
+            return Ok(ApiResults.Ok(new ImageUploadResultDto { Url = url }, "Upload ảnh thành công."));
         }
 
         private async Task<ComplexStatsDto> GetStatsInternalAsync()

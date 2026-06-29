@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -7,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.Models;
 using SportCourtManagent_Server.DTOs.User;
 using SportCourtManagent_Server.Enums;
+using SportCourtManagent_Server.Helpers;
 
 namespace SportCourtManagent_Server.Controllers
 {
@@ -20,6 +23,59 @@ namespace SportCourtManagent_Server.Controllers
         public UsersController(AppDbContext context)
         {
             _context = context;
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAll(
+            [FromQuery] string? search = null,
+            [FromQuery] string? role = null,
+            [FromQuery] bool? isActive = null)
+        {
+            var query = _context.Users
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                query = query.Where(u =>
+                    u.FullName.Contains(term) ||
+                    u.Email.Contains(term) ||
+                    (u.Phone != null && u.Phone.Contains(term)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(role))
+            {
+                var roleName = role.Trim();
+                query = query.Where(u => u.UserRoles.Any(ur => ur.Role.RoleName == roleName));
+            }
+
+            if (isActive.HasValue)
+                query = query.Where(u => u.IsActive == isActive.Value);
+
+            var users = await query
+                .OrderBy(u => u.FullName)
+                .Select(u => MapSummaryDto(u))
+                .ToListAsync();
+
+            return Ok(ApiResults.Ok(users, "Lấy danh sách người dùng thành công."));
+        }
+
+        [HttpGet("{id:int}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var user = await _context.Users
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.UserId == id);
+
+            if (user == null)
+                return NotFound(ApiResults.Fail("Không tìm thấy người dùng.", 404));
+
+            return Ok(ApiResults.Ok(MapSummaryDto(user), "Lấy thông tin người dùng thành công."));
         }
 
         [HttpPut("profile")]
@@ -123,6 +179,22 @@ namespace SportCourtManagent_Server.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Thay đổi mật khẩu thành công." });
+        }
+
+        private static UserDto MapSummaryDto(User user)
+        {
+            var roleName = user.UserRoles.FirstOrDefault()?.Role?.RoleName ?? "Customer";
+            return new UserDto
+            {
+                UserId = user.UserId,
+                FullName = user.FullName,
+                Email = user.Email,
+                Phone = user.Phone,
+                AvatarUrl = user.AvatarUrl,
+                Role = roleName,
+                IsActive = user.IsActive,
+                CreatedAt = user.CreatedAt
+            };
         }
     }
 }

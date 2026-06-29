@@ -37,6 +37,20 @@ namespace SportCourtManagent_Server.DTOs.Court
         public ComplexStatsDto Stats { get; set; } = new();
     }
 
+    public class UpsertCourtComplexRequest
+    {
+        public string ComplexName { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public int ManagerId { get; set; }
+        public string? Description { get; set; }
+        public string? ImageUrl { get; set; }
+    }
+
+    public class ImageUploadResultDto
+    {
+        public string Url { get; set; } = string.Empty;
+    }
+
     public class CourtTypeDto
     {
         public int CourtTypeId { get; set; }

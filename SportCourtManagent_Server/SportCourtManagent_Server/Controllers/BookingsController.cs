@@ -53,7 +53,7 @@ namespace SportCourtManagent_Server.Controllers
     }
 
     /// <summary>Gets booking detail by ID.</summary>
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
       try
@@ -109,8 +109,128 @@ namespace SportCourtManagent_Server.Controllers
       }
     }
 
+    /// <summary>Creates a tournament booking (multiple courts and slots).</summary>
+    [HttpPost("tournament")]
+    public async Task<IActionResult> CreateTournament([FromBody] CreateTournamentRequest request)
+    {
+      try
+      {
+        if (!TryGetUserId(out int userId)) return Unauthorized(new { message = "Không xác định được người dùng." });
+        var result = await _bookingService.CreateTournamentAsync(userId, request);
+        return Ok(new { data = result, message = "Tạo giải đấu thành công." });
+      }
+      catch (ArgumentException ex)
+      {
+        return BadRequest(new { message = ex.Message });
+      }
+      catch (Exception ex)
+      {
+        return StatusCode(500, new { message = ex.Message });
+      }
+    }
+
+    /// <summary>Gets tournament list for the current logged-in customer.</summary>
+    [HttpGet("tournament/my")]
+    public async Task<IActionResult> GetMyTournaments()
+    {
+      try
+      {
+        if (!TryGetUserId(out int userId)) return Unauthorized(new { message = "Không xác định được người dùng." });
+        var result = await _bookingService.GetCustomerTournamentsAsync(userId);
+        return Ok(new { data = result });
+      }
+      catch (Exception ex)
+      {
+        return StatusCode(500, new { message = ex.Message });
+      }
+    }
+
+    /// <summary>Gets all tournaments with optional filters for Admin and Staff.</summary>
+    [HttpGet("tournament/admin")]
+    [Authorize(Roles = "Admin,Staff")]
+    public async Task<IActionResult> GetAdminTournaments([FromQuery] DateTime? date, [FromQuery] string? status)
+    {
+      try
+      {
+        var result = await _bookingService.GetAdminTournamentsAsync(date, status);
+        return Ok(new { data = result });
+      }
+      catch (Exception ex)
+      {
+        return StatusCode(500, new { message = ex.Message });
+      }
+    }
+
+    /// <summary>Gets tournament detail by ID. Customer can only view their own tournament.</summary>
+    [HttpGet("tournament/{id:int}")]
+    public async Task<IActionResult> GetTournamentById(int id)
+    {
+      try
+      {
+        if (!TryGetUserId(out int userId)) return Unauthorized(new { message = "Không xác định được người dùng." });
+        bool isAdminOrStaff = User.IsInRole("Admin") || User.IsInRole("Staff");
+        var result = await _bookingService.GetTournamentDetailAsync(id, userId, isAdminOrStaff);
+        if (result == null) return NotFound(new { message = "Không tìm thấy giải đấu." });
+        return Ok(new { data = result });
+      }
+      catch (UnauthorizedAccessException)
+      {
+        return Forbid();
+      }
+      catch (Exception ex)
+      {
+        return StatusCode(500, new { message = ex.Message });
+      }
+    }
+
+    /// <summary>Updates tournament status (Admin/Staff only). Cancelling cascades to all child bookings.</summary>
+    [HttpPut("tournament/{id:int}/status")]
+    [Authorize(Roles = "Admin,Staff")]
+    public async Task<IActionResult> UpdateTournamentStatus(int id, [FromBody] UpdateTournamentStatusRequest request)
+    {
+      try
+      {
+        var result = await _bookingService.UpdateTournamentStatusAsync(id, request);
+        if (result == null) return NotFound(new { message = "Không tìm thấy giải đấu." });
+        return Ok(new { data = result, message = "Cập nhật trạng thái giải đấu thành công." });
+      }
+      catch (ArgumentException ex)
+      {
+        return BadRequest(new { message = ex.Message });
+      }
+      catch (Exception ex)
+      {
+        return StatusCode(500, new { message = ex.Message });
+      }
+    }
+
+    /// <summary>Updates tournament info, courts, slots and services (Customer only, within 24h of creation).</summary>
+    [HttpPut("tournament/{id:int}/info")]
+    public async Task<IActionResult> UpdateTournamentInfo(int id, [FromBody] UpdateTournamentInfoRequest request)
+    {
+      try
+      {
+        if (!TryGetUserId(out int userId)) return Unauthorized(new { message = "Không xác định được người dùng." });
+        var result = await _bookingService.UpdateTournamentInfoAsync(id, userId, request);
+        if (result == null) return NotFound(new { message = "Không tìm thấy giải đấu." });
+        return Ok(new { data = result, message = "Cập nhật thông tin giải đấu thành công." });
+      }
+      catch (UnauthorizedAccessException)
+      {
+        return Forbid();
+      }
+      catch (ArgumentException ex)
+      {
+        return BadRequest(new { message = ex.Message });
+      }
+      catch (Exception ex)
+      {
+        return StatusCode(500, new { message = ex.Message });
+      }
+    }
+
     /// <summary>Updates booking status from Admin or Staff.</summary>
-    [HttpPut("{id}/status")]
+    [HttpPut("{id:int}/status")]
     [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateBookingStatusRequest request)
     {
@@ -127,7 +247,7 @@ namespace SportCourtManagent_Server.Controllers
     }
 
     /// <summary>Blocks customer self cancellation.</summary>
-    [HttpPut("{id}/cancel")]
+    [HttpPut("{id:int}/cancel")]
     public IActionResult CancelBooking(int id)
     {
       return BadRequest(new { message = "Quy định hệ thống: Khách hàng không được phép hủy sân. Vui lòng liên hệ nhân viên hỗ trợ nếu bạn cần đổi sân hoặc khung giờ." });

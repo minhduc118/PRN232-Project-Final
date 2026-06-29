@@ -162,6 +162,47 @@ namespace SportCourtManagent_Server.Models
                 await context.EquipmentInventories.AddRangeAsync(equipment);
                 await context.SaveChangesAsync();
             }
+
+            // 6. Seed TimeSlots
+            if (!await context.TimeSlots.AnyAsync())
+            {
+                var timeSlots = new[]
+                {
+                    new TimeSlot { SlotName = "Ca 1 (07:00-09:00)", StartTime = new TimeSpan(7, 0, 0), EndTime = new TimeSpan(9, 0, 0), DayType = DayType.Weekday },
+                    new TimeSlot { SlotName = "Ca 2 (09:00-11:00)", StartTime = new TimeSpan(9, 0, 0), EndTime = new TimeSpan(11, 0, 0), DayType = DayType.Weekday },
+                    new TimeSlot { SlotName = "Ca 3 (14:00-16:00)", StartTime = new TimeSpan(14, 0, 0), EndTime = new TimeSpan(16, 0, 0), DayType = DayType.Weekday },
+                    new TimeSlot { SlotName = "Ca 4 (16:00-18:00)", StartTime = new TimeSpan(16, 0, 0), EndTime = new TimeSpan(18, 0, 0), DayType = DayType.Weekday },
+                    new TimeSlot { SlotName = "Ca Vàng (18:00-20:00)", StartTime = new TimeSpan(18, 0, 0), EndTime = new TimeSpan(20, 0, 0), DayType = DayType.Weekday }
+                };
+                await context.TimeSlots.AddRangeAsync(timeSlots);
+                await context.SaveChangesAsync();
+            }
+
+            // 7. Seed CourtTypes and Courts
+            if (!await context.CourtTypes.AnyAsync())
+            {
+                var courtType = new CourtType { TypeName = "Cầu lông", IsActive = true };
+                await context.CourtTypes.AddAsync(courtType);
+                await context.SaveChangesAsync();
+
+                var manager = await context.Users.FirstOrDefaultAsync(u => u.Email == "staff@sportcourt.vn");
+                if (manager != null)
+                {
+                    var complex = new CourtComplex { ComplexName = "Tổ hợp Cầu Giấy", Address = "Hà Nội", ManagerId = manager.UserId, IsDeleted = false, CreatedAt = DateTime.Now };
+                    await context.CourtComplexes.AddAsync(complex);
+                    await context.SaveChangesAsync();
+
+                    var courts = new[]
+                    {
+                        new Court { CourtName = "Sân 1", CourtCode = "CL-01", CourtTypeId = courtType.CourtTypeId, ComplexId = complex.ComplexId, PricePerHour = 100000m, Status = CourtStatus.Available },
+                        new Court { CourtName = "Sân 2", CourtCode = "CL-02", CourtTypeId = courtType.CourtTypeId, ComplexId = complex.ComplexId, PricePerHour = 100000m, Status = CourtStatus.Available },
+                        new Court { CourtName = "Sân 3", CourtCode = "CL-03", CourtTypeId = courtType.CourtTypeId, ComplexId = complex.ComplexId, PricePerHour = 100000m, Status = CourtStatus.Available },
+                        new Court { CourtName = "Sân VIP", CourtCode = "CL-VIP", CourtTypeId = courtType.CourtTypeId, ComplexId = complex.ComplexId, PricePerHour = 150000m, Status = CourtStatus.Available }
+                    };
+                    await context.Courts.AddRangeAsync(courts);
+                    await context.SaveChangesAsync();
+                }
+            }
         }
     }
 }

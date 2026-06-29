@@ -70,6 +70,11 @@ namespace SportCourtManagent_Server.Models
         [MaxLength(500)]
         public string? CancelReason { get; set; }
 
+        public int? TournamentId { get; set; }
+
+        [ForeignKey("TournamentId")]
+        public Tournament? Tournament { get; set; }
+
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public ICollection<BookingService> BookingServices { get; set; } = new List<BookingService>();

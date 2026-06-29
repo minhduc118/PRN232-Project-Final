@@ -60,7 +60,7 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
         public async Task<StaffShift?> GetByIdAsync(int shiftId)
         {
             return await _context.StaffShifts
-                .Include(ss => ss.Staff)
+                .Include(ss => ss.Staff).ThenInclude(s => s.UserRoles).ThenInclude(ur => ur.Role)
                 .Include(ss => ss.Complex)
                 .FirstOrDefaultAsync(ss => ss.ShiftId == shiftId);
         }
@@ -68,7 +68,7 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
         public async Task<List<StaffShift>> GetShiftsByComplexAndDateRangeAsync(int complexId, DateOnly dateFrom, DateOnly dateTo)
         {
             return await _context.StaffShifts
-                .Include(ss => ss.Staff)
+                .Include(ss => ss.Staff).ThenInclude(s => s.UserRoles).ThenInclude(ur => ur.Role)
                 .Include(ss => ss.Complex)
                 .Where(ss => ss.ComplexId == complexId && ss.ShiftDate >= dateFrom && ss.ShiftDate <= dateTo)
                 .ToListAsync();
@@ -77,7 +77,7 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
         public async Task<List<StaffShift>> GetShiftsByStaffAndDateRangeAsync(int staffId, DateOnly dateFrom, DateOnly dateTo)
         {
             return await _context.StaffShifts
-                .Include(ss => ss.Staff)
+                .Include(ss => ss.Staff).ThenInclude(s => s.UserRoles).ThenInclude(ur => ur.Role)
                 .Include(ss => ss.Complex)
                 .Where(ss => ss.StaffId == staffId && ss.ShiftDate >= dateFrom && ss.ShiftDate <= dateTo)
                 .ToListAsync();
@@ -87,7 +87,7 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
             return await _context.StaffShifts
-                .Include(ss => ss.Staff)
+                .Include(ss => ss.Staff).ThenInclude(s => s.UserRoles).ThenInclude(ur => ur.Role)
                 .Include(ss => ss.Complex)
                 .OrderBy(ss => ss.StartTime)
                 .FirstOrDefaultAsync(ss => ss.StaffId == staffId && ss.ShiftDate == today);

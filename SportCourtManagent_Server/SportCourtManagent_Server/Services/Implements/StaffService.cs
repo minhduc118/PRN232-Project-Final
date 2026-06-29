@@ -129,7 +129,8 @@ namespace SportCourtManagent_Server.Services.Implements
                 ShiftDate = shiftDate,
                 ShiftType = shiftType,
                 StartTime = startTime,
-                EndTime = endTime
+                EndTime = endTime,
+                Note = request.Note
             };
 
             var createdShift = await _staffShiftRepository.CreateAsync(shift);
@@ -199,7 +200,8 @@ namespace SportCourtManagent_Server.Services.Implements
                     ShiftDate = shiftDate,
                     ShiftType = shiftType,
                     StartTime = startTime,
-                    EndTime = endTime
+                    EndTime = endTime,
+                    Note = shiftReq.Note
                 };
 
                 shiftsToCreate.Add(shift);
@@ -369,6 +371,8 @@ namespace SportCourtManagent_Server.Services.Implements
                 shift.EndTime = endTime;
             }
 
+            shift.Note = request.Note;
+
             await _staffShiftRepository.UpdateAsync(shift);
             return MapToResponse(shift, shift.Staff, complex);
         }
@@ -437,6 +441,7 @@ namespace SportCourtManagent_Server.Services.Implements
                 StaffId = shift.StaffId,
                 StaffName = staffUser?.FullName ?? string.Empty,
                 StaffEmail = staffUser?.Email ?? string.Empty,
+                StaffRole = staffUser?.UserRoles?.FirstOrDefault()?.Role?.RoleName ?? string.Empty,
                 AvatarUrl = staffUser?.AvatarUrl,
                 ShiftDate = shift.ShiftDate.ToString("yyyy-MM-dd"),
                 ShiftType = shift.ShiftType.ToString(),
@@ -446,7 +451,7 @@ namespace SportCourtManagent_Server.Services.Implements
                 CheckOutTime = shift.CheckOutTime,
                 ComplexId = shift.ComplexId,
                 ComplexName = complexEntity?.ComplexName ?? string.Empty,
-                Note = null,
+                Note = shift.Note,
                 CreatedAt = shift.ShiftDate.ToDateTime(TimeOnly.MinValue),
                 LateMinutes = lateMinutes,
                 EarlyLeaveMinutes = earlyLeaveMinutes

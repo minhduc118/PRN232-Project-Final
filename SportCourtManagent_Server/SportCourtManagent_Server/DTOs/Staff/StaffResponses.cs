@@ -47,6 +47,7 @@ namespace SportCourtManagent_Server.DTOs.Staff
         public int StaffId { get; set; }
         public string StaffName { get; set; } = string.Empty;
         public string StaffEmail { get; set; } = string.Empty;
+        public string StaffRole { get; set; } = string.Empty;
         public string? AvatarUrl { get; set; }
 
         public string ShiftDate { get; set; } = string.Empty;

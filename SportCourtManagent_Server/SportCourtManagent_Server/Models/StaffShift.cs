@@ -39,6 +39,9 @@ namespace SportCourtManagent_Server.Models
         public DateTime? CheckInTime { get; set; }
 
         public DateTime? CheckOutTime { get; set; }
+
+        [MaxLength(300)]
+        public string? Note { get; set; }
     }
 }
 

@@ -15,9 +15,10 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
 
         public async Task<(List<User> Items, int TotalCount)> GetStaffByComplexAsync(int complexId, string? search = null, bool? isActive = null, int page = 1, int pageSize = 10)
         {
-            var query = _context.Users.Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+            var query = _context.Users
+                .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
                 .Where(u => u.UserRoles.Any(ur => ur.Role.RoleName == "Staff")
-                && _context.StaffShifts.Any(ss => ss.ComplexId == complexId && ss.StaffId == u.UserId))
+                    && _context.StaffComplexes.Any(sc => sc.StaffId == u.UserId && sc.ComplexId == complexId))
                 .AsQueryable();
 
             if (isActive.HasValue)
@@ -26,7 +27,9 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var term = search.Trim();
-                query = query.Where(u => u.FullName.Contains(term) || u.Email.Contains(term) || (u.Phone != null && u.Phone.Contains(term)));
+                query = query.Where(u => u.FullName.Contains(term)
+                    || u.Email.Contains(term)
+                    || (u.Phone != null && u.Phone.Contains(term)));
             }
 
             var totalCount = await query.CountAsync();
@@ -41,15 +44,45 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
 
         public async Task<User?> GetStaffWithRolesAsync(int staffId)
         {
-            return await _context.Users.Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+            return await _context.Users
+                .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
                 .FirstOrDefaultAsync(u => u.UserId == staffId);
         }
 
         public async Task<bool> IsStaffOfComplexAsync(int staffId, int complexId)
         {
-            return await _context.StaffShifts.AnyAsync(ss => ss.StaffId == staffId && ss.ComplexId == complexId);
+            return await _context.StaffComplexes
+                .AnyAsync(sc => sc.StaffId == staffId && sc.ComplexId == complexId);
         }
 
+        public async Task AssignStaffToComplexAsync(int staffId, int complexId)
+        {
+            var exists = await _context.StaffComplexes
+                .AnyAsync(sc => sc.StaffId == staffId && sc.ComplexId == complexId);
 
+            if (exists)
+                throw new InvalidOperationException($"Nhân viên (Id={staffId}) đã được assign vào cơ sở (Id={complexId}) trước đó.");
+
+            _context.StaffComplexes.Add(new StaffComplex
+            {
+                StaffId = staffId,
+                ComplexId = complexId,
+                AssignedAt = DateTime.Now
+            });
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task RemoveStaffFromComplexAsync(int staffId, int complexId)
+        {
+            var record = await _context.StaffComplexes
+                .FirstOrDefaultAsync(sc => sc.StaffId == staffId && sc.ComplexId == complexId);
+
+            if (record == null)
+                throw new KeyNotFoundException($"Không tìm thấy assignment của nhân viên (Id={staffId}) tại cơ sở (Id={complexId}).");
+
+            _context.StaffComplexes.Remove(record);
+            await _context.SaveChangesAsync();
+        }
     }
 }

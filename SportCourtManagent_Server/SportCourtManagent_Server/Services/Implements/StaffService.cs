@@ -137,92 +137,6 @@ namespace SportCourtManagent_Server.Services.Implements
             return MapToResponse(createdShift, staffUser, complex);
         }
 
-        public async Task<BulkCreateShiftResponse> CreateShiftBulkAsync(int complexId, BulkCreateShiftRequest request)
-        {
-            var complex = _complexRepository.GetById(complexId);
-            if (complex == null)
-            {
-                throw new KeyNotFoundException($"Không tìm thấy cơ sở với Id {complexId}");
-            }
-
-            var response = new BulkCreateShiftResponse();
-            var shiftsToCreate = new List<StaffShift>();
-            var validShiftsMap = new List<(StaffShift Shift, User Staff)>();
-
-            foreach (var shiftReq in request.Shifts)
-            {
-                if (!shiftReq.StaffId.HasValue || !shiftReq.ShiftDate.HasValue || !shiftReq.ShiftType.HasValue)
-                {
-                    response.Skipped++;
-                    response.Errors.Add("Thông tin ca trực trong danh sách không hợp lệ (thiếu StaffId, ShiftDate hoặc ShiftType).");
-                    continue;
-                }
-                int staffId = shiftReq.StaffId.Value;
-                DateOnly shiftDate = shiftReq.ShiftDate.Value;
-                ShiftType shiftType = shiftReq.ShiftType.Value;
-
-                var staffUser = await _staffRepository.GetStaffWithRolesAsync(staffId);
-                if (staffUser == null)
-                {
-                    response.Skipped++;
-                    response.Errors.Add($"Nhân viên với Id {staffId} không tồn tại.");
-                    continue;
-                }
-
-                if (!staffUser.IsActive)
-                {
-                    response.Skipped++;
-                    response.Errors.Add($"Nhân viên {staffUser.FullName} đang bị khóa/ngưng hoạt động.");
-                    continue;
-                }
-
-                var existsInDb = await _staffShiftRepository.ExistsAsync(staffId, shiftDate, shiftType);
-                if (existsInDb)
-                {
-                    response.Skipped++;
-                    response.Errors.Add($"Nhân viên {staffUser.FullName} đã được xếp ca {shiftType} ngày {shiftDate} trước đó.");
-                    continue;
-                }
-
-                var existsInBatch = shiftsToCreate.Any(s => s.StaffId == staffId && s.ShiftDate == shiftDate && s.ShiftType == shiftType);
-                if (existsInBatch)
-                {
-                    response.Skipped++;
-                    response.Errors.Add($"Nhân viên {staffUser.FullName} có ca {shiftType} ngày {shiftDate} bị trùng lặp trong danh sách gửi lên.");
-                    continue;
-                }
-
-                var (startTime, endTime) = GetShiftTimes(shiftType);
-                var shift = new StaffShift
-                {
-                    StaffId = staffId,
-                    ComplexId = complexId,
-                    ShiftDate = shiftDate,
-                    ShiftType = shiftType,
-                    StartTime = startTime,
-                    EndTime = endTime,
-                    Note = shiftReq.Note
-                };
-
-                shiftsToCreate.Add(shift);
-                validShiftsMap.Add((shift, staffUser));
-            }
-
-            if (shiftsToCreate.Any())
-            {
-                var createdShifts = await _staffShiftRepository.CreateBulkAsync(shiftsToCreate);
-                response.Created = createdShifts.Count;
-
-                foreach (var shift in createdShifts)
-                {
-                    var staffUser = validShiftsMap.First(x => x.Shift == shift).Staff;
-                    response.CreatedShifts.Add(MapToResponse(shift, staffUser, complex));
-                }
-            }
-
-            return response;
-        }
-
         public async Task DeleteShiftAsync(int complexId, int shiftId)
         {
             var shift = await _staffShiftRepository.GetByIdAsync(shiftId);
@@ -299,6 +213,32 @@ namespace SportCourtManagent_Server.Services.Implements
                 PageSize = pageSize,
                 TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
             };
+        }
+
+        public async Task AssignStaffToComplexAsync(int complexId, int staffId)
+        {
+            var complex = _complexRepository.GetById(complexId);
+            if (complex == null)
+                throw new KeyNotFoundException($"Không tìm thấy cơ sở với Id {complexId}.");
+
+            var staffUser = await _staffRepository.GetStaffWithRolesAsync(staffId);
+            if (staffUser == null)
+                throw new KeyNotFoundException($"Không tìm thấy nhân viên với Id {staffId}.");
+
+            var isStaff = staffUser.UserRoles.Any(ur => ur.Role.RoleName == "Staff");
+            if (!isStaff)
+                throw new ArgumentException($"Người dùng (Id={staffId}) không có role Staff.");
+
+            await _staffRepository.AssignStaffToComplexAsync(staffId, complexId);
+        }
+
+        public async Task RemoveStaffFromComplexAsync(int complexId, int staffId)
+        {
+            var complex = _complexRepository.GetById(complexId);
+            if (complex == null)
+                throw new KeyNotFoundException($"Không tìm thấy cơ sở với Id {complexId}.");
+
+            await _staffRepository.RemoveStaffFromComplexAsync(staffId, complexId);
         }
 
         public async Task<WeeklyScheduleResponse> GetWeeklyScheduleAsync(int complexId, DateOnly weekStart)

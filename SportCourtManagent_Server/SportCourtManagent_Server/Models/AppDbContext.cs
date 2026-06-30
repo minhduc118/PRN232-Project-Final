@@ -34,6 +34,7 @@ namespace SportCourtManagent_Server.Models
         public DbSet<EquipmentInventory> EquipmentInventories { get; set; } = null!;
         public DbSet<MaintenanceSchedule> MaintenanceSchedules { get; set; } = null!;
         public DbSet<StaffShift> StaffShifts { get; set; } = null!;
+        public DbSet<StaffComplex> StaffComplexes { get; set; } = null!;
         public DbSet<PlayerRequest> PlayerRequests { get; set; } = null!;
         public DbSet<PlayerRequestMember> PlayerRequestMembers { get; set; } = null!;
         public DbSet<TaskItem> Tasks { get; set; } = null!;
@@ -337,6 +338,24 @@ namespace SportCourtManagent_Server.Models
             modelBuilder.Entity<StaffShift>()
                 .HasIndex(ss => new { ss.ComplexId, ss.ShiftDate });
 
+            // StaffComplex (junction: Staff ↔ CourtComplex)
+            modelBuilder.Entity<StaffComplex>()
+                .HasOne(sc => sc.Staff)
+                .WithMany(u => u.ComplexAssignments)
+                .HasForeignKey(sc => sc.StaffId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<StaffComplex>()
+                .HasOne(sc => sc.Complex)
+                .WithMany(cc => cc.StaffAssignments)
+                .HasForeignKey(sc => sc.ComplexId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Unique: mỗi staff chỉ được assign vào 1 complex 1 lần
+            modelBuilder.Entity<StaffComplex>()
+                .HasIndex(sc => new { sc.StaffId, sc.ComplexId })
+                .IsUnique();
+
             // PlayerRequest
             modelBuilder.Entity<PlayerRequest>()
                 .HasOne(pr => pr.Booking)
@@ -471,6 +490,11 @@ namespace SportCourtManagent_Server.Models
                 new UserRole { UserRoleId = 2, UserId = 2, RoleId = 2 },
                 new UserRole { UserRoleId = 3, UserId = 3, RoleId = 3 },
                 new UserRole { UserRoleId = 4, UserId = 4, RoleId = 4 }
+            );
+
+            // 4b. StaffComplexes – assign tất cả Staff (UserId=3) vào ComplexId=1
+            modelBuilder.Entity<StaffComplex>().HasData(
+                new StaffComplex { StaffComplexId = 1, StaffId = 3, ComplexId = 1, AssignedAt = new DateTime(2026, 1, 1) }
             );
 
             // 5. CourtComplexes

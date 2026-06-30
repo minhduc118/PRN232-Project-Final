@@ -27,10 +27,5 @@ namespace SportCourtManagent_Server.DTOs.Staff
         public string? Note { get; set; }
     }
 
-    public class BulkCreateShiftRequest
-    {
-        [Required]
-        [MinLength(1, ErrorMessage = "Phải có ít nhất 1 ca trong danh sách.")]
-        public List<CreateShiftRequest> Shifts { get; set; } = new();
-    }
+
 }

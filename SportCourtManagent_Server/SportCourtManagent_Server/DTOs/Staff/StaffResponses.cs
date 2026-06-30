@@ -82,11 +82,5 @@ namespace SportCourtManagent_Server.DTOs.Staff
         public List<StaffShiftResponse> Shifts { get; set; } = new();
     }
 
-    public class BulkCreateShiftResponse
-    {
-        public int Created { get; set; }
-        public int Skipped { get; set; }
-        public List<string> Errors { get; set; } = new();
-        public List<StaffShiftResponse> CreatedShifts { get; set; } = new();
-    }
+
 }

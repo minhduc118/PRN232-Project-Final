@@ -31,9 +31,59 @@ namespace SportCourtManagent_Server.Controllers.Manager
                 var result = await _staffService.GetStaffListAsync(complexId, search, isActive, page, pageSize);
                 return Ok(result);
             }
-            catch (Exception)
+            catch (KeyNotFoundException ex)
             {
-                return StatusCode(500, "Lỗi hệ thống");
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = $"Lỗi hệ thống: {ex.Message}" });
+            }
+        }
+
+        // POST /api/manager/complexes/{complexId}/staff/{staffId}/assign
+        [HttpPost("{staffId:int}/assign")]
+        public async Task<IActionResult> AssignStaffToComplex([FromRoute] int complexId, [FromRoute] int staffId)
+        {
+            try
+            {
+                await _staffService.AssignStaffToComplexAsync(complexId, staffId);
+                return Ok(new { Message = $"Nhân viên (Id={staffId}) đã được assign vào cơ sở (Id={complexId}) thành công." });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = $"Lỗi hệ thống: {ex.Message}" });
+            }
+        }
+
+        // DELETE /api/manager/complexes/{complexId}/staff/{staffId}/unassign
+        [HttpDelete("{staffId:int}/unassign")]
+        public async Task<IActionResult> RemoveStaffFromComplex([FromRoute] int complexId, [FromRoute] int staffId)
+        {
+            try
+            {
+                await _staffService.RemoveStaffFromComplexAsync(complexId, staffId);
+                return Ok(new { Message = $"Nhân viên (Id={staffId}) đã được gỡ khỏi cơ sở (Id={complexId}) thành công." });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = $"Lỗi hệ thống: {ex.Message}" });
             }
         }
 
@@ -54,9 +104,13 @@ namespace SportCourtManagent_Server.Controllers.Manager
                 var schedule = await _staffService.GetWeeklyScheduleAsync(complexId, date);
                 return Ok(schedule);
             }
-            catch (Exception)
+            catch (KeyNotFoundException ex)
             {
-                return StatusCode(500, "Lỗi hệ thống");
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = $"Lỗi hệ thống: {ex.Message}" });
             }
         }
 
@@ -69,13 +123,13 @@ namespace SportCourtManagent_Server.Controllers.Manager
                 var shift = await _staffService.GetShiftByIdAsync(shiftId);
                 return Ok(shift);
             }
-            catch (KeyNotFoundException)
+            catch (KeyNotFoundException ex)
             {
-                return NotFound();
+                return NotFound(new { Message = ex.Message });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return StatusCode(500, "Lỗi hệ thống");
+                return StatusCode(500, new { Message = $"Lỗi hệ thống: {ex.Message}" });
             }
         }
 
@@ -86,42 +140,32 @@ namespace SportCourtManagent_Server.Controllers.Manager
             [FromBody] CreateShiftRequest request)
         {
             if (!ModelState.IsValid)
-                return BadRequest();
+                return BadRequest(ModelState);
 
             try
             {
                 var created = await _staffService.CreateShiftAsync(complexId, request);
                 return CreatedAtAction(nameof(GetShiftById), new { complexId = complexId, shiftId = created.ShiftId }, created);
             }
-            catch (KeyNotFoundException)
+            catch (ArgumentException ex)
             {
-                return NotFound();
+                return BadRequest(new { Message = ex.Message });
             }
-            catch (Exception)
+            catch (KeyNotFoundException ex)
             {
-                return StatusCode(500, "Lỗi hệ thống");
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = $"Lỗi hệ thống: {ex.Message}" });
             }
         }
 
-        // POST /api/manager/complexes/{complexId}/staff/shifts/bulk
-        [HttpPost("shifts/bulk")]
-        public async Task<IActionResult> CreateShiftBulk(
-            [FromRoute] int complexId,
-            [FromBody] BulkCreateShiftRequest request)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest();
 
-            try
-            {
-                var result = await _staffService.CreateShiftBulkAsync(complexId, request);
-                return Ok(result);
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, "Lỗi hệ thống");
-            }
-        }
 
         // PUT /api/manager/complexes/{complexId}/staff/shifts/{shiftId}
         [HttpPut("shifts/{shiftId:int}")]
@@ -138,9 +182,17 @@ namespace SportCourtManagent_Server.Controllers.Manager
                 var updated = await _staffService.UpdateShiftAsync(complexId, shiftId, request);
                 return Ok(updated);
             }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { Message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { Message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -160,6 +212,10 @@ namespace SportCourtManagent_Server.Controllers.Manager
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { Message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { Message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -191,6 +247,10 @@ namespace SportCourtManagent_Server.Controllers.Manager
             {
                 var report = await _staffService.GetAttendanceReportAsync(complexId, from, to, staffId);
                 return Ok(report);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { Message = ex.Message });
             }
             catch (Exception ex)
             {

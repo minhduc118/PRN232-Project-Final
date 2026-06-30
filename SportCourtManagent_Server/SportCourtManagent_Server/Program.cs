@@ -8,6 +8,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.AspNetCore.OData;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,11 +49,20 @@ builder.Services.AddScoped<ITaskItemRepository, TaskItemRepository>();
 // Service DI registration
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IBookingManagementService, BookingManagementService>();
+builder.Services.AddScoped<ICourtService, CourtService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler =
         ReferenceHandler.IgnoreCycles;
-});
+}).AddOData(options => options
+    .Select()
+    .Filter()
+    .OrderBy()
+    .SetMaxTop(100)
+    .Count()
+    .Expand()
+    .AddRouteComponents("odata", GetEdmModel()));
 
 // Configure CORS
 builder.Services.AddCors(options =>
@@ -157,3 +167,11 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+Microsoft.OData.Edm.IEdmModel GetEdmModel()
+{
+    var builder = new Microsoft.OData.ModelBuilder.ODataConventionModelBuilder();
+    builder.EntitySet<SportCourtManagent_Server.DTOs.Court.CourtListDto>("Courts").EntityType.HasKey(c => c.CourtId);
+    builder.EntitySet<SportCourtManagent_Server.DTOs.Review.ReviewDto>("Reviews").EntityType.HasKey(r => r.ReviewId);
+    return builder.GetEdmModel();
+}

@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SportCourtManagerment.DTOs;
 using SportCourtManagerment.DTOs.Courts;
@@ -75,4 +77,35 @@ public class CourtsController : ControllerBase
     return Ok(ApiResponse<PagedResult<ReviewDto>>.Ok(result,
       "Lấy đánh giá sân thành công."));
   }
+
+
+  //  POST /api/courts/{courtId}/reviews — Create a new review (requires authentication)
+  
+  /// <summary>
+  /// Creates a new review for a completed booking on this court.
+  /// Requires JWT authentication. UserId is extracted from the token.
+  /// Each booking can only have one review (1:1 relationship).
+  /// </summary>
+  [HttpPost("{courtId:int}/reviews")]
+  [Authorize]
+  public async Task<IActionResult> CreateReview(
+    int courtId,
+    [FromBody] CreateReviewDto dto)
+  {
+    // Extract userId from JWT claims
+    var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)
+                  ?? User.FindFirst("sub");
+
+    if (userIdClaim is null || !int.TryParse(userIdClaim.Value, out var userId))
+      return Unauthorized(ApiResponse<object>.Fail("Token không hợp lệ.", 401));
+
+    var (review, error) = await _reviewService.CreateReviewAsync(courtId, userId, dto);
+
+    if (error is not null)
+      return BadRequest(ApiResponse<object>.Fail(error));
+
+    return StatusCode(201,
+      ApiResponse<ReviewDto>.Created(review, "Tạo đánh giá thành công."));
+  }
 }
+

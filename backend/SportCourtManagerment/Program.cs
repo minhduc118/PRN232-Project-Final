@@ -93,11 +93,17 @@ public class Program
         .Expand()
         .AddRouteComponents("odata", GetEdmModel()));
 
-    // ── CORS (allow React dev server) ─────────
+    // ── CORS (allow React and MVC dev servers) ─────────
     builder.Services.AddCors(options =>
     {
       options.AddPolicy("AllowFrontend", policy =>
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+        policy.WithOrigins(
+                "http://localhost:5173", 
+                "http://localhost:3000",
+                "http://localhost:5166",
+                "https://localhost:7121",
+                "http://localhost:64735",
+                "https://localhost:44391")
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials());

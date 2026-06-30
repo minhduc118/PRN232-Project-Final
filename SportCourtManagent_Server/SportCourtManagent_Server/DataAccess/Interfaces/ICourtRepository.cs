@@ -10,5 +10,6 @@ namespace SportCourtManagent_Server.DataAccess.Interfaces
         void Add(Court entity);
         void Update(Court entity);
         void Delete(int id);
+        Task<IEnumerable<Court>> GetCourtsByComplexAsync(int complexId);
     }
 }

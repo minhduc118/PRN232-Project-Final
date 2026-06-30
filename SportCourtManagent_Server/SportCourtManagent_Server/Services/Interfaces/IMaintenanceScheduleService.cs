@@ -11,5 +11,6 @@ namespace SportCourtManagent_Server.Services.Interfaces
         Task<PagedMaintenanceResponse> GetMaintenanceListAsync(int complexId, MaintenanceStatus? status = null, int page = 1, int pageSize = 20);
         Task<MaintenanceResponse> GetMaintenanceByIdAsync(int maintenanceId);
         Task DeleteMaintenanceAsync(int complexId, int maintenanceId);
+        Task<IEnumerable<MaintenanceCourtResponse>> GetCourtsForMaintenanceAsync(int complexId);
     }
 }

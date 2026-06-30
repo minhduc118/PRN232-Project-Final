@@ -152,5 +152,24 @@ namespace SportCourtManagent_Server.Controllers.Manager
                 return StatusCode(500, new { Message = $"Lỗi hệ thống: {ex.Message}" });
             }
         }
+
+        // GET /api/manager/complexes/{complexId}/maintenance/courts
+        [HttpGet("courts")]
+        public async Task<IActionResult> GetCourtsForMaintenance([FromRoute] int complexId)
+        {
+            try
+            {
+                var result = await _maintenanceService.GetCourtsForMaintenanceAsync(complexId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = $"Lỗi hệ thống: {ex.Message}" });
+            }
+        }
     }
 }

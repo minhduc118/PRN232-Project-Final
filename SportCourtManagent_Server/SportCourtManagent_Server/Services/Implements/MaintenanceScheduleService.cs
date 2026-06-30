@@ -261,6 +261,25 @@ namespace SportCourtManagent_Server.Services.Implements
             await _maintenanceRepository.DeleteAsync(schedule);
         }
 
+        public async Task<IEnumerable<MaintenanceCourtResponse>> GetCourtsForMaintenanceAsync(int complexId)
+        {
+            var complex = _complexRepository.GetById(complexId);
+            if (complex == null)
+            {
+                throw new KeyNotFoundException($"Không tìm thấy cơ sở với Id {complexId}");
+            }
+
+            var courts = await _courtRepository.GetCourtsByComplexAsync(complexId);
+            return courts.Select(c => new MaintenanceCourtResponse
+            {
+                CourtId = c.CourtId,
+                CourtName = c.CourtName,
+                CourtCode = c.CourtCode,
+                CourtTypeName = c.CourtType?.TypeName ?? string.Empty,
+                Status = c.Status.ToString()
+            });
+        }
+
         private MaintenanceResponse MapToResponse(MaintenanceSchedule schedule, Court? court = null, CourtComplex? complex = null, User? staff = null)
         {
             var courtEntity = court ?? schedule.Court;

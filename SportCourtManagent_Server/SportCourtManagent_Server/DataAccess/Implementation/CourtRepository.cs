@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.Models;
 
@@ -44,6 +47,14 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
                 _context.Courts.Remove(court);
                 _context.SaveChanges();
             }
+        }
+
+        public async Task<IEnumerable<Court>> GetCourtsByComplexAsync(int complexId)
+        {
+            return await _context.Courts
+                .Include(c => c.CourtType)
+                .Where(c => c.ComplexId == complexId && !c.IsDeleted)
+                .ToListAsync();
         }
     }
 }

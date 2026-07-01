@@ -12,6 +12,7 @@ using SportCourtManagent_Server.DTOs.Role;
 using SportCourtManagent_Server.Enums;
 using SportCourtManagent_Server.Helpers;
 using SportCourtManagent_Server.Authorization;
+using SportCourtManagent_Server.Services.Implements;
 
 namespace SportCourtManagent_Server.Controllers
 {
@@ -21,10 +22,12 @@ namespace SportCourtManagent_Server.Controllers
     public class UsersController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly UserAccessService _userAccess;
 
-        public UsersController(AppDbContext context)
+        public UsersController(AppDbContext context, UserAccessService userAccess)
         {
             _context = context;
+            _userAccess = userAccess;
         }
 
         [HttpGet]
@@ -68,7 +71,18 @@ namespace SportCourtManagent_Server.Controllers
                 .OrderBy(u => u.FullName)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(u => MapSummaryDto(u))
+                .Select(u => new UserDto
+                {
+                    UserId = u.UserId,
+                    FullName = u.FullName,
+                    Email = u.Email,
+                    Phone = u.Phone,
+                    AvatarUrl = u.AvatarUrl,
+                    Role = u.UserRoles.Select(ur => ur.Role.RoleName).FirstOrDefault() ?? "Customer",
+                    MembershipTierName = u.MembershipTier != null ? u.MembershipTier.TierName : null,
+                    IsActive = u.IsActive,
+                    CreatedAt = u.CreatedAt
+                })
                 .ToListAsync();
 
             var result = new
@@ -90,96 +104,44 @@ namespace SportCourtManagent_Server.Controllers
             var user = await _context.Users
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
+                .Include(u => u.MembershipTier)
                 .FirstOrDefaultAsync(u => u.UserId == id);
 
             if (user == null)
                 return NotFound(ApiResults.Fail("Không tìm thấy người dùng.", 404));
 
-            return Ok(ApiResults.Ok(MapSummaryDto(user), "Lấy thông tin người dùng thành công."));
+            return Ok(ApiResults.Ok(UserAccessService.MapSummaryDto(user), "Lấy thông tin người dùng thành công."));
+        }
+
+        [HttpPut("{id:int}/access")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateAccess(int id, [FromBody] UpdateUserAccessRequest request)
+        {
+            var (user, error) = await _userAccess.UpdateAccessAsync(id, GetCurrentUserId(), request);
+            if (error != null)
+                return BadRequest(ApiResults.Fail(error));
+            return Ok(ApiResults.Ok(UserAccessService.MapSummaryDto(user!), "Cập nhật quyền người dùng thành công."));
         }
 
         [HttpPut("{id:int}/role")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AssignRole(int id, [FromBody] AssignRoleRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.Role))
-                return BadRequest(ApiResults.Fail("Vui lòng chọn vai trò."));
-
-            var roleName = request.Role.Trim();
-            if (!PermissionMatrix.ValidRoleNames.Contains(roleName))
-                return BadRequest(ApiResults.Fail("Vai trò không hợp lệ."));
-
-            var currentUserId = GetCurrentUserId();
-            if (currentUserId == id && roleName != "Admin")
-                return BadRequest(ApiResults.Fail("Bạn không thể tự hạ quyền Admin của chính mình."));
-
-            var user = await _context.Users
-                .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
-                .FirstOrDefaultAsync(u => u.UserId == id);
-
-            if (user == null)
-                return NotFound(ApiResults.Fail("Không tìm thấy người dùng.", 404));
-
-            var currentRole = user.UserRoles.FirstOrDefault()?.Role?.RoleName;
-
-            if (currentRole == "Admin" && roleName != "Admin")
-            {
-                var adminRole = await _context.Roles.FirstAsync(r => r.RoleName == "Admin");
-                var adminCount = await _context.UserRoles.CountAsync(ur => ur.RoleId == adminRole.RoleId);
-                if (adminCount <= 1)
-                    return BadRequest(ApiResults.Fail("Không thể đổi vai trò của Admin cuối cùng trong hệ thống."));
-            }
-
-            var targetRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == roleName);
-            if (targetRole == null)
-                return BadRequest(ApiResults.Fail("Vai trò không tồn tại trong hệ thống."));
-
-            var existingRoles = await _context.UserRoles.Where(ur => ur.UserId == id).ToListAsync();
-            _context.UserRoles.RemoveRange(existingRoles);
-            _context.UserRoles.Add(new UserRole { UserId = id, RoleId = targetRole.RoleId });
-            await _context.SaveChangesAsync();
-
-            user = await _context.Users
-                .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
-                .Include(u => u.MembershipTier)
-                .FirstAsync(u => u.UserId == id);
-
-            return Ok(ApiResults.Ok(MapSummaryDto(user), "Cập nhật vai trò thành công."));
+            var (user, error) = await _userAccess.AssignRoleAsync(id, GetCurrentUserId(), request.Role);
+            if (error != null)
+                return BadRequest(ApiResults.Fail(error));
+            return Ok(ApiResults.Ok(UserAccessService.MapSummaryDto(user!), "Cập nhật vai trò thành công."));
         }
 
         [HttpPatch("{id:int}/status")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> SetStatus(int id, [FromBody] SetUserStatusRequest request)
         {
-            var currentUserId = GetCurrentUserId();
-            if (currentUserId == id && !request.IsActive)
-                return BadRequest(ApiResults.Fail("Bạn không thể tự vô hiệu hóa tài khoản của chính mình."));
+            var (user, error) = await _userAccess.SetStatusAsync(id, GetCurrentUserId(), request.IsActive);
+            if (error != null)
+                return BadRequest(ApiResults.Fail(error));
 
-            var user = await _context.Users
-                .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
-                .Include(u => u.MembershipTier)
-                .FirstOrDefaultAsync(u => u.UserId == id);
-
-            if (user == null)
-                return NotFound(ApiResults.Fail("Không tìm thấy người dùng.", 404));
-
-            if (!request.IsActive)
-            {
-                var isAdmin = user.UserRoles.Any(ur => ur.Role.RoleName == "Admin");
-                if (isAdmin)
-                {
-                    var adminRole = await _context.Roles.FirstAsync(r => r.RoleName == "Admin");
-                    var activeAdminCount = await _context.UserRoles
-                        .CountAsync(ur => ur.RoleId == adminRole.RoleId && ur.User.IsActive);
-                    if (activeAdminCount <= 1)
-                        return BadRequest(ApiResults.Fail("Không thể vô hiệu hóa Admin cuối cùng trong hệ thống."));
-                }
-            }
-
-            user.IsActive = request.IsActive;
-            await _context.SaveChangesAsync();
-
-            return Ok(ApiResults.Ok(MapSummaryDto(user),
+            return Ok(ApiResults.Ok(UserAccessService.MapSummaryDto(user!),
                 request.IsActive ? "Đã kích hoạt tài khoản." : "Đã vô hiệu hóa tài khoản."));
         }
 
@@ -290,23 +252,6 @@ namespace SportCourtManagent_Server.Controllers
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             return int.TryParse(claim, out var id) ? id : null;
-        }
-
-        private static UserDto MapSummaryDto(User user)
-        {
-            var roleName = user.UserRoles.FirstOrDefault()?.Role?.RoleName ?? "Customer";
-            return new UserDto
-            {
-                UserId = user.UserId,
-                FullName = user.FullName,
-                Email = user.Email,
-                Phone = user.Phone,
-                AvatarUrl = user.AvatarUrl,
-                Role = roleName,
-                MembershipTierName = user.MembershipTier?.TierName,
-                IsActive = user.IsActive,
-                CreatedAt = user.CreatedAt
-            };
         }
     }
 }

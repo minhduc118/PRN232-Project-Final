@@ -141,6 +141,9 @@ namespace SportCourtManagent_Server.Models
                 await context.SaveChangesAsync();
             }
 
+            await EnsureCoreAccountsAsync(context);
+            await EnsureDemoUsersAsync(context);
+
             // 5. Seed Court Types
             if (!await context.CourtTypes.AnyAsync())
             {
@@ -276,6 +279,172 @@ namespace SportCourtManagent_Server.Models
 
             await context.Services.AddRangeAsync(missing);
             await context.SaveChangesAsync();
+        }
+
+        private static async Task EnsureCoreAccountsAsync(AppDbContext context)
+        {
+            var bronze = await context.MembershipTiers.FirstOrDefaultAsync(t => t.TierName == "Bronze");
+            var silver = await context.MembershipTiers.FirstOrDefaultAsync(t => t.TierName == "Silver");
+            var platinum = await context.MembershipTiers.FirstOrDefaultAsync(t => t.TierName == "Platinum");
+            if (bronze == null) return;
+
+            var roles = await context.Roles.ToListAsync();
+            var adminRole = roles.FirstOrDefault(r => r.RoleName == "Admin");
+            var staffRole = roles.FirstOrDefault(r => r.RoleName == "Staff");
+            var coachRole = roles.FirstOrDefault(r => r.RoleName == "Coach");
+            var customerRole = roles.FirstOrDefault(r => r.RoleName == "Customer");
+            if (adminRole == null || staffRole == null || customerRole == null) return;
+
+            var coreAccounts = new (string Email, string FullName, string Password, string Role, int TierId)[]
+            {
+                ("admin@sportcourt.vn", "Admin System", "admin123", "Admin", platinum?.TierId ?? bronze.TierId),
+                ("staff@sportcourt.vn", "Trần Thị Mai", "Staff@123", "Staff", bronze.TierId),
+                ("customer@sportcourt.vn", "Nguyễn Văn Khách", "customer123", "Customer", silver?.TierId ?? bronze.TierId),
+                ("coach@sportcourt.vn", "Lê Minh Tuấn", "coach123", "Coach", bronze.TierId),
+            };
+
+            foreach (var acct in coreAccounts)
+            {
+                var role = acct.Role switch
+                {
+                    "Admin" => adminRole,
+                    "Staff" => staffRole,
+                    "Coach" => coachRole ?? staffRole,
+                    _ => customerRole
+                };
+
+                var user = await context.Users
+                    .Include(u => u.UserRoles)
+                    .FirstOrDefaultAsync(u => u.Email == acct.Email);
+
+                if (user == null)
+                {
+                    user = new User
+                    {
+                        FullName = acct.FullName,
+                        Email = acct.Email,
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword(acct.Password),
+                        Phone = acct.Email switch
+                        {
+                            "admin@sportcourt.vn" => "0901000001",
+                            "staff@sportcourt.vn" => "0901000003",
+                            "customer@sportcourt.vn" => "0901000002",
+                            _ => "0901000004"
+                        },
+                        AvatarUrl = $"https://api.dicebear.com/8.x/avataaars/svg?seed={Uri.EscapeDataString(acct.Email)}",
+                        MembershipTierId = acct.TierId,
+                        Gender = Gender.Other,
+                        SkillLevel = SkillLevel.Beginner,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    await context.Users.AddAsync(user);
+                    await context.SaveChangesAsync();
+                    await context.UserRoles.AddAsync(new UserRole { UserId = user.UserId, RoleId = role.RoleId });
+                    await context.SaveChangesAsync();
+                    continue;
+                }
+
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(acct.Password);
+                user.IsActive = true;
+
+                var currentRoleId = user.UserRoles.FirstOrDefault()?.RoleId;
+                if (currentRoleId != role.RoleId)
+                {
+                    context.UserRoles.RemoveRange(user.UserRoles);
+                    await context.UserRoles.AddAsync(new UserRole { UserId = user.UserId, RoleId = role.RoleId });
+                }
+
+                await context.SaveChangesAsync();
+            }
+        }
+
+        private static async Task EnsureDemoUsersAsync(AppDbContext context)
+        {
+            var bronze = await context.MembershipTiers.FirstOrDefaultAsync(t => t.TierName == "Bronze");
+            var silver = await context.MembershipTiers.FirstOrDefaultAsync(t => t.TierName == "Silver");
+            var gold = await context.MembershipTiers.FirstOrDefaultAsync(t => t.TierName == "Gold");
+            if (bronze == null) return;
+
+            var roles = await context.Roles.ToListAsync();
+            var adminRole = roles.FirstOrDefault(r => r.RoleName == "Admin");
+            var staffRole = roles.FirstOrDefault(r => r.RoleName == "Staff");
+            var coachRole = roles.FirstOrDefault(r => r.RoleName == "Coach");
+            var customerRole = roles.FirstOrDefault(r => r.RoleName == "Customer");
+            if (adminRole == null || staffRole == null || customerRole == null) return;
+
+            var demos = new (string Email, string FullName, string Password, string Role, int? TierId, bool IsActive, string Phone)[]
+            {
+                ("admin2@sportcourt.vn", "Phạm Văn Admin", "admin123", "Admin", gold?.TierId ?? bronze.TierId, true, "0902000001"),
+                ("staff2@sportcourt.vn", "Hoàng Thị Nhân Viên", "Staff@123", "Staff", bronze.TierId, true, "0902000002"),
+                ("manager@sportcourt.vn", "Trần Văn Quản Lý", "Staff@123", "Staff", silver?.TierId ?? bronze.TierId, true, "0912111222"),
+                ("customer2@sportcourt.vn", "Lê Thị Lan", "customer123", "Customer", silver?.TierId ?? bronze.TierId, true, "0903000001"),
+                ("customer3@sportcourt.vn", "Phạm Minh Đức", "customer123", "Customer", bronze.TierId, true, "0903000002"),
+                ("customer.inactive@sportcourt.vn", "Nguyễn Văn Khóa", "customer123", "Customer", bronze.TierId, false, "0903000003"),
+            };
+
+            foreach (var demo in demos)
+            {
+                if (await context.Users.AnyAsync(u => u.Email == demo.Email))
+                    continue;
+
+                var user = new User
+                {
+                    FullName = demo.FullName,
+                    Email = demo.Email,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(demo.Password),
+                    Phone = demo.Phone,
+                    AvatarUrl = $"https://api.dicebear.com/8.x/avataaars/svg?seed={Uri.EscapeDataString(demo.Email)}",
+                    LoyaltyPoints = demo.Role == "Customer" ? 200 : 100,
+                    MembershipTierId = demo.TierId,
+                    Gender = Gender.Other,
+                    SkillLevel = SkillLevel.Beginner,
+                    IsActive = demo.IsActive,
+                    CreatedAt = DateTime.UtcNow
+                };
+                await context.Users.AddAsync(user);
+                await context.SaveChangesAsync();
+
+                var role = demo.Role switch
+                {
+                    "Admin" => adminRole,
+                    "Staff" => staffRole,
+                    "Coach" => coachRole ?? staffRole,
+                    _ => customerRole
+                };
+
+                await context.UserRoles.AddAsync(new UserRole { UserId = user.UserId, RoleId = role.RoleId });
+                await context.SaveChangesAsync();
+            }
+
+            if (!await context.Users.AnyAsync(u => u.Email == "coach@sportcourt.vn") && coachRole != null)
+            {
+                var coach = new User
+                {
+                    FullName = "Lê Minh Tuấn",
+                    Email = "coach@sportcourt.vn",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("coach123"),
+                    Phone = "0901000004",
+                    AvatarUrl = "https://api.dicebear.com/8.x/avataaars/svg?seed=tuan",
+                    MembershipTierId = bronze.TierId,
+                    Gender = Gender.Male,
+                    SkillLevel = SkillLevel.Advanced,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+                await context.Users.AddAsync(coach);
+                await context.SaveChangesAsync();
+                await context.UserRoles.AddAsync(new UserRole { UserId = coach.UserId, RoleId = coachRole.RoleId });
+                await context.SaveChangesAsync();
+            }
+
+            var manager = await context.Users.FirstOrDefaultAsync(u => u.Email == "manager@sportcourt.vn");
+            var complex = await context.CourtComplexes.FirstOrDefaultAsync();
+            if (manager != null && complex != null && complex.ManagerId != manager.UserId)
+            {
+                complex.ManagerId = manager.UserId;
+                await context.SaveChangesAsync();
+            }
         }
     }
 }

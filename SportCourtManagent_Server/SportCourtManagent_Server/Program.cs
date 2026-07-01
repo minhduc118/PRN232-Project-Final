@@ -50,6 +50,7 @@ builder.Services.AddScoped<IComplexCourtTypeServiceRepository, ComplexCourtTypeS
 // Service DI registration
 builder.Services.AddScoped<IServiceCatalogService, ServiceCatalogService>();
 builder.Services.AddScoped<IComplexCourtTypeOfferingService, ComplexCourtTypeOfferingService>();
+builder.Services.AddScoped<UserAccessService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IBookingManagementService, BookingManagementService>();
 builder.Services.AddControllers().AddJsonOptions(options =>

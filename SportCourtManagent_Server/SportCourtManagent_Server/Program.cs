@@ -48,7 +48,6 @@ builder.Services.AddScoped<ITaskItemRepository, TaskItemRepository>();
 builder.Services.AddScoped<ICourtBookingService, CourtBookingService>();
 builder.Services.AddScoped<ISePayService, SePayService>();
 builder.Services.AddScoped<IServiceService, ServiceService>();
-builder.Services.AddScoped<IStaffShiftService, StaffShiftService>();
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {

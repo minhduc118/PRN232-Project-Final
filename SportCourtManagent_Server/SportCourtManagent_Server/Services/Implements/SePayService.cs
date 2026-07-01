@@ -31,12 +31,12 @@ namespace SportCourtManagent_Server.Services.Implements
             _courtBookingService = courtBookingService;
         }
 
-        public SePayQrCodeResponse GetQrCode(string bookingCode)
+        public async Task<SePayQrCodeResponse> GetQrCodeAsync(string bookingCode)
         {
-            var booking = _inMemoryBookingRepository.GetByCode(bookingCode);
+            var booking = await _inMemoryBookingRepository.GetByCodeAsync(bookingCode);
             if (booking == null)
             {
-                var dbBooking = _bookingRepository.GetAll().FirstOrDefault(b => b.BookingCode == bookingCode);
+                var dbBooking = (await _bookingRepository.GetAllAsync()).FirstOrDefault(b => b.BookingCode == bookingCode);
                 if (dbBooking != null)
                 {
                     throw new InvalidOperationException($"Booking is already {dbBooking.Status}.");
@@ -105,10 +105,10 @@ namespace SportCourtManagent_Server.Services.Implements
             string bookingCode = match.Value.ToUpper();
 
             // 4. Retrieve booking
-            var booking = _inMemoryBookingRepository.GetByCode(bookingCode);
+            var booking = await _inMemoryBookingRepository.GetByCodeAsync(bookingCode);
             if (booking == null)
             {
-                var dbBooking = _bookingRepository.GetAll().FirstOrDefault(b => b.BookingCode == bookingCode);
+                var dbBooking = (await _bookingRepository.GetAllAsync()).FirstOrDefault(b => b.BookingCode == bookingCode);
                 if (dbBooking != null)
                 {
                     if (dbBooking.Status == BookingStatus.Confirmed)

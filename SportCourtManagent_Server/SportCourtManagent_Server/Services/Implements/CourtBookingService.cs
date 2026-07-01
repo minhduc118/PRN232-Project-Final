@@ -43,9 +43,9 @@ namespace SportCourtManagent_Server.Services.Implements
             _inMemoryBookingRepository = inMemoryBookingRepository;
         }
 
-        public Task<BookingResponseDto> CreateBookingAsync(CreateBookingRequestDto dto, int userId)
+        public async Task<BookingResponseDto> CreateBookingAsync(CreateBookingRequestDto dto, int userId)
         {
-            var court = _courtRepository.GetById(dto.CourtId);
+            var court = await _courtRepository.GetByIdAsync(dto.CourtId);
             if (court == null)
             {
                 throw new ArgumentException($"Court with ID {dto.CourtId} does not exist.");
@@ -61,24 +61,24 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new InvalidOperationException($"Court is currently under {court.Status} and cannot be booked.");
             }
 
-            var timeSlot = _timeSlotRepository.GetById(dto.SlotId);
+            var timeSlot = await _timeSlotRepository.GetByIdAsync(dto.SlotId);
             if (timeSlot == null)
             {
                 throw new ArgumentException($"Time slot with ID {dto.SlotId} does not exist.");
             }
 
-            var isAlreadyBookedInDb = _bookingRepository.HasConflictingBooking(dto.CourtId, dto.SlotId, dto.BookingDate);
+            var isAlreadyBookedInDb = await _bookingRepository.HasConflictingBookingAsync(dto.CourtId, dto.SlotId, dto.BookingDate);
 
-            var isAlreadyBookedInCache = _inMemoryBookingRepository.HasConflictingBooking(dto.CourtId, dto.SlotId, dto.BookingDate);
+            var isAlreadyBookedInCache = await _inMemoryBookingRepository.HasConflictingBookingAsync(dto.CourtId, dto.SlotId, dto.BookingDate);
 
             if (isAlreadyBookedInDb || isAlreadyBookedInCache)
             {
                 throw new InvalidOperationException("This court is already booked or reserved for the selected slot and date.");
             }
 
-            decimal courtPrice = _courtRepository.GetCourtPrice(dto.CourtId, dto.SlotId, dto.BookingDate);
+            decimal courtPrice = await _courtRepository.GetCourtPriceAsync(dto.CourtId, dto.SlotId, dto.BookingDate);
 
-            var billingResult = _bookingRepository.ProcessBookingBilling(dto, courtPrice);
+            var billingResult = await _bookingRepository.ProcessBookingBillingAsync(dto, courtPrice);
 
             string bookingCode = $"BK-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}";
 
@@ -99,9 +99,9 @@ namespace SportCourtManagent_Server.Services.Implements
                 BookingServices = billingResult.BookingServices
             };
 
-            _inMemoryBookingRepository.Save(booking, TimeSpan.FromMinutes(5));
+            await _inMemoryBookingRepository.SaveAsync(booking, TimeSpan.FromMinutes(5));
 
-            return Task.FromResult(new BookingResponseDto
+            return new BookingResponseDto
             {
                 BookingId = 0,
                 BookingCode = booking.BookingCode,
@@ -126,20 +126,20 @@ namespace SportCourtManagent_Server.Services.Implements
                     Price = bs.Service?.Price ?? 0,
                     TotalPrice = bs.TotalPrice
                 }).ToList()
-            });
+            };
         }
 
 
 
-        public Task<BookingResponseDto> ConfirmPaymentAsync(ConfirmPaymentRequestDto dto)
+        public async Task<BookingResponseDto> ConfirmPaymentAsync(ConfirmPaymentRequestDto dto)
         {
-            var booking = _inMemoryBookingRepository.GetByCode(dto.BookingCode);
+            var booking = await _inMemoryBookingRepository.GetByCodeAsync(dto.BookingCode);
             if (booking == null)
             {
                 throw new InvalidOperationException("Booking session has expired or does not exist.");
             }
 
-            _inMemoryBookingRepository.Remove(dto.BookingCode);
+            await _inMemoryBookingRepository.RemoveAsync(dto.BookingCode);
 
             if (!Enum.TryParse<PaymentMethod>(dto.PaymentMethod, true, out var pm))
             {
@@ -157,7 +157,7 @@ namespace SportCourtManagent_Server.Services.Implements
                 bs.Service = null!;
             }
 
-            _bookingRepository.Add(booking);
+            await _bookingRepository.AddAsync(booking);
 
             var payment = new Payment
             {
@@ -168,15 +168,15 @@ namespace SportCourtManagent_Server.Services.Implements
                 Status = PaymentStatus.Success,
                 PaidAt = DateTime.UtcNow
             };
-            _paymentRepository.Add(payment);
+            await _paymentRepository.AddAsync(payment);
 
-            var dbBooking = _bookingRepository.GetById(booking.BookingId);
+            var dbBooking = await _bookingRepository.GetByIdAsync(booking.BookingId);
             if (dbBooking == null)
             {
                 throw new InvalidOperationException("Failed to retrieve booking from database after saving.");
             }
 
-            return Task.FromResult(new BookingResponseDto
+            return new BookingResponseDto
             {
                 BookingId = dbBooking.BookingId,
                 BookingCode = dbBooking.BookingCode,
@@ -201,7 +201,7 @@ namespace SportCourtManagent_Server.Services.Implements
                     Price = bs.Service?.Price ?? 0,
                     TotalPrice = bs.TotalPrice
                 }).ToList()
-            });
+            };
         }
 
     }

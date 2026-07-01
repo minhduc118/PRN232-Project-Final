@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.Models;
@@ -16,55 +13,55 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             _context = context;
         }
 
-        public IEnumerable<Court> GetAll()
+        public async Task<IEnumerable<Court>> GetAllAsync()
         {
-            return _context.Courts
+            return await _context.Courts
                 .Include(c => c.CourtType)
                 .Include(c => c.Complex)
                 .Include(c => c.CourtPricings)
-                .ToList();
+                .ToListAsync();
         }
 
-        public Court? GetById(int id)
+        public async Task<Court?> GetByIdAsync(int id)
         {
-            return _context.Courts
+            return await _context.Courts
                 .Include(c => c.CourtType)
                 .Include(c => c.Complex)
                 .Include(c => c.CourtPricings)
-                .FirstOrDefault(c => c.CourtId == id);
+                .FirstOrDefaultAsync(c => c.CourtId == id);
         }
 
-        public void Add(Court entity)
+        public async Task AddAsync(Court entity)
         {
-            _context.Courts.Add(entity);
-            _context.SaveChanges();
+            await _context.Courts.AddAsync(entity);
+            await _context.SaveChangesAsync();
         }
 
-        public void Update(Court entity)
+        public async Task UpdateAsync(Court entity)
         {
-            _context.Courts.Update(entity);
-            _context.SaveChanges();
+                _context.Courts.Update(entity);
+            await _context.SaveChangesAsync ();
         }
 
-        public void Delete(int id)
+        public async Task DeleteAsync(int id)
         {
-            var entity = _context.Courts.Find(id);
+            var entity = await _context.Courts.FindAsync(id);
             if (entity != null)
             {
                 _context.Courts.Remove(entity);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
             }
         }
 
-        public decimal GetCourtPrice(int courtId, int slotId, DateTime date)
+        public async Task<decimal> GetCourtPriceAsync(int courtId, int slotId, DateTime date)
         {
-            var court = GetById(courtId);
+            var court = await GetByIdAsync(courtId);
             if (court == null)
             {
                 throw new BadHttpRequestException($"Court with ID {courtId} does not exist.");
             }
 
-            var timeSlot = _context.TimeSlots.Find(slotId);
+            var timeSlot = await _context.TimeSlots.FindAsync(slotId);
             if (timeSlot == null)
             {
                 throw new BadHttpRequestException($"Time slot with ID {slotId} does not exist.");
@@ -88,5 +85,6 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             }
             return court.PricePerHour * hours;
         }
+
     }
 }

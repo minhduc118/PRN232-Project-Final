@@ -6,10 +6,10 @@ namespace SportCourtManagent_Server.DataAccess.Interfaces
 {
     public interface IInMemoryBookingRepository
     {
-        void Save(Booking booking, TimeSpan expiration);
-        Booking? GetByCode(string bookingCode);
-        IEnumerable<Booking> GetAllPending();
-        void Remove(string bookingCode);
-        bool HasConflictingBooking(int courtId, int slotId, DateTime bookingDate);
+        Task SaveAsync(Booking booking, TimeSpan expiration);
+        Task<Booking?> GetByCodeAsync(string bookingCode);
+        Task<IEnumerable<Booking>> GetAllPendingAsync();
+        Task RemoveAsync(string bookingCode);
+        Task<bool> HasConflictingBookingAsync(int courtId, int slotId, DateTime bookingDate);
     }
 }

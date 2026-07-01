@@ -19,11 +19,11 @@ namespace SportCourtManagent_Server.Controllers
         }
 
         [HttpGet("qr-code/{bookingCode}")]
-        public IActionResult GetQrCode(string bookingCode)
+        public async Task<IActionResult> GetQrCode(string bookingCode)
         {
             try
             {
-                var response = _sePayService.GetQrCode(bookingCode);
+                var response = await _sePayService.GetQrCodeAsync(bookingCode);
                 return Ok(response);
             }
             catch (KeyNotFoundException ex)

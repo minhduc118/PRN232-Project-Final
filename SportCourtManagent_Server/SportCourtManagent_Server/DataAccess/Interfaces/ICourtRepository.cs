@@ -6,11 +6,11 @@ namespace SportCourtManagent_Server.DataAccess.Interfaces
 {
     public interface ICourtRepository
     {
-        IEnumerable<Court> GetAll();
-        Court? GetById(int id);
-        void Add(Court entity);
-        void Update(Court entity);
-        void Delete(int id);
-        decimal GetCourtPrice(int courtId, int slotId, DateTime date);
+        Task<IEnumerable<Court>> GetAllAsync();
+        Task<Court?> GetByIdAsync(int id);
+        Task AddAsync(Court entity);
+        Task UpdateAsync(Court entity);
+        Task DeleteAsync(int id);
+        Task<decimal> GetCourtPriceAsync(int courtId, int slotId, DateTime date);
     }
 }

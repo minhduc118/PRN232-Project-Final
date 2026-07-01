@@ -19,61 +19,61 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             _context = context;
         }
 
-        public IEnumerable<Booking> GetAll()
+        public async Task<IEnumerable<Booking>> GetAllAsync()
         {
-            return _context.Bookings
+            return await _context.Bookings
                 .Include(b => b.User)
                 .Include(b => b.Court)
                 .Include(b => b.TimeSlot)
                 .Include(b => b.Promotion)
                 .Include(b => b.BookingServices)
                     .ThenInclude(bs => bs.Service)
-                .ToList();
+                .ToListAsync();
         }
 
-        public Booking? GetById(int id)
+        public async Task<Booking?> GetByIdAsync(int id)
         {
-            return _context.Bookings
+            return await _context.Bookings
                 .Include(b => b.User)
                 .Include(b => b.Court)
                 .Include(b => b.TimeSlot)
                 .Include(b => b.Promotion)
                 .Include(b => b.BookingServices)
                     .ThenInclude(bs => bs.Service)
-                .FirstOrDefault(b => b.BookingId == id);
+                .FirstOrDefaultAsync(b => b.BookingId == id);
         }
 
-        public void Add(Booking entity)
+        public async Task AddAsync(Booking entity)
         {
             _context.Bookings.Add(entity);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
         }
 
-        public void Update(Booking entity)
+        public async Task UpdateAsync(Booking entity)
         {
             _context.Bookings.Update(entity);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
         }
 
-        public void Delete(int id)
+        public async Task DeleteAsync(int id)
         {
-            var entity = _context.Bookings.Find(id);
+            var entity = await _context.Bookings.FindAsync(id);
             if (entity != null)
             {
                 _context.Bookings.Remove(entity);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
             }
         }
 
-        public bool HasConflictingBooking(int courtId, int slotId, DateTime bookingDate)
+        public async Task<bool> HasConflictingBookingAsync(int courtId, int slotId, DateTime bookingDate)
         {
-            return _context.Bookings.Any(b => b.CourtId == courtId 
+            return await _context.Bookings.AnyAsync(b => b.CourtId == courtId 
                                            && b.SlotId == slotId 
                                            && b.BookingDate.Date == bookingDate.Date
                                            && b.Status != BookingStatus.Cancelled);
         }
 
-        public BookingBillingResult ProcessBookingBilling(CreateBookingRequestDto dto, decimal courtPrice)
+        public async Task<BookingBillingResult> ProcessBookingBillingAsync  (CreateBookingRequestDto dto, decimal courtPrice)
         {
             decimal subTotal = courtPrice;
             var bookingServicesList = new List<BookingService>();
@@ -83,7 +83,7 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             {
                 foreach (var svcDto in dto.BookingServices)
                 {
-                    var service = _context.Services.Find(svcDto.ServiceId);
+                    var service = await _context.Services.FindAsync(svcDto.ServiceId);
                     if (service == null)
                     {
                         throw new ArgumentException($"Service with ID {svcDto.ServiceId} does not exist.");
@@ -117,7 +117,7 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
 
             if (!string.IsNullOrWhiteSpace(dto.PromoCode))
             {
-                var promotion = _context.Promotions.FirstOrDefault(p => p.PromoCode == dto.PromoCode);
+                var promotion = await _context.Promotions.FirstOrDefaultAsync(p => p.PromoCode == dto.PromoCode);
 
                 if (promotion == null)
                 {
@@ -147,7 +147,7 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
 
             decimal totalAmount = subTotal - discountAmount;
             
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
 
             return new BookingBillingResult
             {

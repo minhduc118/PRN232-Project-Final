@@ -16,35 +16,35 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             _context = context;
         }
 
-        public IEnumerable<Payment> GetAll()
+        public async Task<IEnumerable<Payment>> GetAllAsync()
         {
-            return _context.Payments.Include(p => p.Booking).ToList();
+            return await _context.Payments.Include(p => p.Booking).ToListAsync();
         }
 
-        public Payment? GetById(int id)
+        public async Task<Payment?> GetByIdAsync(int id)
         {
-            return _context.Payments.Include(p => p.Booking).FirstOrDefault(p => p.PaymentId == id);
+            return await _context.Payments.Include(p => p.Booking).FirstOrDefaultAsync(p => p.PaymentId == id);
         }
 
-        public void Add(Payment entity)
+        public async Task AddAsync(Payment entity)
         {
             _context.Payments.Add(entity);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
         }
 
-        public void Update(Payment entity)
+        public async Task UpdateAsync(Payment entity)
         {
             _context.Payments.Update(entity);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
         }
 
-        public void Delete(int id)
+        public async Task DeleteAsync(int id)
         {
-            var entity = _context.Payments.Find(id);
+            var entity = await _context.Payments.FindAsync(id);
             if (entity != null)
             {
                 _context.Payments.Remove(entity);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
             }
         }
     }

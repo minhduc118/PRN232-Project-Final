@@ -21,7 +21,7 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             _serviceScopeFactory = serviceScopeFactory;
         }
 
-        public void Save(Booking booking, TimeSpan expiration)
+        public async Task SaveAsync(Booking booking, TimeSpan expiration)
         {
             var cacheEntryOptions = new MemoryCacheEntryOptions()
                 .SetAbsoluteExpiration(expiration)
@@ -31,24 +31,24 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             _pendingBookings[booking.BookingCode] = booking;
         }
 
-        public Booking? GetByCode(string bookingCode)
+        public async Task<Booking?> GetByCodeAsync(string bookingCode)
         {
             _pendingBookings.TryGetValue(bookingCode, out var booking);
             return booking;
         }
 
-        public IEnumerable<Booking> GetAllPending()
+        public async Task<IEnumerable<Booking>> GetAllPendingAsync()
         {
             return _pendingBookings.Values;
         }
 
-        public void Remove(string bookingCode)
+        public async Task RemoveAsync(string bookingCode)
         {
             _memoryCache.Remove(bookingCode);
             _pendingBookings.TryRemove(bookingCode, out _);
         }
 
-        public bool HasConflictingBooking(int courtId, int slotId, DateTime bookingDate)
+        public async Task<bool> HasConflictingBookingAsync(int courtId, int slotId, DateTime bookingDate)
         {
             return _pendingBookings.Values.Any(b => b.CourtId == courtId 
                                                  && b.SlotId == slotId 

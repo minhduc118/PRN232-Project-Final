@@ -73,11 +73,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.SetIsOriginAllowed(origin => true)
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
+
+builder.Services.AddSignalR();
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -169,9 +172,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<SportCourtManagent_Server.Hubs.SlotStatusHub>("/hubs/slot-status");
 
 app.Run();
-
 Microsoft.OData.Edm.IEdmModel GetEdmModel()
 {
     var builder = new Microsoft.OData.ModelBuilder.ODataConventionModelBuilder();

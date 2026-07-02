@@ -130,7 +130,7 @@ namespace SportCourtManagent_Server.Controllers
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
             {
-                return Unauthorized(new { message = "Không xác định được người dùng." });
+                return Unauthorized(ApiResults.Fail("Không xác định được người dùng.", 401));
             }
 
             var user = await _context.Users
@@ -141,7 +141,7 @@ namespace SportCourtManagent_Server.Controllers
 
             if (user == null)
             {
-                return NotFound(new { message = "Người dùng không tồn tại." });
+                return NotFound(ApiResults.Fail("Người dùng không tồn tại.", 404));
             }
 
             var roleName = user.UserRoles.FirstOrDefault()?.Role?.RoleName ?? "Customer";

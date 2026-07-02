@@ -55,6 +55,7 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             return _context.Courts
                 .AsNoTracking()
                 .Where(c => !c.IsDeleted)
+                .Include(c => c.Complex)
                 .Include(c => c.CourtType)
                 .Include(c => c.CourtImages)
                 .Include(c => c.CourtPricings)
@@ -67,6 +68,7 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             return await _context.Courts
                 .AsNoTracking()
                 .Where(c => !c.IsDeleted)
+                .Include(c => c.Complex)
                 .Include(c => c.CourtType)
                 .Include(c => c.CourtImages)
                 .Include(c => c.CourtPricings)

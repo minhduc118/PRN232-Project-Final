@@ -51,12 +51,6 @@ namespace SportCourtManagent_Server.DTOs.Court
         public string Url { get; set; } = string.Empty;
     }
 
-    public class CourtTypeDto
-    {
-        public int CourtTypeId { get; set; }
-        public string TypeName { get; set; } = string.Empty;
-        public bool IsActive { get; set; }
-    }
 
     public class CourtDto
     {

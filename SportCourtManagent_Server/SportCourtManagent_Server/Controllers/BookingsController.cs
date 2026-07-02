@@ -88,6 +88,26 @@ namespace SportCourtManagent_Server.Controllers
       }
     }
 
+    /// <summary>Creates recurring bookings for customer.</summary>
+    [HttpPost("recurring")]
+    public async Task<IActionResult> CreateRecurring([FromBody] CreateRecurringBookingRequest request)
+    {
+      try
+      {
+        if (!TryGetUserId(out int userId)) return Unauthorized(new { message = "Không xác định được người dùng." });
+        var result = await _bookingService.CreateRecurringBookingAsync(userId, request);
+        return Ok(new { data = result, message = "Đặt sân định kỳ thành công." });
+      }
+      catch (ArgumentException ex)
+      {
+        return BadRequest(new { message = ex.Message });
+      }
+      catch (Exception ex)
+      {
+        return StatusCode(500, new { message = ex.Message });
+      }
+    }
+
     /// <summary>Creates a booking from admin dashboard.</summary>
     [HttpPost("admin")]
     [Authorize(Roles = "Admin,Staff")]

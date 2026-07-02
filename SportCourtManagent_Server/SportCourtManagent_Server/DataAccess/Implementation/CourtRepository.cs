@@ -1,6 +1,9 @@
-using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DataAccess.Interfaces;
+using SportCourtManagent_Server.Enums;
 using SportCourtManagent_Server.Models;
 
 namespace SportCourtManagent_Server.DataAccess.Implementation
@@ -14,29 +17,31 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             _context = context;
         }
 
-        public IEnumerable<Court> GetAll()
+        public async Task<IEnumerable<Court>> GetAllWithDetailsAsync(int? complexId = null, string? status = null)
         {
-            throw new NotImplementedException();
+            var query = _context.Courts
+                .Include(c => c.CourtType)
+                .Include(c => c.Complex)
+                .Include(c => c.CourtImages)
+                .Where(c => !c.IsDeleted)
+                .AsQueryable();
+
+            if (complexId.HasValue)
+                query = query.Where(c => c.ComplexId == complexId.Value);
+
+            if (!string.IsNullOrWhiteSpace(status) &&
+                System.Enum.TryParse<CourtStatus>(status, true, out var statusEnum))
+                query = query.Where(c => c.Status == statusEnum);
+
+            return await query.OrderBy(c => c.CourtName).ToListAsync();
         }
 
-        public Court? GetById(int id)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Add(Court entity)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Update(Court entity)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Delete(int id)
-        {
-            throw new NotImplementedException();
-        }
+        public Task<Court?> GetByIdWithDetailsAsync(int id) =>
+            _context.Courts
+                .Include(c => c.CourtType)
+                .Include(c => c.Complex)
+                .Include(c => c.CourtImages)
+                .FirstOrDefaultAsync(c => c.CourtId == id && !c.IsDeleted);
     }
 }
+

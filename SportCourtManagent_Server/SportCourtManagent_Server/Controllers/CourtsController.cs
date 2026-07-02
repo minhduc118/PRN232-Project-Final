@@ -1,10 +1,9 @@
-using System.Linq;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DTOs.Court;
 using SportCourtManagent_Server.Helpers;
-using SportCourtManagent_Server.Models;
+using SportCourtManagent_Server.Services.Interfaces;
 
 namespace SportCourtManagent_Server.Controllers
 {
@@ -12,70 +11,27 @@ namespace SportCourtManagent_Server.Controllers
     [Route("api/courts")]
     public class CourtsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly ICourtService _courtService;
 
-        public CourtsController(AppDbContext context)
+        public CourtsController(ICourtService courtService)
         {
-            _context = context;
+            _courtService = courtService;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] int? complexId, [FromQuery] string? status)
         {
-            var query = _context.Courts
-                .Include(c => c.CourtType)
-                .Include(c => c.Complex)
-                .Include(c => c.CourtImages)
-                .Where(c => !c.IsDeleted)
-                .AsQueryable();
-
-            if (complexId.HasValue)
-                query = query.Where(c => c.ComplexId == complexId.Value);
-
-            if (!string.IsNullOrWhiteSpace(status) &&
-                System.Enum.TryParse<SportCourtManagent_Server.Enums.CourtStatus>(status, true, out var statusEnum))
-            {
-                query = query.Where(c => c.Status == statusEnum);
-            }
-
-            var courts = await query
-                .OrderBy(c => c.CourtName)
-                .Select(c => MapToDto(c))
-                .ToListAsync();
-
+            var courts = await _courtService.GetAllAsync(complexId, status);
             return Ok(ApiResults.Ok(courts, "Lấy danh sách sân thành công."));
         }
 
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var court = await _context.Courts
-                .Include(c => c.CourtType)
-                .Include(c => c.Complex)
-                .Include(c => c.CourtImages)
-                .FirstOrDefaultAsync(c => c.CourtId == id && !c.IsDeleted);
-
+            var court = await _courtService.GetByIdAsync(id);
             if (court == null)
                 return NotFound(ApiResults.Fail("Không tìm thấy sân.", 404));
-
-            return Ok(ApiResults.Ok(MapToDto(court), "Lấy thông tin sân thành công."));
+            return Ok(ApiResults.Ok(court, "Lấy thông tin sân thành công."));
         }
-
-        private static CourtDto MapToDto(Court c) => new()
-        {
-            CourtId = c.CourtId,
-            CourtName = c.CourtName,
-            CourtCode = c.CourtCode,
-            CourtTypeId = c.CourtTypeId,
-            CourtTypeName = c.CourtType.TypeName,
-            ComplexId = c.ComplexId,
-            ComplexName = c.Complex.ComplexName,
-            Status = c.Status.ToString(),
-            OpenTime = c.OpenTime.ToString(@"hh\:mm"),
-            CloseTime = c.CloseTime.ToString(@"hh\:mm"),
-            PricePerHour = c.PricePerHour,
-            CourtSize = c.CourtSize,
-            ImageUrl = c.CourtImages.OrderBy(i => i.CourtImageId).Select(i => i.ImageUrl).FirstOrDefault()
-        };
     }
 }

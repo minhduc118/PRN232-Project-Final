@@ -1,5 +1,7 @@
-using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.Models;
 
@@ -14,29 +16,17 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             _context = context;
         }
 
-        public IEnumerable<CourtType> GetAll()
-        {
-            throw new NotImplementedException();
-        }
+        public async Task<IEnumerable<CourtType>> GetAllActiveAsync() =>
+            await _context.CourtTypes
+                .Where(t => t.IsActive)
+                .OrderBy(t => t.TypeName)
+                .ToListAsync();
 
-        public CourtType? GetById(int id)
-        {
-            throw new NotImplementedException();
-        }
+        public Task<CourtType?> GetByIdAsync(int id) =>
+            _context.CourtTypes.FirstOrDefaultAsync(t => t.CourtTypeId == id);
 
-        public void Add(CourtType entity)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Update(CourtType entity)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Delete(int id)
-        {
-            throw new NotImplementedException();
-        }
+        public Task<bool> ExistsAsync(int id) =>
+            _context.CourtTypes.AnyAsync(t => t.CourtTypeId == id && t.IsActive);
     }
 }
+

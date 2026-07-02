@@ -161,5 +161,58 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             };
         }
 
+        /// <summary>Gets customer bookings asynchronous.</summary>
+        public async Task<IEnumerable<Booking>> GetCustomerBookingsAsync(int userId)
+        {
+            return await _context.Bookings
+              .Include(b => b.Court)
+              .Include(b => b.TimeSlot)
+              .Include(b => b.Payment)
+              .Include(b => b.Promotion)
+              .Where(b => b.UserId == userId)
+              .OrderByDescending(b => b.BookingDate)
+              .ToListAsync();
+        }
+
+        /// <summary>Gets admin bookings with optional filters asynchronous.</summary>
+        public async Task<IEnumerable<Booking>> GetAdminBookingsAsync(DateTime? date, int? courtTypeId, string? status)
+        {
+            var query = _context.Bookings
+              .Include(b => b.User)
+              .Include(b => b.Court)
+              .Include(b => b.TimeSlot)
+              .Include(b => b.Payment)
+              .Include(b => b.Promotion)
+              .AsQueryable();
+
+            if (date.HasValue)
+            {
+                query = query.Where(b => b.BookingDate.Date == date.Value.Date);
+            }
+            if (courtTypeId.HasValue)
+            {
+                query = query.Where(b => b.Court.CourtTypeId == courtTypeId.Value);
+            }
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<Enums.BookingStatus>(status, true, out var st))
+            {
+                query = query.Where(b => b.Status == st);
+            }
+
+            return await query.OrderByDescending(b => b.BookingDate).ToListAsync();
+        }
+
+        /// <summary>Gets booking detail including related entities asynchronous.</summary>
+        public async Task<Booking?> GetDetailAsync(int id)
+        {
+            return await _context.Bookings
+              .Include(b => b.User)
+              .Include(b => b.Court)
+              .Include(b => b.TimeSlot)
+              .Include(b => b.Payment)
+              .Include(b => b.Promotion)
+              .Include(b => b.BookingServices)
+                .ThenInclude(bs => bs.Service)
+              .FirstOrDefaultAsync(b => b.BookingId == id);
+        }
     }
 }

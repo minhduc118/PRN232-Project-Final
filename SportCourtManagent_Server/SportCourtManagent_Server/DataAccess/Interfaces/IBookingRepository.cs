@@ -6,21 +6,27 @@ using SportCourtManagent_Server.Models;
 
 namespace SportCourtManagent_Server.DataAccess.Interfaces
 {
-  public interface IBookingRepository
-  {
-    /// <summary>Gets customer bookings asynchronous.</summary>
-    Task<IEnumerable<Booking>> GetCustomerBookingsAsync(int userId);
+    public interface IBookingRepository
+    {
+        /// <summary>Gets customer bookings asynchronous.</summary>
+        Task<IEnumerable<Booking>> GetCustomerBookingsAsync(int userId);
 
-    /// <summary>Gets admin bookings with optional filters asynchronous.</summary>
-    Task<IEnumerable<Booking>> GetAdminBookingsAsync(DateTime? date, int? courtTypeId, string? status);
+        /// <summary>Gets admin bookings with optional filters asynchronous.</summary>
+        Task<IEnumerable<Booking>> GetAdminBookingsAsync(DateTime? date, int? courtTypeId, string? status);
 
-    /// <summary>Gets booking detail including related entities asynchronous.</summary>
-    Task<Booking?> GetDetailAsync(int id);
+        /// <summary>Gets booking detail including related entities asynchronous.</summary>
+        Task<Booking?> GetDetailAsync(int id);
 
-    /// <summary>Adds a new booking asynchronous.</summary>
-    Task AddAsync(Booking entity);
+        /// <summary>Adds a new booking asynchronous.</summary>
+        Task AddAsync(Booking entity);
 
-    /// <summary>Updates an existing booking asynchronous.</summary>
-    Task UpdateAsync(Booking entity);
-  }
+        /// <summary>Updates an existing booking asynchronous.</summary>
+        Task UpdateAsync(Booking entity);
+
+        Task<IEnumerable<Booking>> GetAllAsync();
+        Task<Booking?> GetByIdAsync(int id);
+        Task DeleteAsync(int id);
+        Task<bool> HasConflictingBookingAsync(int courtId, int slotId, DateTime bookingDate);
+        Task<BookingBillingResult> ProcessBookingBillingAsync(CreateBookingRequestDto dto, decimal courtPrice);
+    }
 }

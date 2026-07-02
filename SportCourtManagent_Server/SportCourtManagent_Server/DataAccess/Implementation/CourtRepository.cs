@@ -91,5 +91,41 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             return court.PricePerHour * hours;
         }
 
+        /// <inheritdoc/>
+        public IQueryable<Court> GetCourtsQueryable()
+        {
+            return _context.Courts
+                .AsNoTracking()
+                .Where(c => !c.IsDeleted)
+                .Include(c => c.CourtType)
+                .Include(c => c.CourtImages)
+                .Include(c => c.CourtPricings)
+                .Include(c => c.Reviews.Where(r => r.IsVisible));
+        }
+
+        public async Task<Court?> GetCourtDetailAsync(int courtId)
+        {
+            return await _context.Courts
+                .AsNoTracking()
+                .Where(c => !c.IsDeleted)
+                .Include(c => c.CourtType)
+                .Include(c => c.CourtImages)
+                .Include(c => c.CourtPricings)
+                    .ThenInclude(cp => cp.TimeSlot)
+                .Include(c => c.Reviews.Where(r => r.IsVisible).OrderByDescending(r => r.ReviewId).Take(5))
+                    .ThenInclude(r => r.User)
+                .FirstOrDefaultAsync(c => c.CourtId == courtId);
+        }
+
+        /// <inheritdoc/>
+        public async Task<Court?> GetCourtWithPricingsAsync(int courtId)
+        {
+            return await _context.Courts
+                .AsNoTracking()
+                .Where(c => !c.IsDeleted)
+                .Include(c => c.CourtPricings)
+                    .ThenInclude(cp => cp.TimeSlot)
+                .FirstOrDefaultAsync(c => c.CourtId == courtId);
+        }
     }
 }

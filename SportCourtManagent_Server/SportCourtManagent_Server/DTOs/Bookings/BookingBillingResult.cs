@@ -9,6 +9,6 @@ namespace SportCourtManagent_Server.DTOs.Bookings
         public decimal DiscountAmount { get; set; }
         public decimal TotalAmount { get; set; }
         public List<BookingService> BookingServices { get; set; } = new List<BookingService>();
-        public Promotion? AppliedPromotion { get; set; }
+        public Models.Promotion? AppliedPromotion { get; set; }
     }
 }

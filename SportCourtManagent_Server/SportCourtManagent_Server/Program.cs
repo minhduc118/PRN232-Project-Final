@@ -2,13 +2,18 @@ using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.Models;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.DataAccess.Implementation;
-using System.Text.Json.Serialization;
 using SportCourtManagent_Server.Services.Interfaces;
 using SportCourtManagent_Server.Services.Implements;
+using System.Text.Json.Serialization;
+//using SportCourtManagent_Server.Services.Interfaces;
+//using SportCourtManagent_Server.Services.Implements;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.AspNetCore.OData;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -49,29 +54,131 @@ builder.Services.AddScoped<ICourtBookingService, CourtBookingService>();
 builder.Services.AddScoped<ISePayService, SePayService>();
 builder.Services.AddScoped<IServiceService, ServiceService>();
 
+builder.Services.AddScoped<IPromotionService, PromotionService>();
+builder.Services.AddScoped<IBookingManagementService, BookingManagementService>();
+builder.Services.AddScoped<ICourtService, CourtService>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler =
         ReferenceHandler.IgnoreCycles;
-}); ;
+}).AddOData(options => options
+    .Select()
+    .Filter()
+    .OrderBy()
+    .SetMaxTop(100)
+    .Count()
+    .Expand()
+    .AddRouteComponents("odata", GetEdmModel()));
+
+// Configure CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
+// Configure JWT Authentication
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSettings["SecretKey"] ?? "your-super-secret-key-min-32-chars-long-sports-court!!";
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtSettings["Issuer"] ?? "SportCourtManagent_Server",
+        ValidAudience = jwtSettings["Audience"] ?? "SportCourtClient",
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+    };
+});
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new() { Title = "SportCourtManagent_Server API", Version = "v1" });
+    
+    // Add JWT support to Swagger UI
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Nhập 'Bearer [token]' của bạn vào đây."
+    });
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = System.IO.Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (System.IO.File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath);
+    }
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Auto-migrate and seed database
+using (var scope = app.Services.CreateScope())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await dbContext.Database.MigrateAsync();
+    await DbSeeder.SeedAsync(dbContext);
 }
+
+// Configure the HTTP request pipeline. Always enable Swagger for checking
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "SportCourtManagent_Server API v1");
+    c.RoutePrefix = "swagger";
+});
+
+// Redirect root URL directly to Swagger UI
+app.MapGet("/", () => Results.Redirect("/swagger"));
 
 app.UseHttpsRedirection();
 
+app.UseCors("AllowAll");
+
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
 app.Run();
+
+Microsoft.OData.Edm.IEdmModel GetEdmModel()
+{
+    var builder = new Microsoft.OData.ModelBuilder.ODataConventionModelBuilder();
+    builder.EntitySet<SportCourtManagent_Server.DTOs.Court.CourtListDto>("Courts").EntityType.HasKey(c => c.CourtId);
+    builder.EntitySet<SportCourtManagent_Server.DTOs.Review.ReviewDto>("Reviews").EntityType.HasKey(r => r.ReviewId);
+    return builder.GetEdmModel();
+}

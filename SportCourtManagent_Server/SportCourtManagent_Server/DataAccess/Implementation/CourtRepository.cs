@@ -1,3 +1,8 @@
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.Models;
@@ -39,8 +44,8 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
 
         public async Task UpdateAsync(Court entity)
         {
-                _context.Courts.Update(entity);
-            await _context.SaveChangesAsync ();
+            _context.Courts.Update(entity);
+            await _context.SaveChangesAsync();
         }
 
         public async Task DeleteAsync(int id)
@@ -81,7 +86,7 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             var hours = (decimal)duration.TotalHours;
             if (hours <= 0)
             {
-                hours = 1; 
+                hours = 1;
             }
             return court.PricePerHour * hours;
         }

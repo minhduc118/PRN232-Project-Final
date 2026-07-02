@@ -272,6 +272,9 @@ namespace SportCourtManagerment.Migrations
                     b.Property<TimeOnly>("CloseTime")
                         .HasColumnType("time");
 
+                    b.Property<int?>("ComplexId")
+                        .HasColumnType("int");
+
                     b.Property<string>("CourtCode")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -281,6 +284,10 @@ namespace SportCourtManagerment.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("CourtSize")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("CourtTypeId")
                         .HasColumnType("int");
@@ -298,12 +305,21 @@ namespace SportCourtManagerment.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Location")
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
                     b.Property<TimeOnly>("OpenTime")
                         .HasColumnType("time");
+
+                    b.Property<decimal>("PricePerHour")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -321,14 +337,77 @@ namespace SportCourtManagerment.Migrations
 
                     b.HasKey("CourtId");
 
+                    b.HasIndex("ComplexId");
+
                     b.HasIndex("CourtCode")
                         .IsUnique();
 
                     b.HasIndex("CourtTypeId");
 
+                    b.HasIndex("IsDeleted");
+
                     b.HasIndex("Status");
 
                     b.ToTable("Courts");
+                });
+
+            modelBuilder.Entity("SportCourtManagerment.Models.CourtComplex", b =>
+                {
+                    b.Property<int>("ComplexId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ComplexId"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("ComplexName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<int?>("ManagerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ManagerName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("ComplexId");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.HasIndex("ManagerId");
+
+                    b.ToTable("CourtComplexes");
                 });
 
             modelBuilder.Entity("SportCourtManagerment.Models.CourtImage", b =>
@@ -1533,13 +1612,30 @@ namespace SportCourtManagerment.Migrations
 
             modelBuilder.Entity("SportCourtManagerment.Models.Court", b =>
                 {
+                    b.HasOne("SportCourtManagerment.Models.CourtComplex", "Complex")
+                        .WithMany("Courts")
+                        .HasForeignKey("ComplexId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("SportCourtManagerment.Models.CourtType", "CourtType")
                         .WithMany("Courts")
                         .HasForeignKey("CourtTypeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("Complex");
+
                     b.Navigation("CourtType");
+                });
+
+            modelBuilder.Entity("SportCourtManagerment.Models.CourtComplex", b =>
+                {
+                    b.HasOne("SportCourtManagerment.Models.User", "Manager")
+                        .WithMany("ManagedComplexes")
+                        .HasForeignKey("ManagerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Manager");
                 });
 
             modelBuilder.Entity("SportCourtManagerment.Models.CourtImage", b =>
@@ -1833,6 +1929,11 @@ namespace SportCourtManagerment.Migrations
                     b.Navigation("Waitlists");
                 });
 
+            modelBuilder.Entity("SportCourtManagerment.Models.CourtComplex", b =>
+                {
+                    b.Navigation("Courts");
+                });
+
             modelBuilder.Entity("SportCourtManagerment.Models.CourtType", b =>
                 {
                     b.Navigation("Courts");
@@ -1895,6 +1996,8 @@ namespace SportCourtManagerment.Migrations
                     b.Navigation("Bookings");
 
                     b.Navigation("CoachSchedules");
+
+                    b.Navigation("ManagedComplexes");
 
                     b.Navigation("Notifications");
 

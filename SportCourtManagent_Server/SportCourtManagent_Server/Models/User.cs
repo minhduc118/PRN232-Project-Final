@@ -31,6 +31,8 @@ namespace SportCourtManagent_Server.Models
         [MaxLength(500)]
         public string? AvatarUrl { get; set; }
 
+        public DateOnly? DateOfBirth { get; set; }
+
         public int LoyaltyPoints { get; set; } = 0;
 
         public int? MembershipTierId { get; set; }

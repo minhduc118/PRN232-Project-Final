@@ -61,6 +61,21 @@ export default function LoginPage() {
     setPassword(accounts[role].password);
   };
 
+  /** Dev-only: bypass login for mock mode */
+  const IS_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
+  const devLoginAsAdmin = () => {
+    setAuth('mock-token', 'mock-refresh', {
+      userId: 1,
+      fullName: 'Super Admin',
+      email: 'admin@sportscourtms.vn',
+      role: 'Admin',
+      membershipTier: 'Platinum',
+    });
+    toast.success('🛡️ Dev mode — Đăng nhập Admin thành công!');
+    navigate('/admin/courts', { replace: true });
+  };
+
+
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4 relative overflow-hidden">
       {/* Background blobs */}
@@ -160,7 +175,21 @@ export default function LoginPage() {
               </button>
             ))}
           </div>
+
+          {/* Dev-only shortcut */}
+          {IS_MOCK && (
+            <button
+              type="button"
+              onClick={devLoginAsAdmin}
+              className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold
+                         bg-gradient-to-r from-primary-600 to-emerald-500 text-white shadow-lg shadow-primary-600/30
+                         hover:shadow-primary-600/50 hover:brightness-110 transition-all"
+            >
+              ⚡ Vào thẳng trang Quản lý Sân (Dev)
+            </button>
+          )}
         </div>
+
 
         {/* Footer links */}
         <div className="mt-5 text-center text-sm text-slate-400 space-y-2">

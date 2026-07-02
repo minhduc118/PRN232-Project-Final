@@ -35,17 +35,45 @@ export default function Navbar() {
 
         {/* Navigation Links */}
         <div className="hidden md:flex items-center gap-6">
-          <Link to="/" className="text-sm font-medium text-slate-300 hover:text-white hover:underline transition-all">
-            Trang chủ
-          </Link>
-          <Link to="/courts" className="text-sm font-medium text-slate-300 hover:text-white hover:underline transition-all">
-            Danh sách sân
-          </Link>
-          {isAuthenticated && (
-            <Link to="/my-bookings" className="text-sm font-medium text-slate-300 hover:text-white hover:underline transition-all flex items-center gap-1.5">
-              <Calendar className="w-4 h-4 text-green-400" />
-              Đặt sân của tôi
-            </Link>
+          {user?.role === 'Staff' ? (
+            <>
+              <Link to="/staff/dashboard" className="text-sm font-medium text-slate-300 hover:text-white hover:underline transition-all">
+                Trang chủ Staff
+              </Link>
+              <Link to="/staff/equipment" className="text-sm font-medium text-slate-300 hover:text-white hover:underline transition-all">
+                Quản lý dụng cụ
+              </Link>
+              <Link to="/staff/customers" className="text-sm font-medium text-slate-300 hover:text-white hover:underline transition-all">
+                Quản lý khách hàng
+              </Link>
+            </>
+          ) : user?.role === 'Admin' ? (
+            <>
+              <Link to="/admin" className="text-sm font-medium text-slate-300 hover:text-white hover:underline transition-all">
+                Dashboard Admin
+              </Link>
+              <Link to="/admin/courts" className="text-sm font-medium text-slate-300 hover:text-white hover:underline transition-all">
+                Quản lý sân
+              </Link>
+              <Link to="/admin/users" className="text-sm font-medium text-slate-300 hover:text-white hover:underline transition-all">
+                Quản lý người dùng
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link to="/" className="text-sm font-medium text-slate-300 hover:text-white hover:underline transition-all">
+                Trang chủ
+              </Link>
+              <Link to="/courts" className="text-sm font-medium text-slate-300 hover:text-white hover:underline transition-all">
+                Danh sách sân
+              </Link>
+              {isAuthenticated && (
+                <Link to="/my-bookings" className="text-sm font-medium text-slate-300 hover:text-white hover:underline transition-all flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4 text-green-400" />
+                  Đặt sân của tôi
+                </Link>
+              )}
+            </>
           )}
         </div>
 
@@ -78,7 +106,7 @@ export default function Navbar() {
                       {user?.fullName}
                     </span>
                     <span className="block text-[10px] text-green-400 leading-none">
-                      {user?.membershipTierName || 'Thành viên'}
+                      {user?.membershipTier || 'Thành viên'}
                     </span>
                   </div>
                   <ChevronDown className="w-4 h-4 text-slate-400" />

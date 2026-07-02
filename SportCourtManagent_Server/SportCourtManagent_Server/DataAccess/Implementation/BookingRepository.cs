@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.DTOs.Bookings;
@@ -15,6 +16,7 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
         private readonly AppDbContext _context;
 
         public BookingRepository(AppDbContext context)
+
         {
             _context = context;
         }
@@ -67,13 +69,13 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
 
         public async Task<bool> HasConflictingBookingAsync(int courtId, int slotId, DateTime bookingDate)
         {
-            return await _context.Bookings.AnyAsync(b => b.CourtId == courtId 
-                                           && b.SlotId == slotId 
+            return await _context.Bookings.AnyAsync(b => b.CourtId == courtId
+                                           && b.SlotId == slotId
                                            && b.BookingDate.Date == bookingDate.Date
                                            && b.Status != BookingStatus.Cancelled);
         }
 
-        public async Task<BookingBillingResult> ProcessBookingBillingAsync  (CreateBookingRequestDto dto, decimal courtPrice)
+        public async Task<BookingBillingResult> ProcessBookingBillingAsync(CreateBookingRequestDto dto, decimal courtPrice)
         {
             decimal subTotal = courtPrice;
             var bookingServicesList = new List<BookingService>();
@@ -146,7 +148,7 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             }
 
             decimal totalAmount = subTotal - discountAmount;
-            
+
             await _context.SaveChangesAsync();
 
             return new BookingBillingResult
@@ -158,5 +160,6 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
                 AppliedPromotion = appliedPromotion
             };
         }
+
     }
 }

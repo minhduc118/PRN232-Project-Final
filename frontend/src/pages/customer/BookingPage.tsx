@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getCourtById } from '@/api/courtApi';
 import { createBooking } from '@/api/bookingApi';
+import { promotionApi } from '@/api/promotionApi';
 import type { Court } from '@/types/court.types';
 import type { CreateBookingRequest } from '@/types/booking.types';
 import Navbar from '@/components/Navbar';
@@ -114,26 +115,41 @@ export default function BookingPage() {
     }
     setValidatingPromo(true);
     try {
-      // Fake network check
-      await new Promise((r) => setTimeout(r, 400));
-      const { default: promotions } = await import('@/mocks/promotions.json');
-      const found = promotions.find(
-        (p) => p.promoCode.toUpperCase() === promoCode.trim().toUpperCase() && p.isActive
-      );
+      if (import.meta.env.VITE_USE_MOCK === 'true') {
+        await new Promise((r) => setTimeout(r, 400));
+        const { default: promotions } = await import('@/mocks/promotions.json');
+        const found = promotions.find(
+          (p) => p.promoCode.toUpperCase() === promoCode.trim().toUpperCase() && p.isActive
+        );
 
-      if (found) {
-        setAppliedPromo({
-          code: found.promoCode,
-          discountType: found.discountType as 'Percentage' | 'FixedAmount',
-          value: found.discountValue,
-          name: found.promoName,
-        });
-        toast.success(`Áp dụng mã thành công: ${found.promoName}`);
+        if (found) {
+          setAppliedPromo({
+            code: found.promoCode,
+            discountType: found.discountType as 'Percentage' | 'FixedAmount',
+            value: found.discountValue,
+            name: found.promoName,
+          });
+          toast.success(`Áp dụng mã thành công: ${found.promoName}`);
+        } else {
+          toast.error('Mã giảm giá không hợp lệ hoặc đã hết hạn.');
+        }
       } else {
-        toast.error('Mã giảm giá không hợp lệ hoặc đã hết hạn.');
+        const currentSubtotal = (court?.pricePerHour || 100000) + services.reduce((acc, curr) => acc + curr.price * curr.quantity, 0);
+        const res = await promotionApi.validateCoupon(promoCode.trim(), currentSubtotal);
+        if (res && res.valid) {
+          setAppliedPromo({
+            code: res.promoCode,
+            discountType: res.discountType === 'Percent' ? 'Percentage' : 'FixedAmount',
+            value: res.discountValue,
+            name: res.promoName,
+          });
+          toast.success(`Áp dụng mã thành công: ${res.promoName}`);
+        } else {
+          toast.error(res?.message || 'Mã giảm giá không hợp lệ.');
+        }
       }
-    } catch {
-      toast.error('Lỗi khi kiểm tra mã giảm giá.');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Lỗi khi kiểm tra mã giảm giá.');
     } finally {
       setValidatingPromo(false);
     }

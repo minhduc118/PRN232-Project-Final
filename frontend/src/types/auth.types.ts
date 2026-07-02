@@ -9,6 +9,11 @@ export interface User {
   avatarUrl?:    string;
   role:          UserRole;
   membershipTier?: string; // "Bronze" | "Silver" | "Gold" | "Platinum"
+  loyaltyPoints?: number;
+  gender?:       'Male' | 'Female' | 'Other';
+  skillLevel?:   'Beginner' | 'Intermediate' | 'Advanced';
+  dateOfBirth?:  string;
+  createdAt?:    string;
 }
 
 export interface LoginRequest {
@@ -42,3 +47,19 @@ export interface MembershipTier {
   minPoints:       number;
   discountPercent: number;
 }
+
+export interface UpdateProfileRequest {
+  fullName: string;
+  phone?: string;
+  dateOfBirth?: string;
+  gender?: 'Male' | 'Female' | 'Other';
+  avatarUrl?: string;
+  skillLevel?: 'Beginner' | 'Intermediate' | 'Advanced';
+}
+
+export interface ChangePasswordRequest {
+  oldPassword:        string;
+  newPassword:        string;
+  confirmNewPassword: string;
+}
+

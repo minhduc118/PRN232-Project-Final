@@ -24,6 +24,8 @@ export const ROUTES = {
   REVIEWS:         '/reviews',
 
   // Staff
+  STAFF_DASHBOARD: '/staff/dashboard',
+  STAFF_EQUIPMENT: '/staff/equipment',
   STAFF_BOOKINGS:  '/staff/bookings',
   STAFF_CUSTOMERS: '/staff/customers',
   STAFF_WALK_IN:   '/staff/walk-in',
@@ -34,7 +36,8 @@ export const ROUTES = {
 
   // Admin
   ADMIN:           '/admin',
-  ADMIN_COURTS:    '/admin/courts',
+  ADMIN_COURTS:         '/admin/courts',
+  ADMIN_COMPLEX_DETAIL: '/admin/courts/:complexId',
   ADMIN_BOOKINGS:  '/admin/bookings',
   ADMIN_USERS:     '/admin/users',
   ADMIN_PAYMENTS:  '/admin/payments',

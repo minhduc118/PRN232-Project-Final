@@ -48,6 +48,20 @@ public class Court
   /// <summary>Current availability status.</summary>
   public CourtStatus Status { get; set; }
 
+  /// <summary>FK to owning complex.</summary>
+  public int? ComplexId { get; set; }
+
+  /// <summary>Base hourly rental price in VND.</summary>
+  [Required]
+  public decimal PricePerHour { get; set; }
+
+  /// <summary>Court size classification (e.g. Sân 5 người, Sân 7 người, Sân 11 người).</summary>
+  [MaxLength(50)]
+  public string? CourtSize { get; set; }
+
+  /// <summary>Soft delete flag.</summary>
+  public bool IsDeleted { get; set; } = false;
+
   /// <summary>Record creation timestamp.</summary>
   public DateTime CreatedAt { get; set; }
 
@@ -55,6 +69,7 @@ public class Court
   public DateTime? UpdatedAt { get; set; }
 
   // Navigation properties
+  public CourtComplex? Complex { get; set; }
   public CourtType CourtType { get; set; } = null!;
   public ICollection<CourtImage> CourtImages { get; set; } = new List<CourtImage>();
   public ICollection<CourtPricing> CourtPricings { get; set; } = new List<CourtPricing>();

@@ -20,6 +20,7 @@ namespace SportCourtManagent_Server.Models
         public DbSet<TimeSlot> TimeSlots { get; set; } = null!;
         public DbSet<CourtPricing> CourtPricings { get; set; } = null!;
         public DbSet<Promotion> Promotions { get; set; } = null!;
+        public DbSet<Tournament> Tournaments { get; set; } = null!;
         public DbSet<Booking> Bookings { get; set; } = null!;
         public DbSet<Service> Services { get; set; } = null!;
         public DbSet<BookingService> BookingServices { get; set; } = null!;
@@ -173,6 +174,12 @@ namespace SportCourtManagent_Server.Models
                 .WithMany(p => p.Bookings)
                 .HasForeignKey(b => b.PromotionId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.Tournament)
+                .WithMany(t => t.Bookings)
+                .HasForeignKey(b => b.TournamentId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // BookingService
             modelBuilder.Entity<BookingService>()

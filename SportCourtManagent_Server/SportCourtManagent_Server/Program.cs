@@ -46,7 +46,11 @@ builder.Services.AddScoped<IPlayerRequestRepository, PlayerRequestRepository>();
 builder.Services.AddScoped<IPlayerRequestMemberRepository, PlayerRequestMemberRepository>();
 builder.Services.AddScoped<ITaskItemRepository, TaskItemRepository>();
 
+builder.Services.AddScoped<IComplexCourtTypeServiceRepository, ComplexCourtTypeServiceRepository>();
+
 // Service DI registration
+builder.Services.AddScoped<IServiceCatalogService, ServiceCatalogService>();
+builder.Services.AddScoped<IComplexCourtTypeOfferingService, ComplexCourtTypeOfferingService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IBookingManagementService, BookingManagementService>();
 builder.Services.AddScoped<ICourtService, CourtService>();

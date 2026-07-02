@@ -11,6 +11,7 @@ using SportCourtManagent_Server.Models;
 using SportCourtManagent_Server.DTOs.Auth;
 using SportCourtManagent_Server.DTOs.User;
 using SportCourtManagent_Server.Enums;
+using SportCourtManagent_Server.Helpers;
 
 namespace SportCourtManagent_Server.Controllers
 {
@@ -119,7 +120,7 @@ namespace SportCourtManagent_Server.Controllers
                 }
             };
 
-            return Ok(new { data = response });
+            return Ok(ApiResults.Ok(response, "Đăng nhập thành công."));
         }
 
         [Authorize]
@@ -163,7 +164,7 @@ namespace SportCourtManagent_Server.Controllers
                 CreatedAt = user.CreatedAt
             };
 
-            return Ok(new { data = userDto });
+            return Ok(ApiResults.Ok(userDto));
         }
 
         private string GenerateJwtToken(User user, string roleName)

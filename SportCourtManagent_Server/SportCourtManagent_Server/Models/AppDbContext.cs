@@ -23,6 +23,7 @@ namespace SportCourtManagent_Server.Models
         public DbSet<Tournament> Tournaments { get; set; } = null!;
         public DbSet<Booking> Bookings { get; set; } = null!;
         public DbSet<Service> Services { get; set; } = null!;
+        public DbSet<ComplexCourtTypeService> ComplexCourtTypeServices { get; set; } = null!;
         public DbSet<BookingService> BookingServices { get; set; } = null!;
         public DbSet<Payment> Payments { get; set; } = null!;
         public DbSet<Review> Reviews { get; set; } = null!;
@@ -192,6 +193,28 @@ namespace SportCourtManagent_Server.Models
                 .HasOne(bs => bs.Service)
                 .WithMany(s => s.BookingServices)
                 .HasForeignKey(bs => bs.ServiceId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ComplexCourtTypeService>()
+                .HasIndex(o => new { o.ComplexId, o.CourtTypeId, o.ServiceId })
+                .IsUnique();
+
+            modelBuilder.Entity<ComplexCourtTypeService>()
+                .HasOne(o => o.Complex)
+                .WithMany()
+                .HasForeignKey(o => o.ComplexId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ComplexCourtTypeService>()
+                .HasOne(o => o.CourtType)
+                .WithMany()
+                .HasForeignKey(o => o.CourtTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ComplexCourtTypeService>()
+                .HasOne(o => o.Service)
+                .WithMany(s => s.ComplexCourtTypeServices)
+                .HasForeignKey(o => o.ServiceId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Payment

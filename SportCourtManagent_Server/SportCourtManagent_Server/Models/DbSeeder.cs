@@ -38,17 +38,15 @@ namespace SportCourtManagent_Server.Models
                 await context.SaveChangesAsync();
             }
 
-            // 3. Seed Services
+            // 3. Seed Services catalog
             if (!await context.Services.AnyAsync())
             {
-                var services = new[]
-                {
-                    new Service { ServiceName = "Thuê vợt cầu lông", Category = "Equipment", Price = 30000m, StockQty = 10 },
-                    new Service { ServiceName = "Thuê bóng tennis", Category = "Equipment", Price = 15000m, StockQty = 20 },
-                    new Service { ServiceName = "Thuê giày thể thao", Category = "Equipment", Price = 20000m, StockQty = 8 }
-                };
-                await context.Services.AddRangeAsync(services);
+                await context.Services.AddRangeAsync(GetDefaultServices());
                 await context.SaveChangesAsync();
+            }
+            else
+            {
+                await EnsureServicesExistAsync(context);
             }
 
             // 4. Seed Users
@@ -79,11 +77,11 @@ namespace SportCourtManagent_Server.Models
                     {
                         FullName = "Trần Thị Mai",
                         Email = "staff@sportcourt.vn",
-                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("staff123"),
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("Staff@123"),
                         Phone = "0901000003",
                         AvatarUrl = "https://api.dicebear.com/8.x/avataaars/svg?seed=mai",
-                        DateOfBirth = new DateOnly(1992, 10, 20),
-                        LoyaltyPoints = 150,
+                        DateOfBirth = new DateOnly(1992, 11, 20),
+                        LoyaltyPoints = 320,
                         MembershipTierId = bronze.TierId,
                         Gender = Gender.Female,
                         SkillLevel = SkillLevel.Intermediate,
@@ -92,11 +90,11 @@ namespace SportCourtManagent_Server.Models
                     },
                     new User
                     {
-                        FullName = "Nguyễn Văn Hùng",
+                        FullName = "Nguyễn Văn Khách",
                         Email = "customer@sportcourt.vn",
                         PasswordHash = BCrypt.Net.BCrypt.HashPassword("customer123"),
                         Phone = "0901000002",
-                        AvatarUrl = "https://api.dicebear.com/8.x/avataaars/svg?seed=hung",
+                        AvatarUrl = "https://api.dicebear.com/8.x/avataaars/svg?seed=khach",
                         DateOfBirth = new DateOnly(1998, 3, 12),
                         LoyaltyPoints = 1250,
                         MembershipTierId = silver.TierId,
@@ -125,7 +123,6 @@ namespace SportCourtManagent_Server.Models
                 await context.Users.AddRangeAsync(users);
                 await context.SaveChangesAsync();
 
-                // Seed UserRoles mapping
                 var roles = await context.Roles.ToListAsync();
                 var adminRole = roles.First(r => r.RoleName == "Admin");
                 var staffRole = roles.First(r => r.RoleName == "Staff");
@@ -144,19 +141,107 @@ namespace SportCourtManagent_Server.Models
                 await context.SaveChangesAsync();
             }
 
-            // 5. Seed Equipment Inventory
+            // 5. Seed Court Types
+            if (!await context.CourtTypes.AnyAsync())
+            {
+                var types = new[]
+                {
+                    new CourtType { TypeName = "Cầu lông", IsActive = true },
+                    new CourtType { TypeName = "Pickleball", IsActive = true },
+                    new CourtType { TypeName = "Bóng đá", IsActive = true },
+                };
+                await context.CourtTypes.AddRangeAsync(types);
+                await context.SaveChangesAsync();
+            }
+
+            // 6. Seed Court Complex + Courts
+            if (!await context.CourtComplexes.AnyAsync())
+            {
+                var staff = await context.Users.FirstAsync(u => u.Email == "staff@sportcourt.vn");
+                var badminton = await context.CourtTypes.FirstAsync(t => t.TypeName == "Cầu lông");
+                var pickleball = await context.CourtTypes.FirstAsync(t => t.TypeName == "Pickleball");
+
+                var complex = new CourtComplex
+                {
+                    ComplexName = "Tổ hợp thể thao Cầu Giấy",
+                    Address = "Dịch Vọng, Cầu Giấy, Hà Nội",
+                    ManagerId = staff.UserId,
+                    Description = "Tổ hợp thể thao hiện đại với sân trong nhà điều hòa.",
+                    ImageUrl = "https://images.unsplash.com/photo-1545224497-5d750c673417?q=80&w=800",
+                    CreatedAt = DateTime.UtcNow
+                };
+                await context.CourtComplexes.AddAsync(complex);
+                await context.SaveChangesAsync();
+
+                var courts = new[]
+                {
+                    new Court
+                    {
+                        CourtName = "Sân Cầu Lông A1",
+                        CourtCode = "CL-A1",
+                        CourtTypeId = badminton.CourtTypeId,
+                        ComplexId = complex.ComplexId,
+                        Status = CourtStatus.Available,
+                        OpenTime = new TimeSpan(6, 0, 0),
+                        CloseTime = new TimeSpan(22, 0, 0),
+                        PricePerHour = 120000m,
+                        CourtSize = "13.4m x 6.1m"
+                    },
+                    new Court
+                    {
+                        CourtName = "Sân Pickleball P1",
+                        CourtCode = "PK-P1",
+                        CourtTypeId = pickleball.CourtTypeId,
+                        ComplexId = complex.ComplexId,
+                        Status = CourtStatus.Available,
+                        OpenTime = new TimeSpan(6, 0, 0),
+                        CloseTime = new TimeSpan(23, 0, 0),
+                        PricePerHour = 150000m,
+                        CourtSize = "13.4m x 6.1m"
+                    }
+                };
+                await context.Courts.AddRangeAsync(courts);
+                await context.SaveChangesAsync();
+            }
+
+            // 7. Seed complex court type service offerings
+            if (!await context.ComplexCourtTypeServices.AnyAsync())
+            {
+                var complex = await context.CourtComplexes.FirstAsync();
+                var badminton = await context.CourtTypes.FirstAsync(t => t.TypeName == "Cầu lông");
+                var pickleball = await context.CourtTypes.FirstAsync(t => t.TypeName == "Pickleball");
+
+                var water = await context.Services.FirstAsync(s => s.ServiceName == "Nước suối");
+                var towel = await context.Services.FirstAsync(s => s.ServiceName == "Khăn lạnh");
+                var racketBadminton = await context.Services.FirstAsync(s => s.ServiceName == "Thuê vợt cầu lông");
+                var racketPickle = await context.Services.FirstAsync(s => s.ServiceName == "Thuê vợt Pickleball");
+                var ball = await context.Services.FirstAsync(s => s.ServiceName == "Thuê bóng");
+                var coach = await context.Services.FirstAsync(s => s.ServiceName == "Huấn luyện viên");
+
+                var offerings = new[]
+                {
+                    new ComplexCourtTypeService { ComplexId = complex.ComplexId, CourtTypeId = badminton.CourtTypeId, ServiceId = water.ServiceId, Price = 0, StockQty = 100, ServiceMode = ServiceMode.Included, IsActive = true },
+                    new ComplexCourtTypeService { ComplexId = complex.ComplexId, CourtTypeId = badminton.CourtTypeId, ServiceId = racketBadminton.ServiceId, Price = 30000, StockQty = 20, ServiceMode = ServiceMode.Optional, IsActive = true },
+                    new ComplexCourtTypeService { ComplexId = complex.ComplexId, CourtTypeId = pickleball.CourtTypeId, ServiceId = towel.ServiceId, Price = 0, StockQty = 50, ServiceMode = ServiceMode.Included, IsActive = true },
+                    new ComplexCourtTypeService { ComplexId = complex.ComplexId, CourtTypeId = pickleball.CourtTypeId, ServiceId = ball.ServiceId, Price = 0, StockQty = 30, ServiceMode = ServiceMode.Included, IsActive = true },
+                    new ComplexCourtTypeService { ComplexId = complex.ComplexId, CourtTypeId = pickleball.CourtTypeId, ServiceId = racketPickle.ServiceId, Price = 35000, StockQty = 15, ServiceMode = ServiceMode.Optional, IsActive = true },
+                    new ComplexCourtTypeService { ComplexId = complex.ComplexId, CourtTypeId = pickleball.CourtTypeId, ServiceId = coach.ServiceId, Price = 200000, StockQty = 5, ServiceMode = ServiceMode.Optional, IsActive = true }
+                };
+                await context.ComplexCourtTypeServices.AddRangeAsync(offerings);
+                await context.SaveChangesAsync();
+            }
+
+            // 8. Seed Equipment Inventory
             if (!await context.EquipmentInventories.AnyAsync())
             {
                 var racket = await context.Services.FirstAsync(s => s.ServiceName == "Thuê vợt cầu lông");
-                var ball = await context.Services.FirstAsync(s => s.ServiceName == "Thuê bóng tennis");
+                var ball = await context.Services.FirstAsync(s => s.ServiceName == "Thuê bóng");
 
                 var equipment = new[]
                 {
                     new EquipmentInventory { ServiceId = racket.ServiceId, ItemCode = "EQ-001", Condition = EquipmentCondition.Good, PurchaseDate = DateTime.Now.AddMonths(-3), PurchasePrice = 450000m, IsAvailable = true },
                     new EquipmentInventory { ServiceId = racket.ServiceId, ItemCode = "EQ-002", Condition = EquipmentCondition.Good, PurchaseDate = DateTime.Now.AddMonths(-3), PurchasePrice = 450000m, IsAvailable = true },
-                    new EquipmentInventory { ServiceId = racket.ServiceId, ItemCode = "EQ-003", Condition = EquipmentCondition.Damaged, PurchaseDate = DateTime.Now.AddMonths(-2), PurchasePrice = 450000m, IsAvailable = false },
-                    new EquipmentInventory { ServiceId = ball.ServiceId, ItemCode = "EQ-004", Condition = EquipmentCondition.Good, PurchaseDate = DateTime.Now.AddMonths(-1), PurchasePrice = 200000m, IsAvailable = true },
-                    new EquipmentInventory { ServiceId = ball.ServiceId, ItemCode = "EQ-005", Condition = EquipmentCondition.Retired, PurchaseDate = DateTime.Now.AddMonths(-6), PurchasePrice = 180000m, IsAvailable = false }
+                    new EquipmentInventory { ServiceId = ball.ServiceId, ItemCode = "EQ-003", Condition = EquipmentCondition.Good, PurchaseDate = DateTime.Now.AddMonths(-1), PurchasePrice = 200000m, IsAvailable = true }
                 };
 
                 await context.EquipmentInventories.AddRangeAsync(equipment);
@@ -203,6 +288,35 @@ namespace SportCourtManagent_Server.Models
                     await context.SaveChangesAsync();
                 }
             }
+        }
+
+        private static Service[] GetDefaultServices() =>
+        [
+            new Service { ServiceName = "Thuê vợt cầu lông", Category = "Equipment", Price = 30000m, Unit = "cây/giờ", Description = "Vợt Yonex tiêu chuẩn", IsActive = true },
+            new Service { ServiceName = "Thuê vợt Pickleball", Category = "Equipment", Price = 35000m, Unit = "cây/giờ", Description = "Vợt carbon cao cấp", IsActive = true },
+            new Service { ServiceName = "Thuê bóng", Category = "Equipment", Price = 10000m, Unit = "quả", Description = "Bóng tập tiêu chuẩn", IsActive = true },
+            new Service { ServiceName = "Nước suối", Category = "Drink", Price = 10000m, Unit = "chai", Description = "Aquafina 500ml", IsActive = true },
+            new Service { ServiceName = "Nước tăng lực", Category = "Drink", Price = 20000m, Unit = "chai", Description = "Redbull/Sting", IsActive = true },
+            new Service { ServiceName = "Huấn luyện viên", Category = "Coach", Price = 200000m, Unit = "giờ", Description = "HLV có chứng chỉ", IsActive = true },
+            new Service { ServiceName = "Tổ chức giải đấu", Category = "Event", Price = 5000000m, Unit = "buổi", Description = "Hỗ trợ tổ chức giải mini", IsActive = true },
+            new Service { ServiceName = "Khăn lạnh", Category = "Drink", Price = 5000m, Unit = "khăn", Description = "Khăn lạnh sau tập", IsActive = true }
+        ];
+
+        private static async Task EnsureServicesExistAsync(AppDbContext context)
+        {
+            var existingNames = await context.Services
+                .Select(s => s.ServiceName)
+                .ToListAsync();
+
+            var missing = GetDefaultServices()
+                .Where(s => !existingNames.Contains(s.ServiceName))
+                .ToList();
+
+            if (missing.Count == 0)
+                return;
+
+            await context.Services.AddRangeAsync(missing);
+            await context.SaveChangesAsync();
         }
     }
 }

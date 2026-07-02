@@ -11,6 +11,7 @@ using SportCourtManagent_Server.Models;
 using SportCourtManagent_Server.DTOs.Auth;
 using SportCourtManagent_Server.DTOs.User;
 using SportCourtManagent_Server.Enums;
+using SportCourtManagent_Server.Helpers;
 
 namespace SportCourtManagent_Server.Controllers
 {
@@ -119,7 +120,7 @@ namespace SportCourtManagent_Server.Controllers
                 }
             };
 
-            return Ok(new { data = response });
+            return Ok(ApiResults.Ok(response, "Đăng nhập thành công."));
         }
 
         [Authorize]
@@ -129,7 +130,7 @@ namespace SportCourtManagent_Server.Controllers
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
             {
-                return Unauthorized(new { message = "Không xác định được người dùng." });
+                return Unauthorized(ApiResults.Fail("Không xác định được người dùng.", 401));
             }
 
             var user = await _context.Users
@@ -140,7 +141,7 @@ namespace SportCourtManagent_Server.Controllers
 
             if (user == null)
             {
-                return NotFound(new { message = "Người dùng không tồn tại." });
+                return NotFound(ApiResults.Fail("Người dùng không tồn tại.", 404));
             }
 
             var roleName = user.UserRoles.FirstOrDefault()?.Role?.RoleName ?? "Customer";
@@ -163,7 +164,7 @@ namespace SportCourtManagent_Server.Controllers
                 CreatedAt = user.CreatedAt
             };
 
-            return Ok(new { data = userDto });
+            return Ok(ApiResults.Ok(userDto));
         }
 
         private string GenerateJwtToken(User user, string roleName)

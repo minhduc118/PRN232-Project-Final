@@ -46,7 +46,11 @@ builder.Services.AddScoped<IPlayerRequestRepository, PlayerRequestRepository>();
 builder.Services.AddScoped<IPlayerRequestMemberRepository, PlayerRequestMemberRepository>();
 builder.Services.AddScoped<ITaskItemRepository, TaskItemRepository>();
 
+builder.Services.AddScoped<IComplexCourtTypeServiceRepository, ComplexCourtTypeServiceRepository>();
+
 // Service DI registration
+builder.Services.AddScoped<IServiceCatalogService, ServiceCatalogService>();
+builder.Services.AddScoped<IComplexCourtTypeOfferingService, ComplexCourtTypeOfferingService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IBookingManagementService, BookingManagementService>();
 builder.Services.AddScoped<ICourtService, CourtService>();
@@ -69,11 +73,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.SetIsOriginAllowed(origin => true)
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
+
+builder.Services.AddSignalR();
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -165,9 +172,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<SportCourtManagent_Server.Hubs.SlotStatusHub>("/hubs/slot-status");
 
 app.Run();
-
 Microsoft.OData.Edm.IEdmModel GetEdmModel()
 {
     var builder = new Microsoft.OData.ModelBuilder.ODataConventionModelBuilder();

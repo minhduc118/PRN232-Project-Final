@@ -19,6 +19,9 @@ namespace SportCourtManagent_Server.Services.Interfaces
     /// <summary>Creates a new booking asynchronous.</summary>
     Task<BookingDto> CreateBookingAsync(int userId, CreateBookingRequest request);
 
+    /// <summary>Creates recurring bookings across multiple weeks. Skips conflicting dates.</summary>
+    Task<RecurringBookingResponseDto> CreateRecurringBookingAsync(int userId, CreateRecurringBookingRequest request);
+
     /// <summary>Updates booking status asynchronous.</summary>
     Task<BookingDto?> UpdateBookingStatusAsync(int id, UpdateBookingStatusRequest request);
 

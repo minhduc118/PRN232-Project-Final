@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.Models;
 
@@ -15,35 +17,46 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             _context = context;
         }
 
-        public IEnumerable<Service> GetAll()
+        public async Task<IEnumerable<Service>> GetAllAsync(bool activeOnly = false)
         {
-            return _context.Services.ToList();
+            var query = _context.Services.AsQueryable();
+            if (activeOnly)
+                query = query.Where(s => s.IsActive);
+            return await query.OrderBy(s => s.ServiceName).ToListAsync();
         }
 
-        public Service? GetById(int id)
+        public Task<Service?> GetByIdAsync(int id) =>
+            _context.Services.FirstOrDefaultAsync(s => s.ServiceId == id);
+
+        public async Task<bool> ExistsByNameAsync(string name, int? excludeId = null)
         {
-            return _context.Services.Find(id);
+            var normalized = name.Trim().ToLower();
+            var query = _context.Services.Where(s => s.ServiceName.ToLower() == normalized);
+            if (excludeId.HasValue)
+                query = query.Where(s => s.ServiceId != excludeId.Value);
+            return await query.AnyAsync();
         }
 
-        public void Add(Service entity)
+        public async Task AddAsync(Service entity)
         {
-            _context.Services.Add(entity);
-            _context.SaveChanges();
+            entity.CreatedAt = DateTime.UtcNow;
+            await _context.Services.AddAsync(entity);
+            await _context.SaveChangesAsync();
         }
 
-        public void Update(Service entity)
+        public async Task UpdateAsync(Service entity)
         {
             _context.Services.Update(entity);
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
         }
 
-        public void Delete(int id)
+        public async Task DeleteAsync(int id)
         {
-            var entity = _context.Services.Find(id);
+            var entity = await _context.Services.FindAsync(id);
             if (entity != null)
             {
-                _context.Services.Remove(entity);
-                _context.SaveChanges();
+                entity.IsActive = false;
+                await _context.SaveChangesAsync();
             }
         }
     }

@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.DTOs.Booking;
 using SportCourtManagent_Server.Enums;
+using SportCourtManagent_Server.Hubs;
 using SportCourtManagent_Server.Models;
 using SportCourtManagent_Server.Services.Interfaces;
 
@@ -16,12 +18,14 @@ namespace SportCourtManagent_Server.Services.Implements
     private readonly IBookingRepository _bookingRepo;
     private readonly IPromotionRepository _promoRepo;
     private readonly AppDbContext _context;
+    private readonly IHubContext<SlotStatusHub> _hubContext;
 
-    public BookingManagementService(IBookingRepository bookingRepo, IPromotionRepository promoRepo, AppDbContext context)
+    public BookingManagementService(IBookingRepository bookingRepo, IPromotionRepository promoRepo, AppDbContext context, IHubContext<SlotStatusHub> hubContext)
     {
       _bookingRepo = bookingRepo ?? throw new ArgumentNullException(nameof(bookingRepo));
       _promoRepo = promoRepo ?? throw new ArgumentNullException(nameof(promoRepo));
       _context = context ?? throw new ArgumentNullException(nameof(context));
+      _hubContext = hubContext ?? throw new ArgumentNullException(nameof(hubContext));
     }
 
     /// <summary>Gets customer bookings asynchronous.</summary>
@@ -53,6 +57,15 @@ namespace SportCourtManagent_Server.Services.Implements
       var slot = await _context.TimeSlots.FindAsync(request.SlotId);
       if (slot == null) throw new ArgumentException("Khung giờ không hợp lệ.");
 
+      // Check for duplicate slot booking
+      var isBooked = await _context.Bookings.AnyAsync(b =>
+        b.CourtId == request.CourtId
+        && b.SlotId == request.SlotId
+        && b.BookingDate.Date == request.BookingDate.Date
+        && b.Status != BookingStatus.Cancelled);
+      if (isBooked)
+        throw new ArgumentException($"Khung giờ {slot.SlotName} ngày {request.BookingDate:dd/MM/yyyy} đã có người đặt.");
+
       decimal subTotal = await CalculateSubTotalAsync(request.CourtId, slot, request.ServiceIds);
       var (promoId, discountAmount) = await ProcessPromotionAsync(request.PromotionCode, subTotal);
 
@@ -76,7 +89,172 @@ namespace SportCourtManagent_Server.Services.Implements
 
       await AddBookingServicesAsync(booking, request.ServiceIds);
       await _bookingRepo.AddAsync(booking);
+
+      // Push SignalR slot status update
+      await _hubContext.Clients.Group($"court-{request.CourtId}")
+        .SendAsync("SlotStatusChanged", request.CourtId, request.SlotId, request.BookingDate.ToString("yyyy-MM-dd"), "Booked");
+
       return MapToDto(await _bookingRepo.GetDetailAsync(booking.BookingId) ?? booking);
+    }
+
+    /// <summary>Creates recurring bookings across multiple weeks. Skips conflicting dates (Option A).</summary>
+    public async Task<RecurringBookingResponseDto> CreateRecurringBookingAsync(int userId, CreateRecurringBookingRequest request)
+    {
+      if (request == null) throw new ArgumentNullException(nameof(request));
+      if (request.DaysOfWeek == null || !request.DaysOfWeek.Any())
+        throw new ArgumentException("Phải chọn ít nhất một ngày trong tuần.");
+      if (request.EndDate <= request.StartDate)
+        throw new ArgumentException("Ngày kết thúc phải sau ngày bắt đầu.");
+      if ((request.EndDate - request.StartDate).TotalDays > 365)
+        throw new ArgumentException("Khoảng thời gian đặt định kỳ tối đa là 1 năm.");
+
+      var slot = await _context.TimeSlots.FindAsync(request.SlotId);
+      if (slot == null) throw new ArgumentException("Khung giờ không hợp lệ.");
+
+      var court = await _context.Courts.FindAsync(request.CourtId);
+      if (court == null) throw new ArgumentException("Sân không tồn tại.");
+
+      // Generate all target dates from StartDate to EndDate matching DaysOfWeek
+      var allDates = new List<DateTime>();
+      for (var date = request.StartDate.Date; date <= request.EndDate.Date; date = date.AddDays(1))
+      {
+        if (request.DaysOfWeek.Contains((int)date.DayOfWeek))
+          allDates.Add(date);
+      }
+
+      if (!allDates.Any())
+        throw new ArgumentException("Không có ngày nào phù hợp trong khoảng thời gian đã chọn.");
+
+      // Batch check all conflicting dates
+      var existingBookings = await _context.Bookings
+        .Where(b => b.CourtId == request.CourtId
+                  && b.SlotId == request.SlotId
+                  && allDates.Contains(b.BookingDate)
+                  && b.Status != BookingStatus.Cancelled)
+        .Select(b => b.BookingDate.Date)
+        .ToListAsync();
+
+      var conflictDates = allDates.Where(d => existingBookings.Contains(d.Date)).ToList();
+      var availableDates = allDates.Where(d => !existingBookings.Contains(d.Date)).ToList();
+
+      if (!availableDates.Any())
+        throw new ArgumentException("Tất cả các ngày trong khoảng thời gian đã chọn đều đã có người đặt.");
+
+      using var transaction = await _context.Database.BeginTransactionAsync();
+      try
+      {
+        // Create RecurringBooking parent record
+        var daysStr = string.Join(",", request.DaysOfWeek.OrderBy(d => d));
+        var recurring = new RecurringBooking
+        {
+          UserId = userId,
+          CourtId = request.CourtId,
+          SlotId = request.SlotId,
+          StartDate = request.StartDate,
+          EndDate = request.EndDate,
+          DaysOfWeek = daysStr,
+          Status = RecurringBookingStatus.Active
+        };
+        await _context.RecurringBookings.AddAsync(recurring);
+        await _context.SaveChangesAsync();
+
+        // Create individual bookings for each available date
+        decimal totalAmount = 0;
+        var createdBookings = new List<Booking>();
+
+        foreach (var date in availableDates)
+        {
+          decimal subTotal = await CalculateSubTotalAsync(request.CourtId, slot, null);
+
+          var booking = new Booking
+          {
+            BookingCode = $"RBK{DateTime.UtcNow:yyyyMMddHHmmss}{new Random().Next(100, 999)}",
+            UserId = userId,
+            CourtId = request.CourtId,
+            SlotId = request.SlotId,
+            BookingDate = date,
+            StartTime = slot.StartTime,
+            EndTime = slot.EndTime,
+            SubTotal = subTotal,
+            DiscountAmount = 0,
+            TotalAmount = subTotal,
+            Status = BookingStatus.Pending,
+            Note = request.Note,
+            CreatedAt = DateTime.UtcNow
+          };
+
+          totalAmount += subTotal;
+          await _context.Bookings.AddAsync(booking);
+          createdBookings.Add(booking);
+        }
+
+        // Apply promotion if provided
+        decimal discountAmount = 0;
+        int? promoId = null;
+        if (!string.IsNullOrWhiteSpace(request.PromotionCode))
+        {
+          var promoResult = await ProcessPromotionAsync(request.PromotionCode, totalAmount);
+          promoId = promoResult.promoId;
+          discountAmount = promoResult.discount;
+
+          if (promoId.HasValue && createdBookings.Any())
+          {
+            decimal perBookingDiscount = discountAmount / createdBookings.Count;
+            foreach (var b in createdBookings)
+            {
+              b.PromotionId = promoId;
+              b.DiscountAmount = perBookingDiscount;
+              b.TotalAmount = Math.Max(0, b.SubTotal - perBookingDiscount);
+            }
+          }
+        }
+
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
+
+        // Push SignalR updates for all booked slots
+        foreach (var date in availableDates)
+        {
+          await _hubContext.Clients.Group($"court-{request.CourtId}")
+            .SendAsync("SlotStatusChanged", request.CourtId, request.SlotId, date.ToString("yyyy-MM-dd"), "Booked");
+        }
+
+        // Map day numbers to Vietnamese day names
+        string daysDisplay = string.Join(", ", request.DaysOfWeek.OrderBy(d => d).Select(d => d switch
+        {
+          0 => "CN",
+          1 => "T2",
+          2 => "T3",
+          3 => "T4",
+          4 => "T5",
+          5 => "T6",
+          6 => "T7",
+          _ => d.ToString()
+        }));
+
+        return new RecurringBookingResponseDto
+        {
+          RecurringId = recurring.RecurringId,
+          CourtId = court.CourtId,
+          CourtName = court.CourtName,
+          SlotId = slot.SlotId,
+          SlotName = slot.SlotName,
+          StartDate = request.StartDate,
+          EndDate = request.EndDate,
+          DaysOfWeek = daysDisplay,
+          Status = recurring.Status.ToString(),
+          CreatedBookings = createdBookings.Select(MapToDto).ToList(),
+          ConflictDates = conflictDates.Select(d => d.ToString("dd/MM/yyyy")).ToList(),
+          TotalRequestedSessions = allDates.Count,
+          TotalBookedSessions = availableDates.Count,
+          TotalEstimatedAmount = Math.Max(0, totalAmount - discountAmount)
+        };
+      }
+      catch (Exception)
+      {
+        await transaction.RollbackAsync();
+        throw;
+      }
     }
 
     /// <summary>Updates booking status asynchronous.</summary>

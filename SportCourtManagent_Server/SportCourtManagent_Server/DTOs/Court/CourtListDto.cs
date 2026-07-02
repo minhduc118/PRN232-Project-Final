@@ -12,6 +12,7 @@ public class CourtListDto
     public string CourtTypeName { get; set; } = string.Empty;
     public int CourtTypeId { get; set; }
     public string? CourtSize { get; set; }
+    public string? Location { get; set; }
     public string? ImageUrl { get; set; }
     public string Status { get; set; } = string.Empty;
     public TimeSpan OpenTime { get; set; }

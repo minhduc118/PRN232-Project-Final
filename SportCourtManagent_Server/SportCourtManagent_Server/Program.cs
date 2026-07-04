@@ -175,6 +175,8 @@ app.MapControllers();
 app.MapHub<SportCourtManagent_Server.Hubs.SlotStatusHub>("/hubs/slot-status");
 
 app.Run();
+
+
 Microsoft.OData.Edm.IEdmModel GetEdmModel()
 {
     var builder = new Microsoft.OData.ModelBuilder.ODataConventionModelBuilder();

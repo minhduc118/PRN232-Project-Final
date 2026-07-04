@@ -57,6 +57,13 @@ namespace SportCourtManagent_Server.Services.Implements
       var slot = await _context.TimeSlots.FindAsync(request.SlotId);
       if (slot == null) throw new ArgumentException("Khung giờ không hợp lệ.");
 
+      // Check if court supports this slot
+      var hasPricing = await _context.CourtPricings.AnyAsync(cp => cp.CourtId == request.CourtId && cp.SlotId == request.SlotId);
+      if (!hasPricing)
+      {
+          throw new ArgumentException("Sân đấu này không mở cửa hoạt động trong khung giờ đã chọn.");
+      }
+
       // Check for duplicate slot booking
       var isBooked = await _context.Bookings.AnyAsync(b =>
         b.CourtId == request.CourtId
@@ -113,6 +120,13 @@ namespace SportCourtManagent_Server.Services.Implements
 
       var court = await _context.Courts.FindAsync(request.CourtId);
       if (court == null) throw new ArgumentException("Sân không tồn tại.");
+
+      // Check if court supports this slot
+      var hasPricing = await _context.CourtPricings.AnyAsync(cp => cp.CourtId == request.CourtId && cp.SlotId == request.SlotId);
+      if (!hasPricing)
+      {
+          throw new ArgumentException("Sân đấu này không mở cửa hoạt động trong khung giờ đã chọn.");
+      }
 
       // Generate all target dates from StartDate to EndDate matching DaysOfWeek
       var allDates = new List<DateTime>();
@@ -315,10 +329,17 @@ namespace SportCourtManagent_Server.Services.Implements
             var slot = await _context.TimeSlots.FindAsync(slotId);
             if (slot == null) throw new ArgumentException($"Khung giờ {slotId} không hợp lệ.");
 
+            // Check if court supports this slot
+            var hasPricing = await _context.CourtPricings.AnyAsync(cp => cp.CourtId == courtSelection.CourtId && cp.SlotId == slotId);
+            if (!hasPricing)
+            {
+                throw new ArgumentException($"Sân {courtSelection.CourtId} không mở cửa hoạt động trong khung giờ {slot.SlotName}.");
+            }
+
             var isBooked = await _context.Bookings.AnyAsync(b => b.CourtId == courtSelection.CourtId 
-                                                              && b.SlotId == slotId 
-                                                              && b.BookingDate.Date == request.BookingDate.Date 
-                                                              && b.Status != BookingStatus.Cancelled);
+                                                             && b.SlotId == slotId 
+                                                             && b.BookingDate.Date == request.BookingDate.Date 
+                                                             && b.Status != BookingStatus.Cancelled);
             if (isBooked)
             {
                 throw new ArgumentException($"Sân {courtSelection.CourtId} vào khung giờ {slot.SlotName} ngày {request.BookingDate:dd/MM/yyyy} đã có người đặt.");
@@ -694,6 +715,13 @@ namespace SportCourtManagent_Server.Services.Implements
           {
             var slot = await _context.TimeSlots.FindAsync(slotId);
             if (slot == null) throw new ArgumentException($"Khung giờ {slotId} không hợp lệ.");
+
+            // Check if court supports this slot
+            var hasPricing = await _context.CourtPricings.AnyAsync(cp => cp.CourtId == courtSelection.CourtId && cp.SlotId == slotId);
+            if (!hasPricing)
+            {
+                throw new ArgumentException($"Sân {courtSelection.CourtId} không mở cửa hoạt động trong khung giờ {slot.SlotName}.");
+            }
 
             var isBooked = await _context.Bookings.AnyAsync(b =>
               b.CourtId == courtSelection.CourtId

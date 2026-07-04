@@ -67,12 +67,12 @@ namespace SportCourtManagent_Server.Controllers
                     })
                     .ToListAsync();
 
-                return Ok(ApiResults.Ok(courts));
+                return Ok(courts);
             }
             else
             {
                 var result = await _courtService.SearchCourtsAsync(searchParams);
-                return Ok(ApiResults.Ok(result));
+                return Ok(result);
             }
         }
 
@@ -141,7 +141,7 @@ namespace SportCourtManagent_Server.Controllers
                 } : null
             };
 
-            return Ok(ApiResults.Ok(combinedResult));
+            return Ok(combinedResult);
         }
 
         // GET /api/courts/{id}/availability?date=YYYY-MM-DD
@@ -150,9 +150,9 @@ namespace SportCourtManagent_Server.Controllers
         {
             var availability = await _courtService.GetCourtAvailabilityAsync(id, date);
             if (availability is null)
-                return NotFound(ApiResults.Fail("Không tìm thấy sân.", 404));
+                return NotFound(new { message = "Không tìm thấy sân." });
 
-            return Ok(ApiResults.Ok(availability));
+            return Ok(availability);
         }
 
         // GET /odata/courts — OData query

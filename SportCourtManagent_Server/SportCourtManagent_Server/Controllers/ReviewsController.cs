@@ -29,7 +29,7 @@ namespace SportCourtManagent_Server.Controllers
             [FromQuery] int pageSize = 10)
         {
             var result = await _reviewService.GetCourtReviewsAsync(courtId, pageNumber, pageSize);
-            return Ok(ApiResults.Ok(result));
+            return Ok(result);
         }
 
         // POST /api/courts/{courtId}/reviews — Create a new review (requires authentication)
@@ -40,14 +40,14 @@ namespace SportCourtManagent_Server.Controllers
             [FromBody] CreateReviewDto dto)
         {
             if (!TryGetUserId(out int userId))
-                return Unauthorized(ApiResults.Fail("Token không hợp lệ hoặc không xác định được người dùng.", 401));
+                return Unauthorized(new { message = "Token không hợp lệ hoặc không xác định được người dùng." });
 
             var (review, error) = await _reviewService.CreateReviewAsync(courtId, userId, dto);
 
             if (error is not null)
-                return BadRequest(ApiResults.Fail(error, 400));
+                return BadRequest(new { message = error });
 
-            return StatusCode(201, ApiResults.Ok(review, "Tạo đánh giá thành công.", 201));
+            return StatusCode(201, new { message = "Tạo đánh giá thành công.", review });
         }
 
         // GET /odata/reviews — OData query

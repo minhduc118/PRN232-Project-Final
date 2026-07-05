@@ -41,6 +41,7 @@ builder.Services.AddScoped<IWaitlistRepository, WaitlistRepository>();
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 builder.Services.AddScoped<IEquipmentInventoryRepository, EquipmentInventoryRepository>();
 builder.Services.AddScoped<IMaintenanceScheduleRepository, MaintenanceScheduleRepository>();
+builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<IStaffShiftRepository, StaffShiftRepository>();
 builder.Services.AddScoped<IPlayerRequestRepository, PlayerRequestRepository>();
 builder.Services.AddScoped<IPlayerRequestMemberRepository, PlayerRequestMemberRepository>();
@@ -55,6 +56,10 @@ builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IBookingManagementService, BookingManagementService>();
 builder.Services.AddScoped<ICourtService, CourtService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
+
+builder.Services.AddScoped<IStaffService, StaffService>();
+builder.Services.AddScoped<IMaintenanceScheduleService, MaintenanceScheduleService>();
+
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler =

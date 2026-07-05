@@ -21,7 +21,7 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
 
         public CourtComplex? GetById(int id)
         {
-            throw new NotImplementedException();
+            return _context.CourtComplexes.Find(id);
         }
 
         public void Add(CourtComplex entity)

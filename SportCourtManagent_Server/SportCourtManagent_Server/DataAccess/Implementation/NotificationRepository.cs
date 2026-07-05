@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.Models;
 
@@ -14,29 +15,16 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             _context = context;
         }
 
-        public IEnumerable<Notification> GetAll()
+        public async Task CreateNotificationAsync(Notification notification)
         {
-            throw new NotImplementedException();
+            _context.Notifications.Add(notification);
+            await _context.SaveChangesAsync();
         }
 
-        public Notification? GetById(int id)
+        public async Task CreateNotificationsBulkAsync(List<Notification> notifications)
         {
-            throw new NotImplementedException();
-        }
-
-        public void Add(Notification entity)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Update(Notification entity)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Delete(int id)
-        {
-            throw new NotImplementedException();
+            _context.Notifications.AddRange(notifications);
+            await _context.SaveChangesAsync();
         }
     }
 }

@@ -19,20 +19,29 @@ namespace SportCourtManagent_Server.Models
         public User Staff { get; set; } = null!;
 
         [Required]
-        public DateTime ShiftDate { get; set; }
+        public int ComplexId { get; set; }
+
+        [ForeignKey("ComplexId")]
+        public CourtComplex Complex { get; set; } = null!;
+
+        [Required]
+        public DateOnly ShiftDate { get; set; }
 
         [Required]
         public ShiftType ShiftType { get; set; } = ShiftType.Morning;
 
         [Required]
-        public TimeSpan StartTime { get; set; }
+        public TimeOnly StartTime { get; set; }
 
         [Required]
-        public TimeSpan EndTime { get; set; }
+        public TimeOnly EndTime { get; set; }
 
         public DateTime? CheckInTime { get; set; }
 
         public DateTime? CheckOutTime { get; set; }
+
+        [MaxLength(300)]
+        public string? Note { get; set; }
     }
 }
 

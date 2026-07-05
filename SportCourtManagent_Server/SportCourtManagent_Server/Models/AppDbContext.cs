@@ -36,6 +36,7 @@ namespace SportCourtManagent_Server.Models
         public DbSet<EquipmentInventory> EquipmentInventories { get; set; } = null!;
         public DbSet<MaintenanceSchedule> MaintenanceSchedules { get; set; } = null!;
         public DbSet<StaffShift> StaffShifts { get; set; } = null!;
+        public DbSet<StaffComplex> StaffComplexes { get; set; } = null!;
         public DbSet<PlayerRequest> PlayerRequests { get; set; } = null!;
         public DbSet<PlayerRequestMember> PlayerRequestMembers { get; set; } = null!;
         public DbSet<TaskItem> Tasks { get; set; } = null!;
@@ -354,6 +355,37 @@ namespace SportCourtManagent_Server.Models
                 .HasForeignKey(ss => ss.StaffId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<StaffShift>()
+                .HasOne(ss => ss.Complex)
+                .WithMany(cc => cc.StaffShifts)
+                .HasForeignKey(ss => ss.ComplexId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StaffShift>()
+                .HasIndex(ss => new { ss.StaffId, ss.ShiftDate, ss.ShiftType })
+                .IsUnique();
+
+            modelBuilder.Entity<StaffShift>()
+                .HasIndex(ss => new { ss.ComplexId, ss.ShiftDate });
+
+            // StaffComplex (junction: Staff ↔ CourtComplex)
+            modelBuilder.Entity<StaffComplex>()
+                .HasOne(sc => sc.Staff)
+                .WithMany(u => u.ComplexAssignments)
+                .HasForeignKey(sc => sc.StaffId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<StaffComplex>()
+                .HasOne(sc => sc.Complex)
+                .WithMany(cc => cc.StaffAssignments)
+                .HasForeignKey(sc => sc.ComplexId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Unique: mỗi staff chỉ được assign vào 1 complex 1 lần
+            modelBuilder.Entity<StaffComplex>()
+                .HasIndex(sc => new { sc.StaffId, sc.ComplexId })
+                .IsUnique();
+
             // PlayerRequest
             modelBuilder.Entity<PlayerRequest>()
                 .HasOne(pr => pr.Booking)
@@ -404,6 +436,205 @@ namespace SportCourtManagent_Server.Models
                 .WithMany(b => b.Tasks)
                 .HasForeignKey(t => t.BookingId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // --- Seed Data ---
+
+            // 1. MembershipTiers
+            modelBuilder.Entity<MembershipTier>().HasData(
+                new MembershipTier { TierId = 1, TierName = "Bronze", MinPoints = 0, DiscountPercent = 0.00m },
+                new MembershipTier { TierId = 2, TierName = "Silver", MinPoints = 100, DiscountPercent = 5.00m },
+                new MembershipTier { TierId = 3, TierName = "Gold", MinPoints = 500, DiscountPercent = 10.00m }
+            );
+
+            // 2. Roles
+            modelBuilder.Entity<Role>().HasData(
+                new Role { RoleId = 1, RoleName = "Admin", Description = "System Administrator" },
+                new Role { RoleId = 2, RoleName = "Manager", Description = "Complex Manager" },
+                new Role { RoleId = 3, RoleName = "Staff", Description = "Staff member" },
+                new Role { RoleId = 4, RoleName = "Customer", Description = "End Customer" }
+            );
+
+            // 3. Users
+            modelBuilder.Entity<User>().HasData(
+                new User
+                {
+                    UserId = 1,
+                    FullName = "System Administrator",
+                    Email = "admin@sportcourt.com",
+                    Phone = "0987654321",
+                    PasswordHash = "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z",
+                    LoyaltyPoints = 0,
+                    MembershipTierId = null,
+                    IsActive = true,
+                    Gender = Gender.Other,
+                    SkillLevel = SkillLevel.Advanced,
+                    CreatedAt = new DateTime(2026, 1, 1)
+                },
+                new User
+                {
+                    UserId = 2,
+                    FullName = "Complex Manager",
+                    Email = "manager@sportcourt.com",
+                    Phone = "0987654322",
+                    PasswordHash = "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z",
+                    LoyaltyPoints = 0,
+                    MembershipTierId = null,
+                    IsActive = true,
+                    Gender = Gender.Male,
+                    SkillLevel = SkillLevel.Intermediate,
+                    CreatedAt = new DateTime(2026, 1, 1)
+                },
+                new User
+                {
+                    UserId = 3,
+                    FullName = "Staff Member",
+                    Email = "staff@sportcourt.com",
+                    Phone = "0987654323",
+                    PasswordHash = "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z",
+                    LoyaltyPoints = 0,
+                    MembershipTierId = null,
+                    IsActive = true,
+                    Gender = Gender.Female,
+                    SkillLevel = SkillLevel.Beginner,
+                    CreatedAt = new DateTime(2026, 1, 1)
+                },
+                new User
+                {
+                    UserId = 4,
+                    FullName = "John Doe",
+                    Email = "customer@sportcourt.com",
+                    Phone = "0987654324",
+                    PasswordHash = "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z",
+                    LoyaltyPoints = 50,
+                    MembershipTierId = 1,
+                    IsActive = true,
+                    Gender = Gender.Other,
+                    SkillLevel = SkillLevel.Beginner,
+                    CreatedAt = new DateTime(2026, 1, 1)
+                }
+            );
+
+            // 4. UserRoles
+            modelBuilder.Entity<UserRole>().HasData(
+                new UserRole { UserRoleId = 1, UserId = 1, RoleId = 1 },
+                new UserRole { UserRoleId = 2, UserId = 2, RoleId = 2 },
+                new UserRole { UserRoleId = 3, UserId = 3, RoleId = 3 },
+                new UserRole { UserRoleId = 4, UserId = 4, RoleId = 4 }
+            );
+
+            // 4b. StaffComplexes – assign tất cả Staff (UserId=3) vào ComplexId=1
+            modelBuilder.Entity<StaffComplex>().HasData(
+                new StaffComplex { StaffComplexId = 1, StaffId = 3, ComplexId = 1, AssignedAt = new DateTime(2026, 1, 1) }
+            );
+
+            // 5. CourtComplexes
+            modelBuilder.Entity<CourtComplex>().HasData(
+                new CourtComplex
+                {
+                    ComplexId = 1,
+                    ComplexName = "Tổ hợp thể thao Cầu Giấy",
+                    Address = "Dịch Vọng, Cầu Giấy, Hà Nội",
+                    ManagerId = 2,
+                    Description = "Tổ hợp thể thao hiện đại bậc nhất khu vực Cầu Giấy với nhiều loại sân khác nhau.",
+                    ImageUrl = "https://example.com/complex1.jpg",
+                    IsDeleted = false,
+                    CreatedAt = new DateTime(2026, 1, 1)
+                }
+            );
+
+            // 6. CourtTypes
+            modelBuilder.Entity<CourtType>().HasData(
+                new CourtType { CourtTypeId = 1, TypeName = "Pickleball", IsActive = true },
+                new CourtType { CourtTypeId = 2, TypeName = "Badminton", IsActive = true },
+                new CourtType { CourtTypeId = 3, TypeName = "Football", IsActive = true }
+            );
+
+            // 7. Courts
+            modelBuilder.Entity<Court>().HasData(
+                new Court
+                {
+                    CourtId = 1,
+                    CourtName = "Sân Pickleball P1",
+                    CourtCode = "PB-P1",
+                    CourtTypeId = 1,
+                    ComplexId = 1,
+                    Status = CourtStatus.Available,
+                    OpenTime = new TimeSpan(6, 0, 0),
+                    CloseTime = new TimeSpan(22, 0, 0),
+                    PricePerHour = 150000.00m,
+                    CourtSize = "20x44 feet",
+                    IsDeleted = false
+                },
+                new Court
+                {
+                    CourtId = 2,
+                    CourtName = "Sân Cầu Lông B1",
+                    CourtCode = "BM-B1",
+                    CourtTypeId = 2,
+                    ComplexId = 1,
+                    Status = CourtStatus.Available,
+                    OpenTime = new TimeSpan(6, 0, 0),
+                    CloseTime = new TimeSpan(22, 0, 0),
+                    PricePerHour = 100000.00m,
+                    CourtSize = "6.1x13.4 meters",
+                    IsDeleted = false
+                },
+                new Court
+                {
+                    CourtId = 3,
+                    CourtName = "Sân Bóng Đá F1",
+                    CourtCode = "FB-F1",
+                    CourtTypeId = 3,
+                    ComplexId = 1,
+                    Status = CourtStatus.Available,
+                    OpenTime = new TimeSpan(6, 0, 0),
+                    CloseTime = new TimeSpan(22, 0, 0),
+                    PricePerHour = 300000.00m,
+                    CourtSize = "5-a-side",
+                    IsDeleted = false
+                }
+            );
+
+            // 8. Services
+            modelBuilder.Entity<Service>().HasData(
+                new Service { ServiceId = 1, ServiceName = "Thuê vợt Pickleball", Category = "EquipmentRent", Price = 30000.00m, StockQty = 20 },
+                new Service { ServiceId = 2, ServiceName = "Thuê vợt cầu lông", Category = "EquipmentRent", Price = 20000.00m, StockQty = 30 },
+                new Service { ServiceId = 3, ServiceName = "Nước uống Pocari", Category = "Drink", Price = 15000.00m, StockQty = 100 },
+                new Service { ServiceId = 4, ServiceName = "Nước suối Aquafina", Category = "Drink", Price = 10000.00m, StockQty = 150 }
+            );
+
+            // 9. TimeSlots
+            modelBuilder.Entity<TimeSlot>().HasData(
+                new TimeSlot { SlotId = 1, SlotName = "Slot 1 (06:00 - 07:30)", StartTime = new TimeSpan(6, 0, 0), EndTime = new TimeSpan(7, 30, 0), DayType = DayType.Weekday },
+                new TimeSlot { SlotId = 2, SlotName = "Slot 2 (07:30 - 09:00)", StartTime = new TimeSpan(7, 30, 0), EndTime = new TimeSpan(9, 0, 0), DayType = DayType.Weekday },
+                new TimeSlot { SlotId = 3, SlotName = "Slot 3 (09:00 - 10:30)", StartTime = new TimeSpan(9, 0, 0), EndTime = new TimeSpan(10, 30, 0), DayType = DayType.Weekday },
+                new TimeSlot { SlotId = 4, SlotName = "Slot 4 (15:00 - 16:30)", StartTime = new TimeSpan(15, 0, 0), EndTime = new TimeSpan(16, 30, 0), DayType = DayType.Weekday },
+                new TimeSlot { SlotId = 5, SlotName = "Slot 5 (16:30 - 18:00)", StartTime = new TimeSpan(16, 30, 0), EndTime = new TimeSpan(18, 0, 0), DayType = DayType.Weekday },
+                new TimeSlot { SlotId = 6, SlotName = "Slot 6 (18:00 - 19:30)", StartTime = new TimeSpan(18, 0, 0), EndTime = new TimeSpan(19, 30, 0), DayType = DayType.Weekday },
+                new TimeSlot { SlotId = 7, SlotName = "Slot 7 (19:30 - 21:00)", StartTime = new TimeSpan(19, 30, 0), EndTime = new TimeSpan(21, 0, 0), DayType = DayType.Weekday },
+                new TimeSlot { SlotId = 8, SlotName = "Slot 8 (21:00 - 22:30)", StartTime = new TimeSpan(21, 0, 0), EndTime = new TimeSpan(22, 30, 0), DayType = DayType.Weekday }
+            );
+
+            // 10. CourtPricing
+            modelBuilder.Entity<CourtPricing>().HasData(
+                new CourtPricing { PricingId = 1, CourtId = 1, SlotId = 1, Price = 120000.00m, EffectiveFrom = new DateTime(2026, 1, 1) },
+                new CourtPricing { PricingId = 2, CourtId = 1, SlotId = 2, Price = 120000.00m, EffectiveFrom = new DateTime(2026, 1, 1) },
+                new CourtPricing { PricingId = 3, CourtId = 1, SlotId = 3, Price = 120000.00m, EffectiveFrom = new DateTime(2026, 1, 1) },
+                new CourtPricing { PricingId = 4, CourtId = 1, SlotId = 4, Price = 150000.00m, EffectiveFrom = new DateTime(2026, 1, 1) },
+                new CourtPricing { PricingId = 5, CourtId = 1, SlotId = 5, Price = 150000.00m, EffectiveFrom = new DateTime(2026, 1, 1) },
+                new CourtPricing { PricingId = 6, CourtId = 1, SlotId = 6, Price = 180000.00m, EffectiveFrom = new DateTime(2026, 1, 1) },
+                new CourtPricing { PricingId = 7, CourtId = 1, SlotId = 7, Price = 180000.00m, EffectiveFrom = new DateTime(2026, 1, 1) },
+                new CourtPricing { PricingId = 8, CourtId = 1, SlotId = 8, Price = 180000.00m, EffectiveFrom = new DateTime(2026, 1, 1) },
+                
+                new CourtPricing { PricingId = 9, CourtId = 2, SlotId = 1, Price = 80000.00m, EffectiveFrom = new DateTime(2026, 1, 1) },
+                new CourtPricing { PricingId = 10, CourtId = 2, SlotId = 2, Price = 80000.00m, EffectiveFrom = new DateTime(2026, 1, 1) },
+                new CourtPricing { PricingId = 11, CourtId = 2, SlotId = 3, Price = 80000.00m, EffectiveFrom = new DateTime(2026, 1, 1) },
+                new CourtPricing { PricingId = 12, CourtId = 2, SlotId = 4, Price = 100000.00m, EffectiveFrom = new DateTime(2026, 1, 1) },
+                new CourtPricing { PricingId = 13, CourtId = 2, SlotId = 5, Price = 100000.00m, EffectiveFrom = new DateTime(2026, 1, 1) },
+                new CourtPricing { PricingId = 14, CourtId = 2, SlotId = 6, Price = 120000.00m, EffectiveFrom = new DateTime(2026, 1, 1) },
+                new CourtPricing { PricingId = 15, CourtId = 2, SlotId = 7, Price = 120000.00m, EffectiveFrom = new DateTime(2026, 1, 1) },
+                new CourtPricing { PricingId = 16, CourtId = 2, SlotId = 8, Price = 120000.00m, EffectiveFrom = new DateTime(2026, 1, 1) }
+            );
         }
     }
 }

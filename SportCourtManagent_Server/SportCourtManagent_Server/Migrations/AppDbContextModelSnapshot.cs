@@ -71,25 +71,14 @@ namespace SportCourtManagent_Server.Migrations
                     b.Property<DateTime>("BookingDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("CancelReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
                     b.Property<int>("CourtId")
                         .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<decimal>("DiscountAmount")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<TimeSpan>("EndTime")
                         .HasColumnType("time");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int?>("PromotionId")
                         .HasColumnType("int");
@@ -109,9 +98,6 @@ namespace SportCourtManagent_Server.Migrations
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int?>("TournamentId")
-                        .HasColumnType("int");
-
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
@@ -125,8 +111,6 @@ namespace SportCourtManagent_Server.Migrations
                     b.HasIndex("PromotionId");
 
                     b.HasIndex("SlotId");
-
-                    b.HasIndex("TournamentId");
 
                     b.HasIndex("UserId");
 
@@ -197,50 +181,6 @@ namespace SportCourtManagent_Server.Migrations
                     b.HasIndex("SlotId");
 
                     b.ToTable("CoachSchedules");
-                });
-
-            modelBuilder.Entity("SportCourtManagent_Server.Models.ComplexCourtTypeService", b =>
-                {
-                    b.Property<int>("OfferingId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OfferingId"));
-
-                    b.Property<int>("ComplexId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CourtTypeId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("ServiceId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ServiceMode")
-                        .HasColumnType("int");
-
-                    b.Property<int>("StockQty")
-                        .HasColumnType("int");
-
-                    b.HasKey("OfferingId");
-
-                    b.HasIndex("CourtTypeId");
-
-                    b.HasIndex("ServiceId");
-
-                    b.HasIndex("ComplexId", "CourtTypeId", "ServiceId")
-                        .IsUnique();
-
-                    b.ToTable("ComplexCourtTypeServices");
                 });
 
             modelBuilder.Entity("SportCourtManagent_Server.Models.Court", b =>
@@ -731,13 +671,6 @@ namespace SportCourtManagent_Server.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PromotionId"));
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
                     b.Property<int>("DiscountType")
                         .HasColumnType("int");
 
@@ -746,15 +679,6 @@ namespace SportCourtManagent_Server.Migrations
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<decimal?>("MaxDiscount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("MinOrderAmount")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("PromoCode")
                         .IsRequired()
@@ -768,12 +692,6 @@ namespace SportCourtManagent_Server.Migrations
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
-
-                    b.Property<int?>("UsageLimit")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UsedCount")
-                        .HasColumnType("int");
 
                     b.HasKey("PromotionId");
 
@@ -902,16 +820,6 @@ namespace SportCourtManagent_Server.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
@@ -922,11 +830,6 @@ namespace SportCourtManagent_Server.Migrations
 
                     b.Property<int>("StockQty")
                         .HasColumnType("int");
-
-                    b.Property<string>("Unit")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
 
                     b.HasKey("ServiceId");
 
@@ -1057,42 +960,6 @@ namespace SportCourtManagent_Server.Migrations
                     b.HasKey("SlotId");
 
                     b.ToTable("TimeSlots");
-                });
-
-            modelBuilder.Entity("SportCourtManagent_Server.Models.Tournament", b =>
-                {
-                    b.Property<int>("TournamentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TournamentId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("TournamentName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("TournamentId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Tournaments");
                 });
 
             modelBuilder.Entity("SportCourtManagent_Server.Models.User", b =>
@@ -1256,11 +1123,6 @@ namespace SportCourtManagent_Server.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("SportCourtManagent_Server.Models.Tournament", "Tournament")
-                        .WithMany("Bookings")
-                        .HasForeignKey("TournamentId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
                     b.HasOne("SportCourtManagent_Server.Models.User", "User")
                         .WithMany("Bookings")
                         .HasForeignKey("UserId")
@@ -1272,8 +1134,6 @@ namespace SportCourtManagent_Server.Migrations
                     b.Navigation("Promotion");
 
                     b.Navigation("TimeSlot");
-
-                    b.Navigation("Tournament");
 
                     b.Navigation("User");
                 });
@@ -1322,33 +1182,6 @@ namespace SportCourtManagent_Server.Migrations
                     b.Navigation("Court");
 
                     b.Navigation("TimeSlot");
-                });
-
-            modelBuilder.Entity("SportCourtManagent_Server.Models.ComplexCourtTypeService", b =>
-                {
-                    b.HasOne("SportCourtManagent_Server.Models.CourtComplex", "Complex")
-                        .WithMany()
-                        .HasForeignKey("ComplexId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SportCourtManagent_Server.Models.CourtType", "CourtType")
-                        .WithMany()
-                        .HasForeignKey("CourtTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SportCourtManagent_Server.Models.Service", "Service")
-                        .WithMany("ComplexCourtTypeServices")
-                        .HasForeignKey("ServiceId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Complex");
-
-                    b.Navigation("CourtType");
-
-                    b.Navigation("Service");
                 });
 
             modelBuilder.Entity("SportCourtManagent_Server.Models.Court", b =>
@@ -1616,17 +1449,6 @@ namespace SportCourtManagent_Server.Migrations
                     b.Navigation("CreatedBy");
                 });
 
-            modelBuilder.Entity("SportCourtManagent_Server.Models.Tournament", b =>
-                {
-                    b.HasOne("SportCourtManagent_Server.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("SportCourtManagent_Server.Models.User", b =>
                 {
                     b.HasOne("SportCourtManagent_Server.Models.MembershipTier", "MembershipTier")
@@ -1758,8 +1580,6 @@ namespace SportCourtManagent_Server.Migrations
                 {
                     b.Navigation("BookingServices");
 
-                    b.Navigation("ComplexCourtTypeServices");
-
                     b.Navigation("EquipmentInventories");
                 });
 
@@ -1774,11 +1594,6 @@ namespace SportCourtManagent_Server.Migrations
                     b.Navigation("RecurringBookings");
 
                     b.Navigation("Waitlists");
-                });
-
-            modelBuilder.Entity("SportCourtManagent_Server.Models.Tournament", b =>
-                {
-                    b.Navigation("Bookings");
                 });
 
             modelBuilder.Entity("SportCourtManagent_Server.Models.User", b =>

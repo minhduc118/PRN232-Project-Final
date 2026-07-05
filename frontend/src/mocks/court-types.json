@@ -1,6 +1,0 @@
-[
-  { "courtTypeId": 1, "typeName": "Pickleball", "isActive": true },
-  { "courtTypeId": 2, "typeName": "Cầu lông",   "isActive": true },
-  { "courtTypeId": 3, "typeName": "Bóng đá mini", "isActive": true },
-  { "courtTypeId": 4, "typeName": "Tennis",      "isActive": true }
-]

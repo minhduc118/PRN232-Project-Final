@@ -35,6 +35,13 @@ namespace SportCourtManagent_Server.Services.Implements
             };
         }
 
+        public async Task<List<UserDto>> GetManagersAsync()
+        {
+            // Lấy tất cả user Staff đang active, không phân trang
+            var users = await _userRepo.GetPagedWithDetailsAsync(null, "Staff", true, 1, 200);
+            return users.Select(UserMapper.ToSummaryDto).ToList();
+        }
+
         public async Task<UserDto?> GetByIdAsync(int id)
         {
             var user = await _userRepo.GetByIdWithDetailsAsync(id);

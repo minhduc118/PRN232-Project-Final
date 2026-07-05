@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Gift, Filter, X, Save, Loader2, RefreshCw } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Gift, Filter, X, Save, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { promotionApi } from '@/api/promotionApi';
 import type { Promotion, CreatePromotionRequest, UpdatePromotionRequest, DiscountType } from '@/types/promotion.types';
@@ -15,6 +15,10 @@ export default function ManagePromotionsPage() {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [selectedPromo, setSelectedPromo] = useState<Promotion | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Delete confirm modal
+  const [deleteTarget, setDeleteTarget] = useState<Promotion | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Form State
   const [promoCode, setPromoCode] = useState('');
@@ -147,15 +151,18 @@ export default function ManagePromotionsPage() {
     }
   };
 
-  const handleDelete = async (promo: Promotion) => {
-    if (window.confirm(`Bạn có chắc muốn xóa mã khuyến mãi ${promo.promoCode}?`)) {
-      try {
-        await promotionApi.deletePromotion(promo.promotionId);
-        toast.success('Xóa thành công');
-        loadPromotions();
-      } catch (error: any) {
-        toast.error(error?.response?.data?.message || 'Không thể xóa mã khuyến mãi này');
-      }
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await promotionApi.deletePromotion(deleteTarget.promotionId);
+      toast.success(`Đã xóa mã khuyến mãi ${deleteTarget.promoCode}`);
+      setDeleteTarget(null);
+      loadPromotions();
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Không thể xóa mã khuyến mãi này');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -298,7 +305,7 @@ export default function ManagePromotionsPage() {
                         <button onClick={() => openEditModal(promo)} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors" title="Chỉnh sửa">
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
-                        <button onClick={() => handleDelete(promo)} className="p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-colors" title="Xóa">
+                        <button onClick={() => setDeleteTarget(promo)} className="p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-400/10 transition-colors" title="Xóa">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -447,6 +454,43 @@ export default function ManagePromotionsPage() {
               <button onClick={handleSave} disabled={saving} className="btn-primary">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {modalMode === 'create' ? 'Thêm mới' : 'Lưu thay đổi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDeleteTarget(null)} />
+          <div className="relative bg-surface-card border border-surface-border rounded-2xl w-full max-w-sm shadow-2xl p-6 animate-fade-in">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+              </div>
+              <h3 className="text-base font-semibold text-white">Xóa mã khuyến mãi</h3>
+            </div>
+            <p className="text-sm text-slate-400 mb-2">
+              Bạn có chắc muốn xóa mã khuyến mãi:
+            </p>
+            <p className="text-sm font-bold text-white mb-1">{deleteTarget.promoCode}</p>
+            <p className="text-xs text-slate-500 mb-6">{deleteTarget.promoName}</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                className="btn-secondary"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Xóa
               </button>
             </div>
           </div>

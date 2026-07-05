@@ -375,12 +375,22 @@ namespace SportCourtManagent_Server.Models
 
             var demos = new (string Email, string FullName, string Password, string Role, int? TierId, bool IsActive, string Phone)[]
             {
+                // ── Admin accounts ──────────────────────────────────────────
                 ("admin2@sportcourt.vn", "Phạm Văn Admin", "admin123", "Admin", gold?.TierId ?? bronze.TierId, true, "0902000001"),
-                ("staff2@sportcourt.vn", "Hoàng Thị Nhân Viên", "Staff@123", "Staff", bronze.TierId, true, "0902000002"),
-                ("manager@sportcourt.vn", "Trần Văn Quản Lý", "Staff@123", "Staff", silver?.TierId ?? bronze.TierId, true, "0912111222"),
-                ("customer2@sportcourt.vn", "Lê Thị Lan", "customer123", "Customer", silver?.TierId ?? bronze.TierId, true, "0903000001"),
-                ("customer3@sportcourt.vn", "Phạm Minh Đức", "customer123", "Customer", bronze.TierId, true, "0903000002"),
-                ("customer.inactive@sportcourt.vn", "Nguyễn Văn Khóa", "customer123", "Customer", bronze.TierId, false, "0903000003"),
+
+                // ── Staff / Quản lý tổ hợp ──────────────────────────────────
+                ("staff2@sportcourt.vn",   "Hoàng Thị Nhân Viên",  "Staff@123", "Staff", bronze.TierId,              true, "0902000002"),
+                ("manager@sportcourt.vn",  "Trần Văn Quản Lý",     "Staff@123", "Staff", silver?.TierId ?? bronze.TierId, true, "0912111222"),
+                ("manager2@sportcourt.vn", "Nguyễn Thị Hồng",      "Staff@123", "Staff", silver?.TierId ?? bronze.TierId, true, "0912222333"),
+                ("manager3@sportcourt.vn", "Lê Quốc Hùng",         "Staff@123", "Staff", silver?.TierId ?? bronze.TierId, true, "0912333444"),
+                ("manager4@sportcourt.vn", "Võ Thị Thanh",         "Staff@123", "Staff", bronze.TierId,              true, "0912444555"),
+                ("manager5@sportcourt.vn", "Đặng Minh Khoa",       "Staff@123", "Staff", bronze.TierId,              true, "0912555666"),
+                ("manager6@sportcourt.vn", "Bùi Thị Thu Hà",       "Staff@123", "Staff", silver?.TierId ?? bronze.TierId, true, "0912666777"),
+
+                // ── Customer accounts ────────────────────────────────────────
+                ("customer2@sportcourt.vn",        "Lê Thị Lan",       "customer123", "Customer", silver?.TierId ?? bronze.TierId, true,  "0903000001"),
+                ("customer3@sportcourt.vn",        "Phạm Minh Đức",    "customer123", "Customer", bronze.TierId,                   true,  "0903000002"),
+                ("customer.inactive@sportcourt.vn","Nguyễn Văn Khóa",  "customer123", "Customer", bronze.TierId,                   false, "0903000003"),
             };
 
             foreach (var demo in demos)

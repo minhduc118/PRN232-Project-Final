@@ -45,6 +45,25 @@ namespace SportCourtManagent_Server.Controllers
             }
         }
 
+        /// <summary>
+        /// Trả về danh sách phẳng (không phân trang) các tài khoản Staff đang hoạt động,
+        /// dùng cho dropdown "Quản lý phụ trách" trong form tổ hợp sân.
+        /// </summary>
+        [HttpGet("managers")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetManagers()
+        {
+            try
+            {
+                var managers = await _userManagement.GetManagersAsync();
+                return Ok(ApiResults.Ok(managers, "Lấy danh sách quản lý thành công."));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResults.Fail(ex.Message, 500));
+            }
+        }
+
         [HttpGet("{id:int}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetById(int id)

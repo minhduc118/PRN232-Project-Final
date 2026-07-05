@@ -88,5 +88,12 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
                     .ThenInclude(cp => cp.TimeSlot)
                 .FirstOrDefaultAsync(c => c.CourtId == courtId);
         }
+
+        public async Task<IEnumerable<Court>> GetCourtsByComplexAsync(int complexId)
+        {   return await _context.Courts
+                .Include(c => c.CourtType)
+                .Where(c => c.ComplexId == complexId && !c.IsDeleted)
+                .ToListAsync();
+        }
     }
 }

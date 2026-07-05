@@ -33,5 +33,6 @@ namespace SportCourtManagent_Server.DataAccess.Interfaces
         /// Returns court with pricing and timeslot info for availability checking.
         /// </summary>
         Task<Court?> GetCourtWithPricingsAsync(int courtId);
+        Task<IEnumerable<Court>> GetCourtsByComplexAsync(int complexId);
     }
 }

@@ -522,11 +522,6 @@ namespace SportCourtManagent_Server.Models
                 new UserRole { UserRoleId = 4, UserId = 4, RoleId = 4 }
             );
 
-            // 4b. StaffComplexes – assign tất cả Staff (UserId=3) vào ComplexId=1
-            modelBuilder.Entity<StaffComplex>().HasData(
-                new StaffComplex { StaffComplexId = 1, StaffId = 3, ComplexId = 1, AssignedAt = new DateTime(2026, 1, 1) }
-            );
-
             // 5. CourtComplexes
             modelBuilder.Entity<CourtComplex>().HasData(
                 new CourtComplex
@@ -540,6 +535,11 @@ namespace SportCourtManagent_Server.Models
                     IsDeleted = false,
                     CreatedAt = new DateTime(2026, 1, 1)
                 }
+            );
+
+            // 4b. StaffComplexes – assign tất cả Staff (UserId=3) vào ComplexId=1
+            modelBuilder.Entity<StaffComplex>().HasData(
+                new StaffComplex { StaffComplexId = 1, StaffId = 3, ComplexId = 1, AssignedAt = new DateTime(2026, 1, 1) }
             );
 
             // 6. CourtTypes

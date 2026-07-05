@@ -10,6 +10,10 @@ using SportCourtManagent_Server.Enums;
 using SportCourtManagent_Server.Models;
 using SportCourtManagent_Server.Services.Interfaces;
 
+using Microsoft.Extensions.Configuration;
+using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
+
 namespace SportCourtManagent_Server.Services.Implements
 {
     public class CourtComplexService : ICourtComplexService
@@ -19,11 +23,13 @@ namespace SportCourtManagent_Server.Services.Implements
 
         private readonly ICourtComplexRepository _complexRepo;
         private readonly IUserRepository _userRepo;
+        private readonly IConfiguration _config;
 
-        public CourtComplexService(ICourtComplexRepository complexRepo, IUserRepository userRepo)
+        public CourtComplexService(ICourtComplexRepository complexRepo, IUserRepository userRepo, IConfiguration config)
         {
             _complexRepo = complexRepo ?? throw new ArgumentNullException(nameof(complexRepo));
             _userRepo = userRepo ?? throw new ArgumentNullException(nameof(userRepo));
+            _config = config ?? throw new ArgumentNullException(nameof(config));
         }
 
         public async Task<PagedComplexResult> GetAllAsync(string? search, int? courtTypeId, int page, int pageSize)
@@ -146,20 +152,55 @@ namespace SportCourtManagent_Server.Services.Implements
             if (!AllowedImageTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
                 throw new ArgumentException("Chỉ hỗ trợ ảnh JPG, PNG, WEBP, GIF.");
 
-            var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "complexes");
-            Directory.CreateDirectory(uploadsDir);
+            var cloudName = _config["CloudinarySettings:CloudName"];
+            var apiKey = _config["CloudinarySettings:ApiKey"];
+            var apiSecret = _config["CloudinarySettings:ApiSecret"];
 
-            var ext = Path.GetExtension(file.FileName);
-            if (string.IsNullOrWhiteSpace(ext)) ext = ".jpg";
-            var fileName = $"{Guid.NewGuid():N}{ext}";
-            var filePath = Path.Combine(uploadsDir, fileName);
+            // Nếu người dùng chưa điền token Cloudinary thực tế (vẫn để placeholder), 
+            // tự động fallback về lưu local disk để tránh lỗi crash
+            if (string.IsNullOrWhiteSpace(cloudName) || cloudName.Contains("YOUR_CLOUD_NAME") ||
+                string.IsNullOrWhiteSpace(apiKey) || apiKey.Contains("YOUR_API_KEY") ||
+                string.IsNullOrWhiteSpace(apiSecret) || apiSecret.Contains("YOUR_API_SECRET"))
+            {
+                var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "complexes");
+                Directory.CreateDirectory(uploadsDir);
 
-            await using (var stream = File.Create(filePath))
-                await file.CopyToAsync(stream);
+                var ext = Path.GetExtension(file.FileName);
+                if (string.IsNullOrWhiteSpace(ext)) ext = ".jpg";
+                var fileName = $"{Guid.NewGuid():N}{ext}";
+                var filePath = Path.Combine(uploadsDir, fileName);
+
+                await using (var stream = File.Create(filePath))
+                    await file.CopyToAsync(stream);
+
+                return new ImageUploadResultDto
+                {
+                    Url = $"{scheme}://{host}/uploads/complexes/{fileName}"
+                };
+            }
+
+            // Tiến hành upload lên Cloudinary
+            var account = new Account(cloudName, apiKey, apiSecret);
+            var cloudinary = new Cloudinary(account);
+            var uploadResult = new ImageUploadResult();
+
+            await using (var stream = file.OpenReadStream())
+            {
+                var uploadParams = new ImageUploadParams()
+                {
+                    File = new FileDescription(file.FileName, stream),
+                    Folder = "sportcourt",
+                    PublicId = $"{Guid.NewGuid():N}"
+                };
+                uploadResult = await cloudinary.UploadAsync(uploadParams);
+            }
+
+            if (uploadResult.Error != null)
+                throw new InvalidOperationException($"Lỗi upload Cloudinary: {uploadResult.Error.Message}");
 
             return new ImageUploadResultDto
             {
-                Url = $"{scheme}://{host}/uploads/complexes/{fileName}"
+                Url = uploadResult.SecureUrl.ToString()
             };
         }
 

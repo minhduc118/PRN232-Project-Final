@@ -72,14 +72,31 @@ namespace SportCourtManagent_Server.Services.Implements
       var slot = await _context.TimeSlots.FindAsync(request.SlotId);
       if (slot == null) throw new ArgumentException("Khung giờ không hợp lệ.");
 
-      // Check for duplicate slot booking
-      var isBooked = await _context.Bookings.AnyAsync(b =>
+      // Check for duplicate slot booking & apply lazy expiration
+      var existingBookings = await _context.Bookings.Where(b =>
         b.CourtId == request.CourtId
         && b.SlotId == request.SlotId
         && b.BookingDate.Date == request.BookingDate.Date
-        && b.Status != BookingStatus.Cancelled);
-      if (isBooked)
-        throw new ArgumentException($"Khung giờ {slot.SlotName} ngày {request.BookingDate:dd/MM/yyyy} đã có người đặt.");
+        && b.Status != BookingStatus.Cancelled).ToListAsync();
+
+      var now = DateTime.UtcNow;
+      foreach (var conflict in existingBookings)
+      {
+        if (conflict.Status == BookingStatus.Pending && conflict.ExpiredAt.HasValue && conflict.ExpiredAt.Value < now)
+        {
+          conflict.Status = BookingStatus.Cancelled;
+          conflict.CancelReason = "Hết hạn thanh toán (TTL expired)";
+          _context.Bookings.Update(conflict);
+        }
+        else
+        {
+          throw new ArgumentException($"Khung giờ {slot.SlotName} ngày {request.BookingDate:dd/MM/yyyy} đã có người đặt hoặc đang giữ chỗ chờ thanh toán.");
+        }
+      }
+      if (existingBookings.Any(b => b.Status == BookingStatus.Cancelled))
+      {
+        await _context.SaveChangesAsync();
+      }
 
       decimal subTotal = await CalculateSubTotalAsync(request.CourtId, slot, request.ServiceIds);
       var (promoId, discountAmount) = await ProcessPromotionAsync(request.PromotionCode, subTotal);
@@ -141,17 +158,36 @@ namespace SportCourtManagent_Server.Services.Implements
       if (!allDates.Any())
         throw new ArgumentException("Không có ngày nào phù hợp trong khoảng thời gian đã chọn.");
 
-      // Batch check all conflicting dates
+      // Batch check all conflicting dates & apply lazy expiration
       var existingBookings = await _context.Bookings
         .Where(b => b.CourtId == request.CourtId
                   && b.SlotId == request.SlotId
                   && allDates.Contains(b.BookingDate)
                   && b.Status != BookingStatus.Cancelled)
-        .Select(b => b.BookingDate.Date)
         .ToListAsync();
 
-      var conflictDates = allDates.Where(d => existingBookings.Contains(d.Date)).ToList();
-      var availableDates = allDates.Where(d => !existingBookings.Contains(d.Date)).ToList();
+      var now = DateTime.UtcNow;
+      var activeConflictDates = new HashSet<DateTime>();
+      foreach (var conflict in existingBookings)
+      {
+        if (conflict.Status == BookingStatus.Pending && conflict.ExpiredAt.HasValue && conflict.ExpiredAt.Value < now)
+        {
+          conflict.Status = BookingStatus.Cancelled;
+          conflict.CancelReason = "Hết hạn thanh toán (TTL expired)";
+          _context.Bookings.Update(conflict);
+        }
+        else
+        {
+          activeConflictDates.Add(conflict.BookingDate.Date);
+        }
+      }
+      if (existingBookings.Any(b => b.Status == BookingStatus.Cancelled))
+      {
+        await _context.SaveChangesAsync();
+      }
+
+      var conflictDates = allDates.Where(d => activeConflictDates.Contains(d.Date)).ToList();
+      var availableDates = allDates.Where(d => !activeConflictDates.Contains(d.Date)).ToList();
 
       if (!availableDates.Any())
         throw new ArgumentException("Tất cả các ngày trong khoảng thời gian đã chọn đều đã có người đặt.");
@@ -590,6 +626,27 @@ namespace SportCourtManagent_Server.Services.Implements
       {
         if (!existingActivePairs.Contains(pair))
         {
+          var existingConflicts = await _context.Bookings.Where(b =>
+            b.CourtId == pair.CourtId
+            && b.SlotId == pair.SlotId
+            && b.BookingDate.Date == request.BookingDate.Date
+            && b.Status != BookingStatus.Cancelled).ToListAsync();
+
+          var now = DateTime.UtcNow;
+          foreach (var conflict in existingConflicts)
+          {
+            if (conflict.Status == BookingStatus.Pending && conflict.ExpiredAt.HasValue && conflict.ExpiredAt.Value < now)
+            {
+              conflict.Status = BookingStatus.Cancelled;
+              conflict.CancelReason = "Hết hạn thanh toán (TTL expired)";
+              _context.Bookings.Update(conflict);
+            }
+            else
+            {
+              throw new ArgumentException($"Sân {pair.CourtId} vào khung giờ {pair.SlotId} ngày {request.BookingDate:dd/MM/yyyy} đã có người đặt.");
+            }
+          }
+
           var slot = await _context.TimeSlots.FindAsync(pair.SlotId) ?? throw new ArgumentException($"Khung giờ {pair.SlotId} không hợp lệ.");
           decimal subTotal = await CalculateSubTotalAsync(pair.CourtId, slot, request.Services);
           var booking = new Booking

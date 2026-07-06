@@ -68,10 +68,12 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
 
         public async Task<bool> HasConflictingBookingAsync(int courtId, int slotId, DateTime bookingDate)
         {
+            var now = DateTime.UtcNow;
             return await _context.Bookings.AnyAsync(b => b.CourtId == courtId 
                                            && b.SlotId == slotId 
                                            && b.BookingDate.Date == bookingDate.Date
-                                           && b.Status != BookingStatus.Cancelled);
+                                           && b.Status != BookingStatus.Cancelled
+                                           && (b.Status != BookingStatus.Pending || !b.ExpiredAt.HasValue || b.ExpiredAt > now));
         }
 
         public async Task<BookingBillingResult> ProcessBookingBillingAsync  (CreateBookingRequestDto dto, decimal courtPrice)

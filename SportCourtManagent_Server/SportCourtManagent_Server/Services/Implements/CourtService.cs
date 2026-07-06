@@ -182,13 +182,15 @@ namespace SportCourtManagent_Server.Services.Implements
             var court = await _courtRepo.GetCourtWithPricingsAsync(courtId);
             if (court is null) return null;
 
-            // Get all bookings for this court on the given date (non-cancelled)
+            // Get all bookings for this court on the given date (non-cancelled and non-expired)
             var targetDate = date.Date;
+            var now = DateTime.UtcNow;
             var bookedSlotIds = await _db.Bookings
                 .AsNoTracking()
                 .Where(b => b.CourtId == courtId
                              && b.BookingDate.Date == targetDate
-                             && b.Status != BookingStatus.Cancelled)
+                             && b.Status != BookingStatus.Cancelled
+                             && (b.Status != BookingStatus.Pending || !b.ExpiredAt.HasValue || b.ExpiredAt > now))
                 .Select(b => b.SlotId)
                 .ToListAsync();
 

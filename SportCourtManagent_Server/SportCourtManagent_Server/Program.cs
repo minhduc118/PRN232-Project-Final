@@ -59,6 +59,7 @@ builder.Services.AddScoped<IReviewService, ReviewService>();
 
 builder.Services.AddScoped<IStaffService, StaffService>();
 builder.Services.AddScoped<IMaintenanceScheduleService, MaintenanceScheduleService>();
+builder.Services.AddScoped<ITaskItemService, TaskItemService>();
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {

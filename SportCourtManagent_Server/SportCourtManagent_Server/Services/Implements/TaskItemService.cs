@@ -273,6 +273,69 @@ namespace SportCourtManagent_Server.Services.Implements
             await _taskRepository.DeleteAsync(task.TaskId);
         }
 
+        public async Task<PagedTaskResponse> GetStaffTasksAsync(
+            int staffId,
+            TaskItemStatus? status,
+            int page,
+            int pageSize)
+        {
+            var (items, totalCount) = await _taskRepository.GetTasksByStaffAsync(
+                staffId, status, page, pageSize);
+
+            var list = new List<TaskResponse>();
+            foreach (var item in items)
+            {
+                list.Add(MapToResponse(item));
+            }
+
+            return new PagedTaskResponse
+            {
+                Items = list,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            };
+        }
+
+        public async Task<TaskResponse> StartTaskAsync(int staffId, int taskId)
+        {
+            var task = await _taskRepository.GetByIdAsync(taskId);
+            if (task == null || task.AssignedStaffId != staffId)
+            {
+                throw new KeyNotFoundException($"Không tìm thấy công việc với Id {taskId} giao cho bạn.");
+            }
+
+            if (task.Status != TaskItemStatus.Pending)
+            {
+                throw new InvalidOperationException("Chỉ có thể bắt đầu công việc đang ở trạng thái Chờ thực hiện (Pending).");
+            }
+
+            task.Status = TaskItemStatus.InProgress;
+            var updated = await _taskRepository.UpdateAsync(task);
+            var loadedTask = await _taskRepository.GetByIdAsync(updated.TaskId) ?? updated;
+            return MapToResponse(loadedTask);
+        }
+
+        public async Task<TaskResponse> CompleteTaskAsync(int staffId, int taskId)
+        {
+            var task = await _taskRepository.GetByIdAsync(taskId);
+            if (task == null || task.AssignedStaffId != staffId)
+            {
+                throw new KeyNotFoundException($"Không tìm thấy công việc với Id {taskId} giao cho bạn.");
+            }
+
+            if (task.Status != TaskItemStatus.InProgress)
+            {
+                throw new InvalidOperationException("Chỉ có thể hoàn thành công việc đang ở trạng thái Đang làm (InProgress).");
+            }
+
+            task.Status = TaskItemStatus.Completed;
+            var updated = await _taskRepository.UpdateAsync(task);
+            var loadedTask = await _taskRepository.GetByIdAsync(updated.TaskId) ?? updated;
+            return MapToResponse(loadedTask);
+        }
+
         private TaskResponse MapToResponse(TaskItem item)
         {
             return new TaskResponse

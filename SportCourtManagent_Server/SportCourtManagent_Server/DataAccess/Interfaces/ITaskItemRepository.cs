@@ -19,5 +19,10 @@ namespace SportCourtManagent_Server.DataAccess.Interfaces
         Task<TaskItem> CreateAsync(TaskItem task);
         Task<TaskItem> UpdateAsync(TaskItem task);
         Task<bool> DeleteAsync(int id);
+        Task<(List<TaskItem> Items, int TotalCount)> GetTasksByStaffAsync(
+            int staffId,
+            TaskItemStatus? status = null,
+            int page = 1,
+            int pageSize = 10);
     }
 }

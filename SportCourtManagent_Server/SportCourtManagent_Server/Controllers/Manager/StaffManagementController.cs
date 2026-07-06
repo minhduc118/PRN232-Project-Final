@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SportCourtManagent_Server.DTOs.Staff;
 using SportCourtManagent_Server.Services.Interfaces;
 
 namespace SportCourtManagent_Server.Controllers.Manager
 {
+    [Authorize(Roles = "Admin,Manager")]
     [Route("api/manager/complexes/{complexId:int}/staff")]
     [ApiController]
     public class StaffManagementController : ControllerBase

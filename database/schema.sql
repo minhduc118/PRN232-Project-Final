@@ -1,713 +1,763 @@
 -- =============================================
 -- Sports Court Management System - SQL Server
--- Version: 2.0 | PRN232 | 26 Tables
+-- Version: 3.0 | PRN232 | 28 Tables (Aligned with EF Core Migrations)
+-- Database Name: PRN232_SCM_DB
 -- =============================================
 
 USE master;
 GO
-IF EXISTS (SELECT name FROM sys.databases WHERE name = 'SportsCourtDB')
-    DROP DATABASE SportsCourtDB;
+IF EXISTS (SELECT name FROM sys.databases WHERE name = 'PRN232_SCM_DB')
+BEGIN
+    ALTER DATABASE PRN232_SCM_DB SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE PRN232_SCM_DB;
+END
 GO
-CREATE DATABASE SportsCourtDB COLLATE Vietnamese_CI_AS;
+CREATE DATABASE PRN232_SCM_DB COLLATE Vietnamese_CI_AS;
 GO
-USE SportsCourtDB;
+USE PRN232_SCM_DB;
 GO
+
+-- =============================================
+-- CREATE TABLES (In order of dependencies)
+-- =============================================
 
 -- 1. ROLES
 CREATE TABLE Roles (
     RoleId      INT PRIMARY KEY IDENTITY(1,1),
-    RoleName    NVARCHAR(50)  NOT NULL UNIQUE,
-    Description NVARCHAR(200) NULL,
-    CreatedAt   DATETIME      NOT NULL DEFAULT GETDATE()
+    RoleName    NVARCHAR(50)  NOT NULL,
+    Description NVARCHAR(255) NULL
 );
+GO
+CREATE UNIQUE INDEX IX_Roles_RoleName ON Roles(RoleName);
 GO
 
 -- 2. MEMBERSHIP TIERS
 CREATE TABLE MembershipTiers (
     TierId          INT PRIMARY KEY IDENTITY(1,1),
-    TierName        NVARCHAR(50)   NOT NULL UNIQUE,
-    MinPoints       INT            NOT NULL DEFAULT 0,
-    DiscountPercent DECIMAL(5,2)   NOT NULL DEFAULT 0,
-    Description     NVARCHAR(300)  NULL,
-    CreatedAt       DATETIME       NOT NULL DEFAULT GETDATE()
+    TierName        NVARCHAR(50)   NOT NULL,
+    MinPoints       INT            NOT NULL,
+    DiscountPercent DECIMAL(18,2)  NOT NULL
 );
 GO
 
--- 3. USERS
-CREATE TABLE Users (
-    UserId             INT PRIMARY KEY IDENTITY(1,1),
-    FullName           NVARCHAR(100) NOT NULL,
-    Email              VARCHAR(100)  NOT NULL UNIQUE,
-    Phone              VARCHAR(15)   NULL,
-    PasswordHash       VARCHAR(255)  NOT NULL,
-    AvatarUrl          VARCHAR(500)  NULL,
-    DateOfBirth        DATE          NULL,
-    Gender             VARCHAR(10)   NULL CHECK (Gender IN ('Male','Female','Other')),
-    LoyaltyPoints      INT           NOT NULL DEFAULT 0,
-    MembershipTierId   INT           NULL,
-    IsActive           BIT           NOT NULL DEFAULT 1,
-    IsEmailVerified    BIT           NOT NULL DEFAULT 0,
-    RefreshToken       VARCHAR(500)  NULL,
-    RefreshTokenExpiry DATETIME      NULL,
-    CreatedAt          DATETIME      NOT NULL DEFAULT GETDATE(),
-    UpdatedAt          DATETIME      NULL,
-    FOREIGN KEY (MembershipTierId) REFERENCES MembershipTiers(TierId)
+-- 3. PROMOTIONS
+CREATE TABLE Promotions (
+    PromotionId    INT PRIMARY KEY IDENTITY(1,1),
+    PromoCode      NVARCHAR(50)   NOT NULL,
+    PromoName      NVARCHAR(100)  NOT NULL,
+    DiscountType   INT            NOT NULL, -- 0 = Percent, 1 = FixedAmount
+    DiscountValue  DECIMAL(18,2)  NOT NULL,
+    StartDate      DATETIME2      NOT NULL,
+    EndDate        DATETIME2      NOT NULL
 );
 GO
-
--- 4. USER ROLES
-CREATE TABLE UserRoles (
-    UserRoleId INT PRIMARY KEY IDENTITY(1,1),
-    UserId     INT NOT NULL,
-    RoleId     INT NOT NULL,
-    AssignedAt DATETIME NOT NULL DEFAULT GETDATE(),
-    FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE,
-    FOREIGN KEY (RoleId) REFERENCES Roles(RoleId),
-    UNIQUE (UserId, RoleId)
-);
+CREATE UNIQUE INDEX IX_Promotions_PromoCode ON Promotions(PromoCode);
 GO
 
--- 5. COURT TYPES
+-- 4. COURT TYPES
 CREATE TABLE CourtTypes (
     CourtTypeId INT PRIMARY KEY IDENTITY(1,1),
-    TypeName    NVARCHAR(100) NOT NULL UNIQUE,
-    IconUrl     VARCHAR(500)  NULL,
-    Description NVARCHAR(300) NULL,
-    IsActive    BIT           NOT NULL DEFAULT 1,
-    CreatedAt   DATETIME      NOT NULL DEFAULT GETDATE()
+    TypeName    NVARCHAR(50) NOT NULL,
+    IsActive    BIT          NOT NULL
 );
 GO
-
--- 6. COURTS
-CREATE TABLE Courts (
-    CourtId     INT PRIMARY KEY IDENTITY(1,1),
-    CourtName   NVARCHAR(100)  NOT NULL,
-    CourtCode   VARCHAR(20)    NOT NULL UNIQUE,
-    CourtTypeId INT            NOT NULL,
-    Description NVARCHAR(1000) NULL,
-    Location    NVARCHAR(300)  NULL,
-    Capacity    INT            NULL,
-    Surface     NVARCHAR(100)  NULL,
-    ImageUrl    VARCHAR(500)   NULL,
-    OpenTime    TIME           NOT NULL DEFAULT '06:00',
-    CloseTime   TIME           NOT NULL DEFAULT '22:00',
-    Status      VARCHAR(20)    NOT NULL DEFAULT 'Available'
-                CHECK (Status IN ('Available','Booked','InUse','Maintenance','Inactive')),
-    CreatedAt   DATETIME       NOT NULL DEFAULT GETDATE(),
-    UpdatedAt   DATETIME       NULL,
-    FOREIGN KEY (CourtTypeId) REFERENCES CourtTypes(CourtTypeId)
-);
+CREATE UNIQUE INDEX IX_CourtTypes_TypeName ON CourtTypes(TypeName);
 GO
 
--- 7. COURT IMAGES
-CREATE TABLE CourtImages (
-    ImageId   INT PRIMARY KEY IDENTITY(1,1),
-    CourtId   INT          NOT NULL,
-    ImageUrl  VARCHAR(500) NOT NULL,
-    IsPrimary BIT          NOT NULL DEFAULT 0,
-    SortOrder INT          NOT NULL DEFAULT 0,
-    CreatedAt DATETIME     NOT NULL DEFAULT GETDATE(),
-    FOREIGN KEY (CourtId) REFERENCES Courts(CourtId) ON DELETE CASCADE
-);
-GO
-
--- 8. TIME SLOTS
+-- 5. TIME SLOTS
 CREATE TABLE TimeSlots (
     SlotId    INT PRIMARY KEY IDENTITY(1,1),
     SlotName  NVARCHAR(50) NOT NULL,
     StartTime TIME         NOT NULL,
     EndTime   TIME         NOT NULL,
-    DayType   VARCHAR(20)  NOT NULL DEFAULT 'Weekday'
-              CHECK (DayType IN ('Weekday','Weekend','Holiday')),
-    IsActive  BIT          NOT NULL DEFAULT 1
+    DayType   INT          NOT NULL -- 0 = Weekday, 1 = Weekend, 2 = Holiday
 );
 GO
 
--- 9. COURT PRICING
-CREATE TABLE CourtPricing (
-    PricingId     INT PRIMARY KEY IDENTITY(1,1),
-    CourtId       INT           NOT NULL,
-    SlotId        INT           NOT NULL,
-    Price         DECIMAL(18,2) NOT NULL,
-    PeakMultiplier DECIMAL(4,2) NOT NULL DEFAULT 1.0,
-    EffectiveFrom DATE          NOT NULL DEFAULT GETDATE(),
-    EffectiveTo   DATE          NULL,
-    CreatedAt     DATETIME      NOT NULL DEFAULT GETDATE(),
-    FOREIGN KEY (CourtId) REFERENCES Courts(CourtId),
-    FOREIGN KEY (SlotId)  REFERENCES TimeSlots(SlotId)
-);
-GO
-
--- 10. PROMOTIONS
-CREATE TABLE Promotions (
-    PromotionId    INT PRIMARY KEY IDENTITY(1,1),
-    PromoCode      VARCHAR(50)   NOT NULL UNIQUE,
-    PromoName      NVARCHAR(200) NOT NULL,
-    Description    NVARCHAR(500) NULL,
-    DiscountType   VARCHAR(20)   NOT NULL CHECK (DiscountType IN ('Percent','FixedAmount')),
-    DiscountValue  DECIMAL(18,2) NOT NULL,
-    MinOrderAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
-    MaxDiscount    DECIMAL(18,2) NULL,
-    UsageLimit     INT           NULL,
-    UsedCount      INT           NOT NULL DEFAULT 0,
-    StartDate      DATETIME      NOT NULL,
-    EndDate        DATETIME      NOT NULL,
-    IsActive       BIT           NOT NULL DEFAULT 1,
-    CreatedAt      DATETIME      NOT NULL DEFAULT GETDATE()
-);
-GO
-
--- 11. RECURRING BOOKINGS
-CREATE TABLE RecurringBookings (
-    RecurringId   INT PRIMARY KEY IDENTITY(1,1),
-    UserId        INT          NOT NULL,
-    CourtId       INT          NOT NULL,
-    SlotId        INT          NOT NULL,
-    StartDate     DATE         NOT NULL,
-    EndDate       DATE         NOT NULL,
-    DaysOfWeek    VARCHAR(20)  NOT NULL, -- '1,3,5' = Mon,Wed,Fri
-    StartTime     TIME         NOT NULL,
-    EndTime       TIME         NOT NULL,
-    TotalSessions INT          NOT NULL DEFAULT 0,
-    Status        VARCHAR(20)  NOT NULL DEFAULT 'Active'
-                  CHECK (Status IN ('Active','Paused','Cancelled','Completed')),
-    CreatedAt     DATETIME     NOT NULL DEFAULT GETDATE(),
-    FOREIGN KEY (UserId)  REFERENCES Users(UserId),
-    FOREIGN KEY (CourtId) REFERENCES Courts(CourtId),
-    FOREIGN KEY (SlotId)  REFERENCES TimeSlots(SlotId)
-);
-GO
-
--- 12. BOOKINGS
-CREATE TABLE Bookings (
-    BookingId      INT PRIMARY KEY IDENTITY(1,1),
-    BookingCode    VARCHAR(20)   NOT NULL UNIQUE,
-    UserId         INT           NOT NULL,
-    CourtId        INT           NOT NULL,
-    SlotId         INT           NOT NULL,
-    RecurringId    INT           NULL,
-    BookingDate    DATE          NOT NULL,
-    StartTime      TIME          NOT NULL,
-    EndTime        TIME          NOT NULL,
-    SubTotal       DECIMAL(18,2) NOT NULL,
-    DiscountAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
-    TotalAmount    DECIMAL(18,2) NOT NULL,
-    PromotionId    INT           NULL,
-    Status         VARCHAR(30)   NOT NULL DEFAULT 'Pending'
-                   CHECK (Status IN ('Pending','Confirmed','Cancelled','Completed','NoShow')),
-    CancelReason   NVARCHAR(500) NULL,
-    CancelledAt    DATETIME      NULL,
-    Note           NVARCHAR(500) NULL,
-    CreatedAt      DATETIME      NOT NULL DEFAULT GETDATE(),
-    UpdatedAt      DATETIME      NULL,
-    FOREIGN KEY (UserId)       REFERENCES Users(UserId),
-    FOREIGN KEY (CourtId)      REFERENCES Courts(CourtId),
-    FOREIGN KEY (SlotId)       REFERENCES TimeSlots(SlotId),
-    FOREIGN KEY (RecurringId)  REFERENCES RecurringBookings(RecurringId),
-    FOREIGN KEY (PromotionId)  REFERENCES Promotions(PromotionId)
-);
-GO
-
--- 13. WAITLISTS
-CREATE TABLE Waitlists (
-    WaitlistId INT PRIMARY KEY IDENTITY(1,1),
-    UserId     INT         NOT NULL,
-    CourtId    INT         NOT NULL,
-    SlotId     INT         NOT NULL,
-    WaitDate   DATE        NOT NULL,
-    Position   INT         NOT NULL,
-    Status     VARCHAR(20) NOT NULL DEFAULT 'Waiting'
-               CHECK (Status IN ('Waiting','Notified','Confirmed','Expired','Cancelled')),
-    NotifiedAt DATETIME    NULL,
-    ExpiredAt  DATETIME    NULL,
-    CreatedAt  DATETIME    NOT NULL DEFAULT GETDATE(),
-    FOREIGN KEY (UserId)  REFERENCES Users(UserId),
-    FOREIGN KEY (CourtId) REFERENCES Courts(CourtId),
-    FOREIGN KEY (SlotId)  REFERENCES TimeSlots(SlotId),
-    UNIQUE (UserId, CourtId, SlotId, WaitDate)
-);
-GO
-
--- 14. SERVICES
+-- 6. SERVICES
 CREATE TABLE Services (
     ServiceId   INT PRIMARY KEY IDENTITY(1,1),
     ServiceName NVARCHAR(100) NOT NULL,
     Category    NVARCHAR(50)  NOT NULL,
     Price       DECIMAL(18,2) NOT NULL,
-    Unit        NVARCHAR(30)  NOT NULL DEFAULT N'cái',
-    Description NVARCHAR(300) NULL,
-    ImageUrl    VARCHAR(500)  NULL,
-    MinStock    INT           NOT NULL DEFAULT 0,
-    IsActive    BIT           NOT NULL DEFAULT 1,
-    CreatedAt   DATETIME      NOT NULL DEFAULT GETDATE()
+    StockQty    INT           NOT NULL
 );
 GO
 
--- 15. EQUIPMENT INVENTORY
+-- 7. USERS
+CREATE TABLE Users (
+    UserId             INT PRIMARY KEY IDENTITY(1,1),
+    FullName           NVARCHAR(100) NOT NULL,
+    Email              NVARCHAR(100) NOT NULL,
+    Phone              NVARCHAR(15)  NULL,
+    PasswordHash       NVARCHAR(255) NOT NULL,
+    AvatarUrl          NVARCHAR(500) NULL,
+    LoyaltyPoints      INT           NOT NULL,
+    MembershipTierId   INT           NULL,
+    RefreshToken       NVARCHAR(500) NULL,
+    IsActive           BIT           NOT NULL,
+    Gender             INT           NOT NULL, -- 0 = Male, 1 = Female, 2 = Other
+    SkillLevel         INT           NOT NULL, -- 0 = Beginner, 1 = Intermediate, 2 = Advanced
+    CreatedAt          DATETIME2     NOT NULL,
+    FOREIGN KEY (MembershipTierId) REFERENCES MembershipTiers(TierId) ON DELETE NO ACTION
+);
+GO
+CREATE UNIQUE INDEX IX_Users_Email ON Users(Email);
+GO
+CREATE INDEX IX_Users_MembershipTierId ON Users(MembershipTierId);
+GO
+
+-- 8. EQUIPMENT INVENTORY
 CREATE TABLE EquipmentInventory (
     InventoryId   INT PRIMARY KEY IDENTITY(1,1),
     ServiceId     INT           NOT NULL,
-    ItemCode      VARCHAR(50)   NOT NULL UNIQUE,
-    Condition     VARCHAR(20)   NOT NULL DEFAULT 'Good'
-                  CHECK (Condition IN ('Good','Damaged','Retired')),
-    PurchaseDate  DATE          NULL,
-    PurchasePrice DECIMAL(18,2) NULL,
-    Note          NVARCHAR(300) NULL,
-    IsAvailable   BIT           NOT NULL DEFAULT 1,
-    CreatedAt     DATETIME      NOT NULL DEFAULT GETDATE(),
-    FOREIGN KEY (ServiceId) REFERENCES Services(ServiceId)
+    ItemCode      NVARCHAR(50)  NOT NULL,
+    Condition     INT           NOT NULL, -- 0 = Good, 1 = Damaged, 2 = Retired
+    PurchaseDate  DATETIME2     NOT NULL,
+    PurchasePrice DECIMAL(18,2) NOT NULL,
+    IsAvailable   BIT           NOT NULL,
+    FOREIGN KEY (ServiceId) REFERENCES Services(ServiceId) ON DELETE NO ACTION
 );
 GO
-
--- 16. BOOKING SERVICES
-CREATE TABLE BookingServices (
-    BookingServiceId INT PRIMARY KEY IDENTITY(1,1),
-    BookingId        INT           NOT NULL,
-    ServiceId        INT           NOT NULL,
-    Quantity         INT           NOT NULL DEFAULT 1,
-    UnitPrice        DECIMAL(18,2) NOT NULL,
-    TotalPrice       DECIMAL(18,2) NOT NULL,
-    FOREIGN KEY (BookingId) REFERENCES Bookings(BookingId) ON DELETE CASCADE,
-    FOREIGN KEY (ServiceId) REFERENCES Services(ServiceId)
-);
+CREATE UNIQUE INDEX IX_EquipmentInventory_ItemCode ON EquipmentInventory(ItemCode);
+GO
+CREATE INDEX IX_EquipmentInventory_ServiceId ON EquipmentInventory(ServiceId);
 GO
 
--- 17. PAYMENTS
-CREATE TABLE Payments (
-    PaymentId       INT PRIMARY KEY IDENTITY(1,1),
-    BookingId       INT           NOT NULL,
-    Amount          DECIMAL(18,2) NOT NULL,
-    PaymentMethod   VARCHAR(50)   NOT NULL
-                    CHECK (PaymentMethod IN ('VNPay','MoMo','BankTransfer','Cash','Wallet')),
-    TransactionId   VARCHAR(200)  NULL UNIQUE,
-    GatewayResponse NVARCHAR(MAX) NULL,
-    Status          VARCHAR(20)   NOT NULL DEFAULT 'Pending'
-                    CHECK (Status IN ('Pending','Success','Failed','Refunded','PartialRefund')),
-    RefundAmount    DECIMAL(18,2) NOT NULL DEFAULT 0,
-    RefundedAt      DATETIME      NULL,
-    RefundNote      NVARCHAR(300) NULL,
-    PaidAt          DATETIME      NULL,
-    CreatedAt       DATETIME      NOT NULL DEFAULT GETDATE(),
-    FOREIGN KEY (BookingId) REFERENCES Bookings(BookingId)
+-- 9. AUDIT LOGS
+CREATE TABLE AuditLogs (
+    LogId     INT PRIMARY KEY IDENTITY(1,1),
+    UserId    INT           NULL,
+    Action    NVARCHAR(100) NOT NULL,
+    TableName NVARCHAR(100) NULL,
+    Timestamp DATETIME2     NOT NULL,
+    Details   NVARCHAR(MAX) NULL,
+    FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE NO ACTION
 );
 GO
-
--- 18. INVOICES
-CREATE TABLE Invoices (
-    InvoiceId     INT PRIMARY KEY IDENTITY(1,1),
-    InvoiceNumber VARCHAR(30)   NOT NULL UNIQUE,
-    BookingId     INT           NOT NULL,
-    PaymentId     INT           NOT NULL,
-    SubTotal      DECIMAL(18,2) NOT NULL,
-    DiscountAmount DECIMAL(18,2) NOT NULL DEFAULT 0,
-    VatPercent    DECIMAL(5,2)  NOT NULL DEFAULT 0,
-    VatAmount     DECIMAL(18,2) NOT NULL DEFAULT 0,
-    TotalAmount   DECIMAL(18,2) NOT NULL,
-    PdfUrl        VARCHAR(500)  NULL,
-    IsEmailSent   BIT           NOT NULL DEFAULT 0,
-    EmailSentAt   DATETIME      NULL,
-    CreatedAt     DATETIME      NOT NULL DEFAULT GETDATE(),
-    FOREIGN KEY (BookingId) REFERENCES Bookings(BookingId),
-    FOREIGN KEY (PaymentId) REFERENCES Payments(PaymentId)
-);
+CREATE INDEX IX_AuditLogs_UserId ON AuditLogs(UserId);
 GO
 
--- 19. REVIEWS
-CREATE TABLE Reviews (
-    ReviewId   INT PRIMARY KEY IDENTITY(1,1),
-    BookingId  INT            NOT NULL UNIQUE,
-    UserId     INT            NOT NULL,
-    CourtId    INT            NOT NULL,
-    Rating     TINYINT        NOT NULL CHECK (Rating BETWEEN 1 AND 5),
-    Comment    NVARCHAR(1000) NULL,
-    ImageUrl   VARCHAR(500)   NULL,
-    IsVisible  BIT            NOT NULL DEFAULT 1,
-    AdminReply NVARCHAR(500)  NULL,
-    RepliedAt  DATETIME       NULL,
-    CreatedAt  DATETIME       NOT NULL DEFAULT GETDATE(),
-    FOREIGN KEY (BookingId) REFERENCES Bookings(BookingId),
-    FOREIGN KEY (UserId)    REFERENCES Users(UserId),
-    FOREIGN KEY (CourtId)   REFERENCES Courts(CourtId)
+-- 10. COURT COMPLEXES
+CREATE TABLE CourtComplexes (
+    ComplexId   INT PRIMARY KEY IDENTITY(1,1),
+    ComplexName NVARCHAR(150) NOT NULL,
+    Address     NVARCHAR(300) NOT NULL,
+    ManagerId   INT           NOT NULL,
+    Description NVARCHAR(1000) NULL,
+    ImageUrl    NVARCHAR(500) NULL,
+    IsDeleted   BIT           NOT NULL,
+    CreatedAt   DATETIME2     NOT NULL,
+    FOREIGN KEY (ManagerId) REFERENCES Users(UserId) ON DELETE NO ACTION
 );
 GO
+CREATE INDEX IX_CourtComplexes_ManagerId ON CourtComplexes(ManagerId);
+GO
 
--- 20. NOTIFICATIONS
+-- 11. NOTIFICATIONS
 CREATE TABLE Notifications (
     NotificationId INT PRIMARY KEY IDENTITY(1,1),
     UserId         INT            NOT NULL,
     Title          NVARCHAR(200)  NOT NULL,
-    Body           NVARCHAR(1000) NOT NULL,
-    Type           VARCHAR(50)    NOT NULL
-                   CHECK (Type IN ('BookingConfirm','BookingCancel','PaymentSuccess',
-                                   'PaymentFail','Reminder','Promotion','Waitlist','System')),
-    ReferenceId    INT            NULL,
-    IsRead         BIT            NOT NULL DEFAULT 0,
-    ReadAt         DATETIME       NULL,
-    CreatedAt      DATETIME       NOT NULL DEFAULT GETDATE(),
+    Type           INT            NOT NULL, -- NotificationType Enum
+    IsRead         BIT            NOT NULL,
+    CreatedAt      DATETIME2      NOT NULL,
     FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE
 );
 GO
-
--- 21. MAINTENANCE SCHEDULES
-CREATE TABLE MaintenanceSchedules (
-    MaintenanceId   INT PRIMARY KEY IDENTITY(1,1),
-    CourtId         INT           NOT NULL,
-    MaintenanceType VARCHAR(30)   NOT NULL
-                    CHECK (MaintenanceType IN ('Routine','Emergency','Upgrade')),
-    StartDateTime   DATETIME      NOT NULL,
-    EndDateTime     DATETIME      NOT NULL,
-    AssignedStaffId INT           NULL,
-    Reason          NVARCHAR(500) NOT NULL,
-    Result          NVARCHAR(500) NULL,
-    Status          VARCHAR(20)   NOT NULL DEFAULT 'Scheduled'
-                    CHECK (Status IN ('Scheduled','InProgress','Completed','Cancelled')),
-    CreatedAt       DATETIME      NOT NULL DEFAULT GETDATE(),
-    FOREIGN KEY (CourtId)         REFERENCES Courts(CourtId),
-    FOREIGN KEY (AssignedStaffId) REFERENCES Users(UserId)
-);
+CREATE INDEX IX_Notifications_UserId ON Notifications(UserId);
 GO
 
--- 22. STAFF SHIFTS
+-- 12. STAFF SHIFTS
 CREATE TABLE StaffShifts (
     ShiftId      INT PRIMARY KEY IDENTITY(1,1),
     StaffId      INT          NOT NULL,
-    ShiftDate    DATE         NOT NULL,
-    ShiftType    VARCHAR(20)  NOT NULL
-                 CHECK (ShiftType IN ('Morning','Afternoon','Evening')),
+    ShiftDate    DATETIME2    NOT NULL,
+    ShiftType    INT          NOT NULL, -- 0 = Morning, 1 = Afternoon, 2 = Evening
     StartTime    TIME         NOT NULL,
     EndTime      TIME         NOT NULL,
-    CheckInTime  DATETIME     NULL,
-    CheckOutTime DATETIME     NULL,
-    Note         NVARCHAR(300) NULL,
-    CreatedAt    DATETIME     NOT NULL DEFAULT GETDATE(),
-    FOREIGN KEY (StaffId) REFERENCES Users(UserId),
-    UNIQUE (StaffId, ShiftDate, ShiftType)
+    CheckInTime  DATETIME2    NULL,
+    CheckOutTime DATETIME2    NULL,
+    FOREIGN KEY (StaffId) REFERENCES Users(UserId) ON DELETE CASCADE
 );
 GO
+CREATE INDEX IX_StaffShifts_StaffId ON StaffShifts(StaffId);
+GO
 
--- 23. COACH SCHEDULES
+-- 13. USER ROLES
+CREATE TABLE UserRoles (
+    UserRoleId INT PRIMARY KEY IDENTITY(1,1),
+    UserId     INT NOT NULL,
+    RoleId     INT NOT NULL,
+    FOREIGN KEY (RoleId) REFERENCES Roles(RoleId) ON DELETE CASCADE,
+    FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE
+);
+GO
+CREATE INDEX IX_UserRoles_RoleId ON UserRoles(RoleId);
+GO
+CREATE INDEX IX_UserRoles_UserId ON UserRoles(UserId);
+GO
+
+-- 14. COURTS
+CREATE TABLE Courts (
+    CourtId      INT PRIMARY KEY IDENTITY(1,1),
+    CourtName    NVARCHAR(100)  NOT NULL,
+    CourtCode    NVARCHAR(20)   NOT NULL,
+    CourtTypeId  INT            NOT NULL,
+    ComplexId    INT            NOT NULL,
+    Status       INT            NOT NULL, -- 0 = Available, 1 = Booked, etc.
+    OpenTime     TIME           NOT NULL,
+    CloseTime    TIME           NOT NULL,
+    PricePerHour DECIMAL(18,2)  NOT NULL,
+    CourtSize    NVARCHAR(50)   NULL,
+    IsDeleted    BIT            NOT NULL,
+    FOREIGN KEY (ComplexId) REFERENCES CourtComplexes(ComplexId) ON DELETE NO ACTION,
+    FOREIGN KEY (CourtTypeId) REFERENCES CourtTypes(CourtTypeId) ON DELETE NO ACTION
+);
+GO
+CREATE UNIQUE INDEX IX_Courts_CourtCode ON Courts(CourtCode);
+GO
+CREATE INDEX IX_Courts_ComplexId ON Courts(ComplexId);
+GO
+CREATE INDEX IX_Courts_CourtTypeId ON Courts(CourtTypeId);
+GO
+
+-- 15. BOOKINGS
+CREATE TABLE Bookings (
+    BookingId      INT PRIMARY KEY IDENTITY(1,1),
+    BookingCode    NVARCHAR(20)   NOT NULL,
+    UserId         INT            NOT NULL,
+    CourtId        INT            NOT NULL,
+    SlotId         INT            NOT NULL,
+    BookingDate    DATETIME2      NOT NULL,
+    StartTime      TIME           NOT NULL,
+    EndTime        TIME           NOT NULL,
+    SubTotal       DECIMAL(18,2)  NOT NULL,
+    DiscountAmount DECIMAL(18,2)  NOT NULL,
+    TotalAmount    DECIMAL(18,2)  NOT NULL,
+    Status         INT            NOT NULL, -- BookingStatus Enum
+    PromotionId    INT            NULL,
+    FOREIGN KEY (CourtId) REFERENCES Courts(CourtId) ON DELETE NO ACTION,
+    FOREIGN KEY (PromotionId) REFERENCES Promotions(PromotionId) ON DELETE NO ACTION,
+    FOREIGN KEY (SlotId) REFERENCES TimeSlots(SlotId) ON DELETE NO ACTION,
+    FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE NO ACTION
+);
+GO
+CREATE UNIQUE INDEX IX_Bookings_BookingCode ON Bookings(BookingCode);
+GO
+CREATE INDEX IX_Bookings_CourtId ON Bookings(CourtId);
+GO
+CREATE INDEX IX_Bookings_PromotionId ON Bookings(PromotionId);
+GO
+CREATE INDEX IX_Bookings_SlotId ON Bookings(SlotId);
+GO
+CREATE INDEX IX_Bookings_UserId ON Bookings(UserId);
+GO
+
+-- 16. COACH SCHEDULES
 CREATE TABLE CoachSchedules (
     ScheduleId   INT PRIMARY KEY IDENTITY(1,1),
     CoachId      INT           NOT NULL,
     CourtId      INT           NOT NULL,
     SlotId       INT           NOT NULL,
-    ScheduleDate DATE          NOT NULL,
-    MaxStudents  INT           NOT NULL DEFAULT 1,
+    ScheduleDate DATETIME2     NOT NULL,
     Price        DECIMAL(18,2) NOT NULL,
-    Note         NVARCHAR(300) NULL,
-    IsBooked     BIT           NOT NULL DEFAULT 0,
-    CreatedAt    DATETIME      NOT NULL DEFAULT GETDATE(),
-    FOREIGN KEY (CoachId)  REFERENCES Users(UserId),
-    FOREIGN KEY (CourtId)  REFERENCES Courts(CourtId),
-    FOREIGN KEY (SlotId)   REFERENCES TimeSlots(SlotId),
-    UNIQUE (CoachId, CourtId, SlotId, ScheduleDate)
+    IsBooked     BIT           NOT NULL,
+    FOREIGN KEY (CourtId) REFERENCES Courts(CourtId) ON DELETE NO ACTION,
+    FOREIGN KEY (SlotId) REFERENCES TimeSlots(SlotId) ON DELETE NO ACTION,
+    FOREIGN KEY (CoachId) REFERENCES Users(UserId) ON DELETE NO ACTION
 );
+GO
+CREATE INDEX IX_CoachSchedules_CoachId ON CoachSchedules(CoachId);
+GO
+CREATE INDEX IX_CoachSchedules_CourtId ON CoachSchedules(CourtId);
+GO
+CREATE INDEX IX_CoachSchedules_SlotId ON CoachSchedules(SlotId);
+GO
+
+-- 17. COURT IMAGES
+CREATE TABLE CourtImages (
+    CourtImageId INT PRIMARY KEY IDENTITY(1,1),
+    CourtId      INT            NOT NULL,
+    ImageUrl     NVARCHAR(500)  NOT NULL,
+    IsPrimary    BIT            NOT NULL,
+    FOREIGN KEY (CourtId) REFERENCES Courts(CourtId) ON DELETE CASCADE
+);
+GO
+CREATE INDEX IX_CourtImages_CourtId ON CourtImages(CourtId);
+GO
+
+-- 18. COURT PRICING
+CREATE TABLE CourtPricing (
+    PricingId     INT PRIMARY KEY IDENTITY(1,1),
+    CourtId       INT           NOT NULL,
+    SlotId        INT           NOT NULL,
+    Price         DECIMAL(18,2) NOT NULL,
+    EffectiveFrom DATETIME2     NOT NULL,
+    FOREIGN KEY (CourtId) REFERENCES Courts(CourtId) ON DELETE CASCADE,
+    FOREIGN KEY (SlotId) REFERENCES TimeSlots(SlotId) ON DELETE NO ACTION
+);
+GO
+CREATE INDEX IX_CourtPricing_CourtId ON CourtPricing(CourtId);
+GO
+CREATE INDEX IX_CourtPricing_SlotId ON CourtPricing(SlotId);
+GO
+
+-- 19. MAINTENANCE SCHEDULES
+CREATE TABLE MaintenanceSchedules (
+    MaintenanceId   INT PRIMARY KEY IDENTITY(1,1),
+    CourtId         INT           NOT NULL,
+    MaintenanceType INT           NOT NULL, -- MaintenanceType Enum
+    StartDateTime   DATETIME2     NOT NULL,
+    EndDateTime     DATETIME2     NOT NULL,
+    AssignedStaffId INT           NULL,
+    Reason          NVARCHAR(500) NULL,
+    Result          NVARCHAR(500) NULL,
+    Status          INT           NOT NULL, -- MaintenanceStatus Enum
+    FOREIGN KEY (CourtId) REFERENCES Courts(CourtId) ON DELETE NO ACTION,
+    FOREIGN KEY (AssignedStaffId) REFERENCES Users(UserId) ON DELETE NO ACTION
+);
+GO
+CREATE INDEX IX_MaintenanceSchedules_AssignedStaffId ON MaintenanceSchedules(AssignedStaffId);
+GO
+CREATE INDEX IX_MaintenanceSchedules_CourtId ON MaintenanceSchedules(CourtId);
+GO
+
+-- 20. RECURRING BOOKINGS
+CREATE TABLE RecurringBookings (
+    RecurringId   INT PRIMARY KEY IDENTITY(1,1),
+    UserId        INT          NOT NULL,
+    CourtId       INT          NOT NULL,
+    SlotId        INT          NOT NULL,
+    StartDate     DATETIME2    NOT NULL,
+    EndDate       DATETIME2    NOT NULL,
+    DaysOfWeek    NVARCHAR(50) NOT NULL,
+    Status        INT          NOT NULL, -- RecurringBookingStatus Enum
+    FOREIGN KEY (CourtId) REFERENCES Courts(CourtId) ON DELETE NO ACTION,
+    FOREIGN KEY (SlotId) REFERENCES TimeSlots(SlotId) ON DELETE NO ACTION,
+    FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE NO ACTION
+);
+GO
+CREATE INDEX IX_RecurringBookings_CourtId ON RecurringBookings(CourtId);
+GO
+CREATE INDEX IX_RecurringBookings_SlotId ON RecurringBookings(SlotId);
+GO
+CREATE INDEX IX_RecurringBookings_UserId ON RecurringBookings(UserId);
+GO
+
+-- 21. WAITLISTS
+CREATE TABLE Waitlists (
+    WaitlistId INT PRIMARY KEY IDENTITY(1,1),
+    UserId     INT       NOT NULL,
+    CourtId    INT       NOT NULL,
+    SlotId     INT       NOT NULL,
+    WaitDate   DATETIME2 NOT NULL,
+    Position   INT       NOT NULL,
+    Status     INT       NOT NULL, -- WaitlistStatus Enum
+    NotifiedAt DATETIME2 NULL,
+    ExpiredAt  DATETIME2 NULL,
+    FOREIGN KEY (CourtId) REFERENCES Courts(CourtId) ON DELETE NO ACTION,
+    FOREIGN KEY (SlotId) REFERENCES TimeSlots(SlotId) ON DELETE NO ACTION,
+    FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE NO ACTION
+);
+GO
+CREATE INDEX IX_Waitlists_CourtId ON Waitlists(CourtId);
+GO
+CREATE INDEX IX_Waitlists_SlotId ON Waitlists(SlotId);
+GO
+CREATE INDEX IX_Waitlists_UserId ON Waitlists(UserId);
+GO
+
+-- 22. BOOKING SERVICES
+CREATE TABLE BookingServices (
+    BookingServiceId INT PRIMARY KEY IDENTITY(1,1),
+    BookingId        INT           NOT NULL,
+    ServiceId        INT           NOT NULL,
+    Quantity         INT           NOT NULL,
+    TotalPrice       DECIMAL(18,2) NOT NULL,
+    FOREIGN KEY (BookingId) REFERENCES Bookings(BookingId) ON DELETE CASCADE,
+    FOREIGN KEY (ServiceId) REFERENCES Services(ServiceId) ON DELETE NO ACTION
+);
+GO
+CREATE INDEX IX_BookingServices_BookingId ON BookingServices(BookingId);
+GO
+CREATE INDEX IX_BookingServices_ServiceId ON BookingServices(ServiceId);
+GO
+
+-- 23. PAYMENTS
+CREATE TABLE Payments (
+    PaymentId       INT PRIMARY KEY IDENTITY(1,1),
+    BookingId       INT           NOT NULL,
+    Amount          DECIMAL(18,2) NOT NULL,
+    PaymentMethod   INT           NOT NULL, -- PaymentMethod Enum
+    TransactionId   NVARCHAR(200) NOT NULL,
+    GatewayResponse NVARCHAR(MAX) NULL,
+    Status          INT           NOT NULL, -- PaymentStatus Enum
+    RefundAmount    DECIMAL(18,2) NOT NULL,
+    PaidAt          DATETIME2     NULL,
+    FOREIGN KEY (BookingId) REFERENCES Bookings(BookingId) ON DELETE CASCADE
+);
+GO
+CREATE UNIQUE INDEX IX_Payments_BookingId ON Payments(BookingId);
+GO
+CREATE UNIQUE INDEX IX_Payments_TransactionId ON Payments(TransactionId);
 GO
 
 -- 24. PLAYER REQUESTS
 CREATE TABLE PlayerRequests (
     RequestId       INT PRIMARY KEY IDENTITY(1,1),
-    BookingId       INT           NOT NULL,
-    HostUserId      INT           NOT NULL,
-    SkillLevel      VARCHAR(20)   NOT NULL DEFAULT 'Beginner'
-                    CHECK (SkillLevel IN ('Beginner','Intermediate','Advanced')),
-    RequiredPlayers INT           NOT NULL DEFAULT 1,
-    GenderPref      VARCHAR(10)   NULL CHECK (GenderPref IN ('Male','Female','Any')),
-    AgeMin          INT           NULL,
-    AgeMax          INT           NULL,
+    BookingId       INT NOT NULL,
+    HostUserId      INT NOT NULL,
+    SkillLevel      INT NOT NULL, -- SkillLevel Enum
+    RequiredPlayers INT NOT NULL,
+    GenderPref      INT NOT NULL, -- Gender Enum
+    Status          INT NOT NULL, -- PlayerRequestStatus Enum
+    FOREIGN KEY (BookingId) REFERENCES Bookings(BookingId) ON DELETE NO ACTION,
+    FOREIGN KEY (HostUserId) REFERENCES Users(UserId) ON DELETE NO ACTION
+);
+GO
+CREATE INDEX IX_PlayerRequests_BookingId ON PlayerRequests(BookingId);
+GO
+CREATE INDEX IX_PlayerRequests_HostUserId ON PlayerRequests(HostUserId);
+GO
+
+-- 25. REVIEWS
+CREATE TABLE Reviews (
+    ReviewId  INT PRIMARY KEY IDENTITY(1,1),
+    BookingId INT            NOT NULL,
+    UserId    INT            NOT NULL,
+    CourtId   INT            NOT NULL,
+    Rating    TINYINT        NOT NULL,
+    Comment   NVARCHAR(1000) NULL,
+    IsVisible BIT            NOT NULL,
+    FOREIGN KEY (BookingId) REFERENCES Bookings(BookingId) ON DELETE NO ACTION,
+    FOREIGN KEY (CourtId) REFERENCES Courts(CourtId) ON DELETE NO ACTION,
+    FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE NO ACTION
+);
+GO
+CREATE UNIQUE INDEX IX_Reviews_BookingId ON Reviews(BookingId);
+GO
+CREATE INDEX IX_Reviews_CourtId ON Reviews(CourtId);
+GO
+CREATE INDEX IX_Reviews_UserId ON Reviews(UserId);
+GO
+
+-- 26. TASKS
+CREATE TABLE Tasks (
+    TaskId          INT PRIMARY KEY IDENTITY(1,1),
+    Title           NVARCHAR(150) NOT NULL,
     Description     NVARCHAR(500) NULL,
-    Status          VARCHAR(20)   NOT NULL DEFAULT 'Open'
-                    CHECK (Status IN ('Open','Full','Closed','Cancelled')),
-    ExpiresAt       DATETIME      NULL,
-    CreatedAt       DATETIME      NOT NULL DEFAULT GETDATE(),
-    FOREIGN KEY (BookingId)  REFERENCES Bookings(BookingId),
-    FOREIGN KEY (HostUserId) REFERENCES Users(UserId)
+    TaskType        INT           NOT NULL, -- TaskType Enum
+    Category        INT           NOT NULL, -- TaskCategory Enum
+    Priority        INT           NOT NULL, -- TaskPriority Enum
+    Status          INT           NOT NULL, -- TaskItemStatus Enum
+    ComplexId       INT           NOT NULL,
+    AssignedStaffId INT           NULL,
+    CreatedById     INT           NULL,
+    BookingId       INT           NULL,
+    DueDate         DATETIME2     NOT NULL,
+    CreatedAt       DATETIME2     NOT NULL,
+    CompletedAt     DATETIME2     NULL,
+    FOREIGN KEY (BookingId) REFERENCES Bookings(BookingId) ON DELETE NO ACTION,
+    FOREIGN KEY (ComplexId) REFERENCES CourtComplexes(ComplexId) ON DELETE CASCADE,
+    FOREIGN KEY (AssignedStaffId) REFERENCES Users(UserId) ON DELETE NO ACTION,
+    FOREIGN KEY (CreatedById) REFERENCES Users(UserId) ON DELETE NO ACTION
 );
 GO
+CREATE INDEX IX_Tasks_AssignedStaffId ON Tasks(AssignedStaffId);
+GO
+CREATE INDEX IX_Tasks_BookingId ON Tasks(BookingId);
+GO
+CREATE INDEX IX_Tasks_ComplexId ON Tasks(ComplexId);
+GO
+CREATE INDEX IX_Tasks_CreatedById ON Tasks(CreatedById);
+GO
 
--- 25. PLAYER REQUEST MEMBERS
+-- 27. INVOICES
+CREATE TABLE Invoices (
+    InvoiceId      INT PRIMARY KEY IDENTITY(1,1),
+    InvoiceNumber  NVARCHAR(50)  NOT NULL,
+    BookingId      INT           NOT NULL,
+    PaymentId      INT           NOT NULL,
+    SubTotal       DECIMAL(18,2) NOT NULL,
+    DiscountAmount DECIMAL(18,2) NOT NULL,
+    VatPercent     DECIMAL(18,2) NOT NULL,
+    VatAmount      DECIMAL(18,2) NOT NULL,
+    TotalAmount    DECIMAL(18,2) NOT NULL,
+    PdfUrl         NVARCHAR(500) NULL,
+    IsEmailSent    BIT           NOT NULL,
+    CreatedAt      DATETIME2     NOT NULL,
+    FOREIGN KEY (BookingId) REFERENCES Bookings(BookingId) ON DELETE NO ACTION,
+    FOREIGN KEY (PaymentId) REFERENCES Payments(PaymentId) ON DELETE NO ACTION
+);
+GO
+CREATE UNIQUE INDEX IX_Invoices_BookingId ON Invoices(BookingId);
+GO
+CREATE UNIQUE INDEX IX_Invoices_InvoiceNumber ON Invoices(InvoiceNumber);
+GO
+CREATE INDEX IX_Invoices_PaymentId ON Invoices(PaymentId);
+GO
+
+-- 28. PLAYER REQUEST MEMBERS
 CREATE TABLE PlayerRequestMembers (
-    MemberId  INT PRIMARY KEY IDENTITY(1,1),
-    RequestId INT         NOT NULL,
-    UserId    INT         NOT NULL,
-    Status    VARCHAR(20) NOT NULL DEFAULT 'Pending'
-              CHECK (Status IN ('Pending','Accepted','Rejected')),
-    JoinedAt  DATETIME    NOT NULL DEFAULT GETDATE(),
+    PlayerRequestMemberId INT PRIMARY KEY IDENTITY(1,1),
+    RequestId             INT       NOT NULL,
+    UserId                INT       NOT NULL,
+    Status                INT       NOT NULL, -- MemberRequestStatus Enum
+    JoinedAt              DATETIME2 NOT NULL,
     FOREIGN KEY (RequestId) REFERENCES PlayerRequests(RequestId) ON DELETE CASCADE,
-    FOREIGN KEY (UserId)    REFERENCES Users(UserId),
-    UNIQUE (RequestId, UserId)
+    FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE NO ACTION
 );
 GO
-
--- 26. AUDIT LOGS
-CREATE TABLE AuditLogs (
-    LogId     INT PRIMARY KEY IDENTITY(1,1),
-    UserId    INT           NULL,
-    Action    VARCHAR(100)  NOT NULL,
-    TableName VARCHAR(100)  NOT NULL,
-    RecordId  INT           NULL,
-    OldValues NVARCHAR(MAX) NULL,
-    NewValues NVARCHAR(MAX) NULL,
-    IpAddress VARCHAR(50)   NULL,
-    CreatedAt DATETIME      NOT NULL DEFAULT GETDATE(),
-    FOREIGN KEY (UserId) REFERENCES Users(UserId)
-);
+CREATE UNIQUE INDEX IX_PlayerRequestMembers_RequestId_UserId ON PlayerRequestMembers(RequestId, UserId);
 GO
+CREATE INDEX IX_PlayerRequestMembers_UserId ON PlayerRequestMembers(UserId);
+GO
+
 
 -- =============================================
--- INDEXES
--- =============================================
-CREATE INDEX IX_Users_Email                ON Users(Email);
-CREATE INDEX IX_Bookings_UserId            ON Bookings(UserId);
-CREATE INDEX IX_Bookings_CourtId           ON Bookings(CourtId);
-CREATE INDEX IX_Bookings_BookingDate       ON Bookings(BookingDate);
-CREATE INDEX IX_Bookings_Status            ON Bookings(Status);
-CREATE INDEX IX_Bookings_RecurringId       ON Bookings(RecurringId);
-CREATE INDEX IX_Payments_BookingId         ON Payments(BookingId);
-CREATE INDEX IX_Payments_Status            ON Payments(Status);
-CREATE INDEX IX_Reviews_CourtId            ON Reviews(CourtId);
-CREATE INDEX IX_Notifications_UserId       ON Notifications(UserId, IsRead);
-CREATE INDEX IX_Courts_Status              ON Courts(Status);
-CREATE INDEX IX_RecurringBookings_UserId   ON RecurringBookings(UserId);
-CREATE INDEX IX_Waitlists_CourtSlotDate    ON Waitlists(CourtId, SlotId, WaitDate);
-CREATE INDEX IX_MaintenanceSchedules_Court ON MaintenanceSchedules(CourtId, Status);
-CREATE INDEX IX_StaffShifts_StaffDate      ON StaffShifts(StaffId, ShiftDate);
-CREATE INDEX IX_PlayerRequests_Status      ON PlayerRequests(Status);
-GO
-
--- =============================================
--- VIEWS
+-- INSERT SEED DATA (Realistic Mock Data)
 -- =============================================
 
-CREATE VIEW vw_BookingDetails AS
-SELECT
-    b.BookingId, b.BookingCode,
-    u.FullName AS CustomerName, u.Email, u.Phone,
-    c.CourtName, c.CourtCode, ct.TypeName AS CourtType,
-    b.BookingDate, b.StartTime, b.EndTime,
-    b.SubTotal, b.DiscountAmount, b.TotalAmount,
-    b.Status AS BookingStatus,
-    p.PaymentMethod, p.Status AS PaymentStatus, p.PaidAt,
-    i.InvoiceNumber, i.PdfUrl,
-    b.CreatedAt
-FROM Bookings b
-    JOIN Users u       ON b.UserId  = u.UserId
-    JOIN Courts c      ON b.CourtId = c.CourtId
-    JOIN CourtTypes ct ON c.CourtTypeId = ct.CourtTypeId
-    LEFT JOIN Payments p  ON b.BookingId = p.BookingId
-    LEFT JOIN Invoices i  ON b.BookingId = i.BookingId;
-GO
-
-CREATE VIEW vw_DailyRevenue AS
-SELECT
-    CAST(b.BookingDate AS DATE) AS RevenueDate,
-    ct.TypeName AS CourtType,
-    COUNT(b.BookingId) AS TotalBookings,
-    SUM(b.TotalAmount) AS TotalRevenue,
-    SUM(CASE WHEN b.Status='Completed' THEN b.TotalAmount ELSE 0 END) AS ConfirmedRevenue
-FROM Bookings b
-    JOIN Courts c      ON b.CourtId = c.CourtId
-    JOIN CourtTypes ct ON c.CourtTypeId = ct.CourtTypeId
-WHERE b.Status != 'Cancelled'
-GROUP BY CAST(b.BookingDate AS DATE), ct.TypeName;
-GO
-
-CREATE VIEW vw_CourtRatings AS
-SELECT
-    c.CourtId, c.CourtName, c.CourtCode,
-    COUNT(r.ReviewId) AS TotalReviews,
-    AVG(CAST(r.Rating AS DECIMAL(3,2))) AS AverageRating
-FROM Courts c
-    LEFT JOIN Reviews r ON c.CourtId = r.CourtId AND r.IsVisible = 1
-GROUP BY c.CourtId, c.CourtName, c.CourtCode;
-GO
-
-CREATE VIEW vw_WaitlistQueue AS
-SELECT
-    w.WaitlistId, w.Position,
-    u.FullName AS CustomerName, u.Email, u.Phone,
-    c.CourtName, ts.SlotName, ts.StartTime, ts.EndTime,
-    w.WaitDate, w.Status, w.NotifiedAt, w.ExpiredAt
-FROM Waitlists w
-    JOIN Users u      ON w.UserId  = u.UserId
-    JOIN Courts c     ON w.CourtId = c.CourtId
-    JOIN TimeSlots ts ON w.SlotId  = ts.SlotId;
-GO
-
-CREATE VIEW vw_EquipmentStock AS
-SELECT
-    s.ServiceId, s.ServiceName, s.Category,
-    COUNT(e.InventoryId)                                     AS TotalItems,
-    SUM(CASE WHEN e.IsAvailable=1 AND e.Condition='Good' THEN 1 ELSE 0 END) AS AvailableItems,
-    SUM(CASE WHEN e.Condition='Damaged' THEN 1 ELSE 0 END)  AS DamagedItems,
-    s.MinStock,
-    CASE WHEN SUM(CASE WHEN e.IsAvailable=1 AND e.Condition='Good' THEN 1 ELSE 0 END) <= s.MinStock
-         THEN 1 ELSE 0 END AS IsLowStock
-FROM Services s
-    LEFT JOIN EquipmentInventory e ON s.ServiceId = e.ServiceId
-GROUP BY s.ServiceId, s.ServiceName, s.Category, s.MinStock;
-GO
-
--- =============================================
--- STORED PROCEDURES
--- =============================================
-
-CREATE PROCEDURE sp_CheckCourtAvailability
-    @CourtId INT, @BookingDate DATE, @StartTime TIME, @EndTime TIME
-AS
-BEGIN
-    SELECT COUNT(*) AS ConflictCount
-    FROM Bookings
-    WHERE CourtId = @CourtId
-      AND BookingDate = @BookingDate
-      AND Status NOT IN ('Cancelled')
-      AND StartTime < @EndTime AND EndTime > @StartTime;
-END;
-GO
-
-CREATE PROCEDURE sp_CalculateRefund
-    @BookingId INT,
-    @RefundPercent DECIMAL(5,2) OUTPUT
-AS
-BEGIN
-    DECLARE @BookingDate DATE, @StartTime TIME, @HoursDiff FLOAT;
-    SELECT @BookingDate = BookingDate, @StartTime = StartTime
-    FROM Bookings WHERE BookingId = @BookingId;
-    SET @HoursDiff = DATEDIFF(HOUR, GETDATE(),
-        CAST(CAST(@BookingDate AS VARCHAR) + ' ' + CAST(@StartTime AS VARCHAR) AS DATETIME));
-    SET @RefundPercent = CASE
-        WHEN @HoursDiff >= 24 THEN 100
-        WHEN @HoursDiff >= 12 THEN 50
-        ELSE 0 END;
-END;
-GO
-
-CREATE PROCEDURE sp_ProcessWaitlist
-    @CourtId INT, @SlotId INT, @BookingDate DATE
-AS
-BEGIN
-    DECLARE @NextUserId INT, @WaitlistId INT;
-    SELECT TOP 1 @WaitlistId = WaitlistId, @NextUserId = UserId
-    FROM Waitlists
-    WHERE CourtId=@CourtId AND SlotId=@SlotId AND WaitDate=@BookingDate AND Status='Waiting'
-    ORDER BY Position ASC;
-
-    IF @NextUserId IS NOT NULL
-    BEGIN
-        UPDATE Waitlists
-        SET Status='Notified', NotifiedAt=GETDATE(), ExpiredAt=DATEADD(MINUTE,15,GETDATE())
-        WHERE WaitlistId=@WaitlistId;
-
-        INSERT INTO Notifications(UserId, Title, Body, Type, ReferenceId)
-        VALUES (@NextUserId,
-                N'Sân trống - Cơ hội đặt sân!',
-                N'Sân bạn chờ đã có chỗ trống. Xác nhận trong 15 phút.',
-                'Waitlist', @WaitlistId);
-    END;
-END;
-GO
-
--- =============================================
--- SEED DATA
--- =============================================
-
+-- 1. Roles
 INSERT INTO Roles (RoleName, Description) VALUES
-    ('Admin',    N'Quản trị toàn bộ hệ thống'),
-    ('Staff',    N'Nhân viên hỗ trợ vận hành'),
-    ('Coach',    N'Huấn luyện viên thể thao'),
-    ('Customer', N'Khách hàng đặt sân');
+(N'Admin', N'Quản trị viên toàn hệ thống'),
+(N'Staff', N'Nhân viên điều hành, quản lý sân và lịch trình'),
+(N'Coach', N'Huấn luyện viên chuyên môn hỗ trợ học viên'),
+(N'Customer', N'Khách hàng đặt sân và dịch vụ');
 
-INSERT INTO MembershipTiers (TierName, MinPoints, DiscountPercent, Description) VALUES
-    ('Bronze',   0,    0,  N'Thành viên cơ bản'),
-    ('Silver',   500,  5,  N'Giảm 5% mỗi booking'),
-    ('Gold',     2000, 10, N'Giảm 10% + ưu tiên đặt sân'),
-    ('Platinum', 5000, 15, N'Giảm 15% + dịch vụ VIP');
+-- 2. Membership Tiers
+INSERT INTO MembershipTiers (TierName, MinPoints, DiscountPercent) VALUES
+(N'Bronze', 0, 0.00),
+(N'Silver', 500, 5.00),
+(N'Gold', 2000, 10.00),
+(N'Platinum', 5000, 15.00);
 
-INSERT INTO CourtTypes (TypeName, Description) VALUES
-    (N'Cầu lông',   N'Sân cầu lông tiêu chuẩn BWF'),
-    (N'Bóng đá',    N'Sân bóng đá mini 5v5 / 7v7'),
-    (N'Pickleball', N'Sân pickleball tiêu chuẩn'),
-    (N'Tennis',     N'Sân tennis mặt cứng / đất nện'),
-    (N'Bóng rổ',    N'Sân bóng rổ 3x3 / 5v5');
+-- 3. Promotions
+INSERT INTO Promotions (PromoCode, PromoName, DiscountType, DiscountValue, StartDate, EndDate) VALUES
+(N'WELCOME10', N'Khuyến mãi chào mừng thành viên mới', 0, 10.00, '2026-01-01 00:00:00', '2026-12-31 23:59:59'),
+(N'SUMMER26', N'Khuyến mãi hè rực rỡ 2026', 0, 20.00, '2026-06-01 00:00:00', '2026-08-31 23:59:59'),
+(N'GIAM50K', N'Mã giảm giá trực tiếp 50,000 VNĐ', 1, 50000.00, '2026-05-01 00:00:00', '2026-07-31 23:59:59'),
+(N'MIDYEAR15', N'Ưu đãi giữa năm cực hot', 0, 15.00, '2026-06-15 00:00:00', '2026-07-15 23:59:59');
 
+-- 4. Court Types
+INSERT INTO CourtTypes (TypeName, IsActive) VALUES
+(N'Cầu lông', 1),
+(N'Bóng đá', 1),
+(N'Pickleball', 1),
+(N'Tennis', 1),
+(N'Bóng rổ', 1);
+
+-- 5. Time Slots
 INSERT INTO TimeSlots (SlotName, StartTime, EndTime, DayType) VALUES
-    (N'Sáng sớm',        '05:00','07:00','Weekday'),
-    (N'Buổi sáng',       '07:00','11:00','Weekday'),
-    (N'Buổi trưa',       '11:00','13:00','Weekday'),
-    (N'Buổi chiều',      '13:00','17:00','Weekday'),
-    (N'Giờ vàng',        '17:00','21:00','Weekday'),
-    (N'Tối muộn',        '21:00','23:00','Weekday'),
-    (N'Cuối tuần sáng',  '06:00','12:00','Weekend'),
-    (N'Cuối tuần chiều', '12:00','18:00','Weekend'),
-    (N'Cuối tuần tối',   '18:00','23:00','Weekend');
+(N'Sáng sớm (K01)', '05:00:00', '07:00:00', 0),
+(N'Buổi sáng (K02)', '07:00:00', '11:00:00', 0),
+(N'Buổi trưa (K03)', '11:00:00', '13:00:00', 0),
+(N'Buổi chiều (K04)', '13:00:00', '17:00:00', 0),
+(N'Giờ vàng tối (K05)', '17:00:00', '21:00:00', 0),
+(N'Tối muộn (K06)', '21:00:00', '23:00:00', 0),
+(N'Cuối tuần sáng (C01)', '06:00:00', '12:00:00', 1),
+(N'Cuối tuần chiều (C02)', '12:00:00', '18:00:00', 1),
+(N'Cuối tuần tối (C03)', '18:00:00', '23:00:00', 1);
 
--- Admin (password: Admin@123)
-INSERT INTO Users (FullName,Email,Phone,PasswordHash,IsActive,IsEmailVerified,MembershipTierId)
-VALUES (N'System Admin','admin@sportscourtms.vn','0900000001','$2a$12$adminHash',1,1,4);
-INSERT INTO UserRoles(UserId,RoleId) VALUES (1,1);
+-- 6. Services
+INSERT INTO Services (ServiceName, Category, Price, StockQty) VALUES
+(N'Thuê vợt cầu lông Yonex', N'Equipment', 30000.00, 20),
+(N'Hộp bóng cầu lông (12 quả)', N'Equipment', 150000.00, 50),
+(N'Thuê vợt Pickleball cao cấp', N'Equipment', 40000.00, 15),
+(N'Thuê bóng Pickleball (set 3 quả)', N'Equipment', 30000.00, 100),
+(N'Nước suối Aquafina 500ml', N'Drink', 10000.00, 200),
+(N'Nước điện giải Revive 500ml', N'Drink', 15000.00, 150),
+(N'Thuê giày thể thao Lining', N'Equipment', 25000.00, 30),
+(N'Thuê bóng rổ Molten', N'Equipment', 35000.00, 10),
+(N'Dịch vụ HLV Cầu lông cơ bản', N'Coach', 150000.00, 999),
+(N'Dịch vụ HLV Pickleball nâng cao', N'Coach', 250000.00, 999);
 
--- Staff
-INSERT INTO Users (FullName,Email,Phone,PasswordHash,IsActive,IsEmailVerified,MembershipTierId)
-VALUES (N'Nguyễn Văn An','staff@sportscourtms.vn','0900000002','$2a$12$staffHash',1,1,1);
-INSERT INTO UserRoles(UserId,RoleId) VALUES (2,2);
+-- 7. Users
+-- Note: Password is 'Password@123' for all seeded users.
+-- The hash below is a valid BCrypt hash for 'Password@123'
+DECLARE @DefaultHash NVARCHAR(255) = N'$2a$12$K.zM93V65pLh/p5N7Fp4ZexUleGvPvx79K7mJcK.mJ68Q7F1.n1.a';
 
--- Coach
-INSERT INTO Users (FullName,Email,Phone,PasswordHash,IsActive,IsEmailVerified,MembershipTierId)
-VALUES (N'Trần Thị Bình','coach@sportscourtms.vn','0900000003','$2a$12$coachHash',1,1,2);
-INSERT INTO UserRoles(UserId,RoleId) VALUES (3,3);
+INSERT INTO Users (FullName, Email, Phone, PasswordHash, AvatarUrl, LoyaltyPoints, MembershipTierId, RefreshToken, IsActive, Gender, SkillLevel, CreatedAt) VALUES
+(N'System Admin', N'admin@sportscourt.com', N'0901234567', @DefaultHash, N'https://i.pravatar.cc/150?img=33', 5500, 4, NULL, 1, 0, 2, '2026-01-15 08:30:00'),
+(N'Nguyễn Hoàng Nam (Staff)', N'nam.staff@sportscourt.com', N'0912345678', @DefaultHash, N'https://i.pravatar.cc/150?img=12', 150, 1, NULL, 1, 0, 1, '2026-02-10 09:15:00'),
+(N'Trần Quốc Bảo (Coach)', N'bao.coach@sportscourt.com', N'0923456789', @DefaultHash, N'https://i.pravatar.cc/150?img=60', 1200, 2, NULL, 1, 0, 2, '2026-03-01 14:00:00'),
+(N'Lê Thị Mai (Coach)', N'mai.coach@sportscourt.com', N'0934567890', @DefaultHash, N'https://i.pravatar.cc/150?img=47', 800, 2, NULL, 1, 1, 2, '2026-03-05 10:20:00'),
+(N'Phạm Minh Đức', N'duc.customer@gmail.com', N'0945678901', @DefaultHash, N'https://i.pravatar.cc/150?img=11', 2500, 3, NULL, 1, 0, 1, '2026-04-12 16:45:00'),
+(N'Hoàng Thúy Vy', N'vy.customer@gmail.com', N'0956789012', @DefaultHash, N'https://i.pravatar.cc/150?img=5', 600, 2, NULL, 1, 1, 0, '2026-05-01 11:10:00'),
+(N'Đỗ Hữu Hùng', N'hung.customer@gmail.com', N'0967890123', @DefaultHash, N'https://i.pravatar.cc/150?img=15', 50, 1, NULL, 1, 0, 0, '2026-06-01 08:00:00'),
+(N'Vũ Thị Hồng', N'hong.customer@gmail.com', N'0978901234', @DefaultHash, N'https://i.pravatar.cc/150?img=48', 3100, 3, NULL, 1, 1, 2, '2026-06-10 13:22:00');
 
--- Customer demo
-INSERT INTO Users (FullName,Email,Phone,PasswordHash,IsActive,IsEmailVerified,MembershipTierId)
-VALUES (N'Lê Văn Cường','customer@gmail.com','0912345678','$2a$12$customerHash',1,1,1);
-INSERT INTO UserRoles(UserId,RoleId) VALUES (4,4);
+-- 8. User Roles
+INSERT INTO UserRoles (UserId, RoleId) VALUES
+(1, 1), -- Admin
+(2, 2), -- Staff
+(3, 3), -- Coach
+(4, 3), -- Coach
+(5, 4), -- Customer
+(6, 4), -- Customer
+(7, 4), -- Customer
+(8, 4); -- Customer
 
-INSERT INTO Courts (CourtName,CourtCode,CourtTypeId,Description,Location,Capacity,Surface,OpenTime,CloseTime) VALUES
-    (N'Sân Cầu Lông A1','CL-A1',1,N'Sân cầu lông tiêu chuẩn, sàn gỗ, điều hòa',N'Tầng 1 Khu A',4,N'Gỗ','06:00','22:00'),
-    (N'Sân Cầu Lông A2','CL-A2',1,N'Sân cầu lông tiêu chuẩn, sàn nhựa PVC',N'Tầng 1 Khu A',4,N'Nhựa PVC','06:00','22:00'),
-    (N'Sân Bóng Đá B1', 'BD-B1',2,N'Sân 5v5 cỏ nhân tạo thế hệ 3',N'Ngoài trời Khu B',10,N'Cỏ nhân tạo','06:00','22:00'),
-    (N'Sân Pickleball C1','PK-C1',3,N'Sân pickleball tiêu chuẩn',N'Tầng 2 Khu C',4,N'Nhựa','06:00','22:00'),
-    (N'Sân Tennis D1',  'TN-D1',4,N'Sân mặt cứng, đèn cao áp',N'Ngoài trời Khu D',4,N'Mặt cứng','06:00','22:00');
+-- 9. Court Complexes
+INSERT INTO CourtComplexes (ComplexName, Address, ManagerId, Description, ImageUrl, IsDeleted, CreatedAt) VALUES
+(N'Tổ hợp Thể thao Phú Thọ Q11', N'219 Lý Thường Kiệt, Phường 15, Quận 11, TP. HCM', 2, N'Khu liên hợp thể thao quy mô lớn với đầy đủ sân cầu lông, bóng đá cỏ nhân tạo và sân pickleball trong nhà hiện đại.', N'https://images.unsplash.com/photo-1545224497-5d24f378a74f?q=80', 0, '2026-04-01 07:00:00'),
+(N'Nhà Thi Đấu Nguyễn Du Quận 1', N'116 Nguyễn Du, Phường Bến Thành, Quận 1, TP. HCM', 2, N'Vị trí trung tâm Quận 1, sàn thi đấu chuẩn quốc tế, phù hợp cho các buổi giao lưu chất lượng cao và giải đấu phong trào.', N'https://images.unsplash.com/photo-1518063319789-7217e6706b04?q=80', 0, '2026-04-10 07:00:00');
 
--- Pricing: Cầu lông A1
-INSERT INTO CourtPricing (CourtId,SlotId,Price,PeakMultiplier) VALUES
-    (1,1,80000,1.0),(1,2,100000,1.0),(1,3,90000,1.0),
-    (1,4,100000,1.0),(1,5,150000,1.5),(1,6,120000,1.2);
+-- 10. Courts
+INSERT INTO Courts (CourtName, CourtCode, CourtTypeId, ComplexId, Status, OpenTime, CloseTime, PricePerHour, CourtSize, IsDeleted) VALUES
+(N'Sân Cầu Lông A1', N'PT-CL-A1', 1, 1, 0, '05:00:00', '23:00:00', 80000.00, N'13.4m x 6.1m', 0),
+(N'Sân Cầu Lông A2', N'PT-CL-A2', 1, 1, 0, '05:00:00', '23:00:00', 80000.00, N'13.4m x 6.1m', 0),
+(N'Sân Cầu Lông A3', N'PT-CL-A3', 1, 1, 3, '05:00:00', '23:00:00', 80000.00, N'13.4m x 6.1m', 0), -- Maintenance
+(N'Sân Bóng Đá Mini F1', N'PT-BD-F1', 2, 1, 0, '06:00:00', '22:00:00', 350000.00, N'40m x 20m (Sân 5)', 0),
+(N'Sân Pickleball P1', N'ND-PK-P1', 3, 2, 0, '05:00:00', '22:00:00', 120000.00, N'13.4m x 6.1m', 0),
+(N'Sân Pickleball P2', N'ND-PK-P2', 3, 2, 0, '05:00:00', '22:00:00', 120000.00, N'13.4m x 6.1m', 0),
+(N'Sân Tennis Standard T1', N'ND-TN-T1', 4, 2, 0, '06:00:00', '22:00:00', 220000.00, N'23.77m x 10.97m', 0),
+(N'Sân Bóng Rổ B1', N'PT-BR-B1', 5, 1, 0, '06:00:00', '22:00:00', 150000.00, N'28m x 15m', 0);
 
--- Pricing: Bóng đá B1
-INSERT INTO CourtPricing (CourtId,SlotId,Price,PeakMultiplier) VALUES
-    (3,2,300000,1.0),(3,4,300000,1.0),(3,5,500000,1.5),
-    (3,7,400000,1.2),(3,8,400000,1.2),(3,9,600000,1.5);
+-- 11. Court Images
+INSERT INTO CourtImages (CourtId, ImageUrl, IsPrimary) VALUES
+(1, N'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80', 1),
+(2, N'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80', 1),
+(3, N'https://images.unsplash.com/photo-1599447421416-3414500d18a5?q=80', 1),
+(4, N'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80', 1),
+(5, N'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?q=80', 1),
+(6, N'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?q=80', 1),
+(7, N'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?q=80', 1),
+(8, N'https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80', 1);
 
-INSERT INTO Services (ServiceName,Category,Price,Unit,Description,MinStock) VALUES
-    (N'Thuê vợt cầu lông',   'Equipment',30000, N'cây/giờ',N'Vợt Yonex tiêu chuẩn',5),
-    (N'Thuê bóng cầu lông',  'Equipment',10000, N'ống',    N'Hộp 12 quả',10),
-    (N'Thuê giày thể thao',  'Equipment',20000, N'đôi/giờ',N'Size 36-44',8),
-    (N'Nước suối',           'Drink',    10000, N'chai',   N'Aquafina 500ml',20),
-    (N'Nước tăng lực',       'Drink',    20000, N'chai',   N'Redbull/Sting',15),
-    (N'Huấn luyện cơ bản',   'Coach',    200000,N'buổi',  N'1 giờ với HLV cơ bản',0),
-    (N'Huấn luyện nâng cao', 'Coach',    400000,N'buổi',  N'1 giờ với HLV chuyên nghiệp',0),
-    (N'Tổ chức giải đấu',    'Event',    2000000,N'lần',  N'Trọn gói tổ chức giải',0);
+-- 12. Court Pricing
+INSERT INTO CourtPricing (CourtId, SlotId, Price, EffectiveFrom) VALUES
+-- Sân Cầu Lông A1: Các Slot
+(1, 1, 60000.00, '2026-04-15 00:00:00'),
+(1, 2, 80000.00, '2026-04-15 00:00:00'),
+(1, 3, 70000.00, '2026-04-15 00:00:00'),
+(1, 4, 80000.00, '2026-04-15 00:00:00'),
+(1, 5, 120000.00, '2026-04-15 00:00:00'), -- Giờ vàng
+(1, 6, 90000.00, '2026-04-15 00:00:00'),
+-- Sân Cầu Lông A2
+(2, 1, 60000.00, '2026-04-15 00:00:00'),
+(2, 2, 80000.00, '2026-04-15 00:00:00'),
+(2, 5, 120000.00, '2026-04-15 00:00:00'),
+-- Sân Bóng Đá Mini F1
+(4, 2, 300000.00, '2026-04-15 00:00:00'),
+(4, 5, 450000.00, '2026-04-15 00:00:00'),
+(4, 8, 400000.00, '2026-04-15 00:00:00'),
+-- Sân Pickleball P1
+(5, 2, 120000.00, '2026-04-15 00:00:00'),
+(5, 5, 180000.00, '2026-04-15 00:00:00'),
+(5, 8, 160000.00, '2026-04-15 00:00:00'),
+-- Sân Tennis Standard T1
+(7, 2, 200000.00, '2026-04-15 00:00:00'),
+(7, 5, 300000.00, '2026-04-15 00:00:00'),
+(7, 9, 280000.00, '2026-04-15 00:00:00');
 
--- Equipment inventory samples
-INSERT INTO EquipmentInventory (ServiceId,ItemCode,Condition,PurchaseDate,PurchasePrice) VALUES
-    (1,'VOT-001','Good','2026-01-01',500000),
-    (1,'VOT-002','Good','2026-01-01',500000),
-    (1,'VOT-003','Damaged','2026-01-01',500000),
-    (2,'BONG-001','Good','2026-01-01',150000),
-    (2,'BONG-002','Good','2026-01-01',150000),
-    (3,'GIAY-001','Good','2026-01-15',300000),
-    (3,'GIAY-002','Good','2026-01-15',300000);
+-- 13. Equipment Inventory
+INSERT INTO EquipmentInventory (ServiceId, ItemCode, Condition, PurchaseDate, PurchasePrice, IsAvailable) VALUES
+(1, N'YONEX-001', 0, '2026-01-10 00:00:00', 1200000.00, 1),
+(1, N'YONEX-002', 0, '2026-01-10 00:00:00', 1200000.00, 1),
+(1, N'YONEX-003', 1, '2026-01-10 00:00:00', 1200000.00, 0), -- Damaged
+(3, N'PKL-PAD-01', 0, '2026-04-05 00:00:00', 800000.00, 1),
+(3, N'PKL-PAD-02', 0, '2026-04-05 00:00:00', 800000.00, 1),
+(7, N'SHOE-40-01', 0, '2026-02-15 00:00:00', 950000.00, 1),
+(7, N'SHOE-42-01', 0, '2026-02-15 00:00:00', 950000.00, 1),
+(8, N'BB-MOLTEN-01', 0, '2026-03-20 00:00:00', 650000.00, 1);
 
-INSERT INTO Promotions (PromoCode,PromoName,DiscountType,DiscountValue,MinOrderAmount,StartDate,EndDate) VALUES
-    ('WELCOME10',N'Chào mừng thành viên mới','Percent',    10,     0,     '2026-01-01','2026-12-31'),
-    ('SUMMER20', N'Khuyến mãi hè 2026',      'Percent',    20,     200000,'2026-06-01','2026-08-31'),
-    ('FIXED50K', N'Giảm 50k đơn từ 300k',   'FixedAmount',50000,  300000,'2026-05-01','2026-07-31');
+-- 14. Staff Shifts
+INSERT INTO StaffShifts (StaffId, ShiftDate, ShiftType, StartTime, EndTime, CheckInTime, CheckOutTime) VALUES
+(2, '2026-06-28 00:00:00', 0, '06:00:00', '14:00:00', '2026-06-28 05:55:00', '2026-06-28 14:05:00'),
+(2, '2026-06-29 00:00:00', 1, '14:00:00', '22:00:00', NULL, NULL),
+(2, '2026-06-30 00:00:00', 0, '06:00:00', '14:00:00', NULL, NULL);
 
--- Staff shifts
-INSERT INTO StaffShifts (StaffId,ShiftDate,ShiftType,StartTime,EndTime) VALUES
-    (2,'2026-05-14','Morning',  '06:00','14:00'),
-    (2,'2026-05-15','Afternoon','14:00','22:00'),
-    (2,'2026-05-16','Morning',  '06:00','14:00');
+-- 15. Coach Schedules
+INSERT INTO CoachSchedules (CoachId, CourtId, SlotId, ScheduleDate, Price, IsBooked) VALUES
+(3, 1, 2, '2026-06-29 00:00:00', 150000.00, 0),
+(3, 1, 5, '2026-06-29 00:00:00', 200000.00, 1), -- Booked
+(4, 5, 2, '2026-06-29 00:00:00', 250000.00, 0),
+(4, 5, 5, '2026-06-30 00:00:00', 250000.00, 0);
 
-PRINT '=== SportsCourtDB v2.0 created successfully! (26 tables) ===';
+-- 16. Recurring Bookings
+INSERT INTO RecurringBookings (UserId, CourtId, SlotId, StartDate, EndDate, DaysOfWeek, Status) VALUES
+(5, 1, 5, '2026-06-01 00:00:00', '2026-08-31 00:00:00', N'2,4,6', 0), -- Mon, Wed, Fri
+(8, 7, 9, '2026-06-01 00:00:00', '2026-07-31 00:00:00', N'7,8', 0); -- Sat, Sun
+
+-- 17. Bookings
+-- Pending=0, Confirmed=1, Cancelled=2, Completed=3, NoShow=4
+INSERT INTO Bookings (BookingCode, UserId, CourtId, SlotId, BookingDate, StartTime, EndTime, SubTotal, DiscountAmount, TotalAmount, Status, PromotionId) VALUES
+(N'BK-20260628001', 5, 1, 5, '2026-06-28 00:00:00', '17:00:00', '21:00:00', 120000.00, 12000.00, 108000.00, 1, 1), -- Confirmed
+(N'BK-20260628002', 6, 5, 5, '2026-06-28 00:00:00', '17:00:00', '21:00:00', 180000.00, 0.00, 180000.00, 3, NULL), -- Completed
+(N'BK-20260628003', 7, 4, 2, '2026-06-28 00:00:00', '07:00:00', '11:00:00', 300000.00, 50000.00, 250000.00, 2, 3), -- Cancelled
+(N'BK-20260629001', 8, 7, 2, '2026-06-29 00:00:00', '07:00:00', '11:00:00', 200000.00, 30000.00, 170000.00, 0, 4); -- Pending
+
+-- 18. Booking Services
+INSERT INTO BookingServices (BookingId, ServiceId, Quantity, TotalPrice) VALUES
+(1, 1, 2, 60000.00),  -- Thuê vợt cầu lông
+(1, 5, 4, 40000.00),  -- Nước suối
+(2, 3, 2, 80000.00),  -- Thuê vợt pickleball
+(2, 6, 2, 30000.00);  -- Nước bù khoáng
+
+-- 19. Payments
+-- Pending=0, Success=1, Failed=2, Refunded=3
+INSERT INTO Payments (BookingId, Amount, PaymentMethod, TransactionId, GatewayResponse, Status, RefundAmount, PaidAt) VALUES
+(1, 108000.00, 0, N'VNPAY20260628001', N'{"RspCode":"00","Message":"Confirm Success"}', 1, 0.00, '2026-06-28 10:10:00'),
+(2, 180000.00, 1, N'MOMO20260628002', N'{"errorCode":0,"message":"Successful"}', 1, 0.00, '2026-06-28 15:30:00'),
+(3, 250000.00, 2, N'BANK20260628003', N'Customer requested cancel', 3, 250000.00, '2026-06-28 08:20:00'),
+(4, 170000.00, 0, N'VNPAY20260629001', NULL, 0, 0.00, NULL);
+
+-- 20. Invoices
+INSERT INTO Invoices (InvoiceNumber, BookingId, PaymentId, SubTotal, DiscountAmount, VatPercent, VatAmount, TotalAmount, PdfUrl, IsEmailSent, CreatedAt) VALUES
+(N'INV-260628001', 1, 1, 120000.00, 12000.00, 10.00, 10800.00, 118800.00, N'https://sportscourt.storage/invoices/inv-260628001.pdf', 1, '2026-06-28 10:15:00'),
+(N'INV-260628002', 2, 2, 180000.00, 0.00, 10.00, 18000.00, 198000.00, N'https://sportscourt.storage/invoices/inv-260628002.pdf', 1, '2026-06-28 15:35:00');
+
+-- 21. Reviews
+INSERT INTO Reviews (BookingId, UserId, CourtId, Rating, Comment, IsVisible) VALUES
+(2, 6, 5, 5, N'Sân pickleball Nguyễn Du mặt sơn rất đẹp và nảy chuẩn. Đèn chiếu sáng ban đêm cực tốt, dịch vụ chuyên nghiệp!', 1);
+
+-- 22. Waitlists
+-- Waiting=0, Notified=1, Confirmed=2, Expired=3, Cancelled=4
+INSERT INTO Waitlists (UserId, CourtId, SlotId, WaitDate, Position, Status, NotifiedAt, ExpiredAt) VALUES
+(5, 5, 5, '2026-07-01 00:00:00', 1, 0, NULL, NULL),
+(6, 5, 5, '2026-07-01 00:00:00', 2, 0, NULL, NULL);
+
+-- 23. Notifications
+-- BookingConfirm=0, BookingCancel=1, PaymentSuccess=2, PaymentFail=3, Reminder=4, Promotion=5, Waitlist=6, System=7
+INSERT INTO Notifications (UserId, Title, Type, IsRead, CreatedAt) VALUES
+(5, N'Đơn đặt sân BK-20260628001 của bạn đã được xác nhận!', 0, 1, '2026-06-28 10:10:05'),
+(5, N'Hóa đơn thanh toán của bạn đã được gửi qua email.', 2, 0, '2026-06-28 10:15:02'),
+(7, N'Hủy sân thành công! Số tiền hoàn trả đã được xử lý về tài khoản của bạn.', 1, 1, '2026-06-28 12:45:00');
+
+-- 24. Maintenance Schedules
+-- Scheduled=0, InProgress=1, Completed=2, Cancelled=3
+INSERT INTO MaintenanceSchedules (CourtId, MaintenanceType, StartDateTime, EndDateTime, AssignedStaffId, Reason, Result, Status) VALUES
+(3, 0, '2026-06-30 08:00:00', '2026-06-30 17:00:00', 2, N'Bảo trì định kỳ thảm trải sàn và thay mới lưới bị rách.', NULL, 0);
+
+-- 25. Player Requests
+-- SkillLevel Enum: Beginner=0, Intermediate=1, Advanced=2
+-- Gender Enum: Male=0, Female=1, Any=2 (Other=2)
+-- PlayerRequestStatus Enum: Open=0, Full=1, Closed=2, Cancelled=3
+INSERT INTO PlayerRequests (BookingId, HostUserId, SkillLevel, RequiredPlayers, GenderPref, Status) VALUES
+(1, 5, 1, 2, 2, 0), -- Host Đức cần thêm 2 người chơi trình độ trung bình
+(2, 6, 0, 1, 1, 1); -- Host Vy cần thêm 1 bạn nữ chơi cùng, đã đủ người
+
+-- 26. PlayerRequestMembers
+-- MemberRequestStatus Enum: Pending=0, Accepted=1, Rejected=2
+INSERT INTO PlayerRequestMembers (RequestId, UserId, Status, JoinedAt) VALUES
+(1, 7, 0, '2026-06-28 11:00:00'), -- Hùng xin tham gia group của Đức (Pending)
+(2, 8, 1, '2026-06-28 16:00:00'); -- Hồng tham gia group của Vy (Accepted)
+
+-- 27. Tasks
+-- TaskType: Manual=0
+-- TaskCategory: Cleanup=0, ServicePrep=1, Repair=2, Complaint=3
+-- TaskPriority: Urgent=0, High=1, Medium=2, Low=3
+-- TaskItemStatus: Pending=0, InProgress=1, Completed=2, Approved=3
+INSERT INTO Tasks (Title, Description, TaskType, Category, Priority, Status, ComplexId, AssignedStaffId, CreatedById, BookingId, DueDate, CreatedAt, CompletedAt) VALUES
+(N'Lau dọn sân cầu lông A1', N'Dọn dẹp chai nước suối cũ và lau sạch mồ hôi trên sàn đấu sau ca chơi tối.', 0, 0, 2, 2, 1, 2, 1, 1, '2026-06-28 21:15:00', '2026-06-28 21:00:00', '2026-06-28 21:10:00'),
+(N'Chuẩn bị vợt thuê Pickleball cho ca sáng', N'Căng lại dây và lau cán vợt của set vợt PKL-PAD-01 và 02.', 0, 1, 2, 0, 2, 2, 1, NULL, '2026-06-29 07:00:00', '2026-06-28 22:00:00', NULL);
+
+-- 28. Audit Logs
+INSERT INTO AuditLogs (UserId, Action, TableName, Timestamp, Details) VALUES
+(1, N'Insert User', N'Users', '2026-06-28 08:35:00', N'Admin added new staff user: Nguyễn Hoàng Nam'),
+(5, N'Create Booking', N'Bookings', '2026-06-28 10:09:50', N'Customer created booking code BK-20260628001');
+
+PRINT '=== PRN232_SCM_DB v3.0 created successfully! (28 Tables + Real-world Seed Data) ===';
 GO

@@ -3,8 +3,10 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SportCourtManagent_Server.DTOs;
 using SportCourtManagent_Server.DTOs.Booking;
 using SportCourtManagent_Server.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace SportCourtManagent_Server.Controllers
 {
@@ -20,14 +22,15 @@ namespace SportCourtManagent_Server.Controllers
       _bookingService = bookingService ?? throw new ArgumentNullException(nameof(bookingService));
     }
 
-    /// <summary>Gets bookings for logged in customer.</summary>
+    /// <summary>Gets paged bookings for logged in customer.</summary>
     [HttpGet("my")]
-    public async Task<IActionResult> GetMyBookings()
+    public async Task<IActionResult> GetMyBookings([FromQuery] BookingFilterParams? filter)
     {
       try
       {
+        filter ??= new BookingFilterParams();
         if (!TryGetUserId(out int userId)) return Unauthorized(new { message = "Không xác định được người dùng." });
-        var result = await _bookingService.GetCustomerBookingsAsync(userId);
+        var result = await _bookingService.GetPagedCustomerBookingsAsync(userId, filter);
         return Ok(new { data = result });
       }
       catch (Exception ex)
@@ -39,11 +42,12 @@ namespace SportCourtManagent_Server.Controllers
     /// <summary>Gets all bookings for Admin and Staff.</summary>
     [HttpGet("admin")]
     [Authorize(Roles = "Admin,Staff")]
-    public async Task<IActionResult> GetAdminBookings([FromQuery] DateTime? date, [FromQuery] int? courtTypeId, [FromQuery] string? status)
+    public async Task<IActionResult> GetAdminBookings([FromQuery] BookingFilterParams? filter)
     {
       try
       {
-        var result = await _bookingService.GetAdminBookingsAsync(date, courtTypeId, status);
+        filter ??= new BookingFilterParams();
+        var result = await _bookingService.GetPagedAdminBookingsAsync(filter);
         return Ok(new { data = result });
       }
       catch (Exception ex)
@@ -121,7 +125,11 @@ namespace SportCourtManagent_Server.Controllers
       }
       catch (ArgumentException ex)
       {
-        return BadRequest(new { message = ex.Message });
+        return Conflict(new { message = ex.Message });
+      }
+      catch (DbUpdateException)
+      {
+        return Conflict(new { message = "Khung giờ thi đấu này vừa có người khác đặt thành công trước bạn vài giây. Vui lòng chọn ca khác." });
       }
       catch (Exception ex)
       {
@@ -131,12 +139,13 @@ namespace SportCourtManagent_Server.Controllers
 
     /// <summary>Gets tournament list for the current logged-in customer.</summary>
     [HttpGet("tournament/my")]
-    public async Task<IActionResult> GetMyTournaments()
+    public async Task<IActionResult> GetMyTournaments([FromQuery] TournamentFilterParams? filter)
     {
       try
       {
+        filter ??= new TournamentFilterParams();
         if (!TryGetUserId(out int userId)) return Unauthorized(new { message = "Không xác định được người dùng." });
-        var result = await _bookingService.GetCustomerTournamentsAsync(userId);
+        var result = await _bookingService.GetPagedCustomerTournamentsAsync(userId, filter);
         return Ok(new { data = result });
       }
       catch (Exception ex)
@@ -148,11 +157,12 @@ namespace SportCourtManagent_Server.Controllers
     /// <summary>Gets all tournaments with optional filters for Admin and Staff.</summary>
     [HttpGet("tournament/admin")]
     [Authorize(Roles = "Admin,Staff")]
-    public async Task<IActionResult> GetAdminTournaments([FromQuery] DateTime? date, [FromQuery] string? status)
+    public async Task<IActionResult> GetAdminTournaments([FromQuery] TournamentFilterParams? filter)
     {
       try
       {
-        var result = await _bookingService.GetAdminTournamentsAsync(date, status);
+        filter ??= new TournamentFilterParams();
+        var result = await _bookingService.GetPagedAdminTournamentsAsync(filter);
         return Ok(new { data = result });
       }
       catch (Exception ex)
@@ -161,6 +171,38 @@ namespace SportCourtManagent_Server.Controllers
       }
     }
 
+    /// <summary>Gets public tournaments list for all customers and visitors.</summary>
+    [HttpGet("tournament/public")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetPublicTournaments([FromQuery] TournamentFilterParams? filter)
+    {
+      try
+      {
+        filter ??= new TournamentFilterParams();
+        var result = await _bookingService.GetPagedPublicTournamentsAsync(filter);
+        return Ok(new { data = result });
+      }
+      catch (Exception ex)
+      {
+        return StatusCode(500, new { message = ex.Message });
+      }
+    }
+
+    /// <summary>Gets tournament detail with optional filters for Customer but not owner.</summary>
+    [HttpGet("tournament/{id}/public")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetTournamentPublic([FromRoute] int id)
+    {
+      try
+      {
+        var result = await _bookingService.GetTournamentPublicInfoAsync(id);
+        return Ok(new { data = result });
+      }
+      catch (Exception ex)
+      {
+        return StatusCode(500, new { message = ex.Message });
+      }
+    }
     /// <summary>Gets tournament detail by ID. Customer can only view their own tournament.</summary>
     [HttpGet("tournament/{id:int}")]
     public async Task<IActionResult> GetTournamentById(int id)
@@ -221,7 +263,11 @@ namespace SportCourtManagent_Server.Controllers
       }
       catch (ArgumentException ex)
       {
-        return BadRequest(new { message = ex.Message });
+        return Conflict(new { message = ex.Message });
+      }
+      catch (DbUpdateException)
+      {
+        return Conflict(new { message = "Khung giờ thi đấu mới bạn chọn vừa có người khác đặt thành công. Vui lòng chọn ca khác." });
       }
       catch (Exception ex)
       {
@@ -239,6 +285,10 @@ namespace SportCourtManagent_Server.Controllers
         var result = await _bookingService.UpdateBookingStatusAsync(id, request);
         if (result == null) return NotFound(new { message = "Không tìm thấy đơn đặt sân." });
         return Ok(new { data = result, message = "Cập nhật trạng thái thành công." });
+      }
+      catch (ArgumentException ex)
+      {
+        return BadRequest(new { message = ex.Message });
       }
       catch (Exception ex)
       {

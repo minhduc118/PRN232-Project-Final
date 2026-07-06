@@ -5,10 +5,10 @@ namespace SportCourtManagent_Server.DataAccess.Interfaces
 {
     public interface ITimeSlotRepository
     {
-        IEnumerable<TimeSlot> GetAll();
-        TimeSlot? GetById(int id);
-        void Add(TimeSlot entity);
-        void Update(TimeSlot entity);
-        void Delete(int id);
+        Task<IEnumerable<TimeSlot>> GetAllAsync();
+        Task<TimeSlot?> GetByIdAsync(int id);
+        Task AddAsync(TimeSlot entity);
+        Task UpdateAsync(TimeSlot entity);
+        Task DeleteAsync(int id);
     }
 }

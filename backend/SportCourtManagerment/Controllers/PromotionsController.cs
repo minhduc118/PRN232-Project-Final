@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SportCourtManagerment.DTOs;
 using SportCourtManagerment.DTOs.Promotions;
-using SportCourtManagerment.Services.Promotions;
 
 namespace SportCourtManagerment.Controllers;
 
@@ -9,15 +9,16 @@ namespace SportCourtManagerment.Controllers;
 [ApiController]
 public class PromotionsController : ControllerBase
 {
-    private readonly IPromotionService _promotionService;
+    private readonly SportCourtManagerment.Services.Promotions.IPromotionService _promotionService;
+    private readonly SportCourtManagerment.Services.Interfaces.IPromotionService? _activePromotionService;
 
-    public PromotionsController(IPromotionService promotionService)
+    public PromotionsController(SportCourtManagerment.Services.Promotions.IPromotionService promotionService, IEnumerable<SportCourtManagerment.Services.Interfaces.IPromotionService> activePromotionServices)
     {
         _promotionService = promotionService;
+        _activePromotionService = activePromotionServices.FirstOrDefault();
     }
 
     [HttpGet]
-    // [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> GetAllPromotions()
     {
         var result = await _promotionService.GetAllPromotionsAsync();
@@ -25,7 +26,6 @@ public class PromotionsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    // [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> GetPromotionById(int id)
     {
         var result = await _promotionService.GetPromotionByIdAsync(id);
@@ -34,7 +34,6 @@ public class PromotionsController : ControllerBase
     }
 
     [HttpPost]
-    // [Authorize(Roles = "Admin")]
     public async Task<IActionResult> CreatePromotion([FromBody] CreatePromotionDto dto)
     {
         if (!ModelState.IsValid)
@@ -47,7 +46,6 @@ public class PromotionsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    // [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdatePromotion(int id, [FromBody] UpdatePromotionDto dto)
     {
         if (!ModelState.IsValid)
@@ -60,12 +58,22 @@ public class PromotionsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    // [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeletePromotion(int id)
     {
         var result = await _promotionService.DeletePromotionAsync(id);
         if (!result.Success) return BadRequest(result);
 
         return Ok(result);
+    }
+
+    [HttpGet("active")]
+    public async Task<IActionResult> GetActivePromotions()
+    {
+        if (_activePromotionService != null)
+        {
+            var promotions = await _activePromotionService.GetActivePromotionsAsync();
+            return Ok(ApiResponse<List<PromotionDto>>.Ok(promotions, "Lấy danh sách khuyến mãi thành công."));
+        }
+        return Ok(new { data = new List<PromotionDto>() });
     }
 }

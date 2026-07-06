@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.Models;
 
@@ -16,27 +18,40 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
 
         public IEnumerable<BookingService> GetAll()
         {
-            throw new NotImplementedException();
+            return _context.BookingServices
+                .Include(bs => bs.Booking)
+                .Include(bs => bs.Service)
+                .ToList();
         }
 
         public BookingService? GetById(int id)
         {
-            throw new NotImplementedException();
+            return _context.BookingServices
+                .Include(bs => bs.Booking)
+                .Include(bs => bs.Service)
+                .FirstOrDefault(bs => bs.BookingServiceId == id);
         }
 
         public void Add(BookingService entity)
         {
-            throw new NotImplementedException();
+            _context.BookingServices.Add(entity);
+            _context.SaveChanges();
         }
 
         public void Update(BookingService entity)
         {
-            throw new NotImplementedException();
+            _context.BookingServices.Update(entity);
+            _context.SaveChanges();
         }
 
         public void Delete(int id)
         {
-            throw new NotImplementedException();
+            var entity = _context.BookingServices.Find(id);
+            if (entity != null)
+            {
+                _context.BookingServices.Remove(entity);
+                _context.SaveChanges();
+            }
         }
     }
 }

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.Models;
 
@@ -16,27 +18,34 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
 
         public IEnumerable<CourtType> GetAll()
         {
-            throw new NotImplementedException();
+            return _context.CourtTypes.Include(ct => ct.Courts).ToList();
         }
 
         public CourtType? GetById(int id)
         {
-            throw new NotImplementedException();
+            return _context.CourtTypes.Include(ct => ct.Courts).FirstOrDefault(ct => ct.CourtTypeId == id);
         }
 
         public void Add(CourtType entity)
         {
-            throw new NotImplementedException();
+            _context.CourtTypes.Add(entity);
+            _context.SaveChanges();
         }
 
         public void Update(CourtType entity)
         {
-            throw new NotImplementedException();
+            _context.CourtTypes.Update(entity);
+            _context.SaveChanges();
         }
 
         public void Delete(int id)
         {
-            throw new NotImplementedException();
+            var entity = GetById(id);
+            if (entity != null)
+            {
+                _context.CourtTypes.Remove(entity);
+                _context.SaveChanges();
+            }
         }
     }
 }

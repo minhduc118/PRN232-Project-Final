@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.Models;
 
@@ -16,27 +18,38 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
 
         public IEnumerable<StaffShift> GetAll()
         {
-            throw new NotImplementedException();
+            return _context.StaffShifts
+                .Include(s => s.Staff)
+                .ToList();
         }
 
         public StaffShift? GetById(int id)
         {
-            throw new NotImplementedException();
+            return _context.StaffShifts
+                .Include(s => s.Staff)
+                .FirstOrDefault(s => s.ShiftId == id);
         }
 
         public void Add(StaffShift entity)
         {
-            throw new NotImplementedException();
+            _context.StaffShifts.Add(entity);
+            _context.SaveChanges();
         }
 
         public void Update(StaffShift entity)
         {
-            throw new NotImplementedException();
+            _context.StaffShifts.Update(entity);
+            _context.SaveChanges();
         }
 
         public void Delete(int id)
         {
-            throw new NotImplementedException();
+            var entity = _context.StaffShifts.Find(id);
+            if (entity != null)
+            {
+                _context.StaffShifts.Remove(entity);
+                _context.SaveChanges();
+            }
         }
     }
 }

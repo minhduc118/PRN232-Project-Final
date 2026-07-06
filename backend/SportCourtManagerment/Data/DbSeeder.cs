@@ -167,43 +167,64 @@ public static class DbSeeder
                   ComplexId = complexCG, PricePerHour = 100000, CourtSize = "Tiêu chuẩn",
                   Description = "Sân cầu lông tiêu chuẩn, sàn gỗ, điều hòa",
                   Location = "Tầng 1 Khu A", Capacity = 4, Surface = "Gỗ",
-                  OpenTime = new TimeOnly(6,0), CloseTime = new TimeOnly(22,0), Status = CourtStatus.Available },
+                  OpenTime = new TimeOnly(6,0), CloseTime = new TimeOnly(22,0), Status = CourtStatus.Available,
+                  ImageUrl = "/images/courts/a1-1.jpg" },
       new Court { CourtName = "Sân Cầu Lông A2", CourtCode = "CL-A2", CourtTypeId = typeMap["Cầu lông"],
                   ComplexId = complexCG, PricePerHour = 100000, CourtSize = "Tiêu chuẩn",
                   Description = "Sân cầu lông tiêu chuẩn, sàn nhựa PVC",
                   Location = "Tầng 1 Khu A", Capacity = 4, Surface = "Nhựa PVC",
-                  OpenTime = new TimeOnly(6,0), CloseTime = new TimeOnly(22,0), Status = CourtStatus.Available },
+                  OpenTime = new TimeOnly(6,0), CloseTime = new TimeOnly(22,0), Status = CourtStatus.Available,
+                  ImageUrl = "/images/courts/a1-2.jpg" },
       new Court { CourtName = "Sân Bóng Đá B1",  CourtCode = "BD-B1", CourtTypeId = typeMap["Bóng đá"],
                   ComplexId = complexTX, PricePerHour = 300000, CourtSize = "Sân 5 người",
                   Description = "Sân 5v5 cỏ nhân tạo thế hệ 3",
                   Location = "Ngoài trời Khu B", Capacity = 10, Surface = "Cỏ nhân tạo",
-                  OpenTime = new TimeOnly(6,0), CloseTime = new TimeOnly(22,0), Status = CourtStatus.Available },
+                  OpenTime = new TimeOnly(6,0), CloseTime = new TimeOnly(22,0), Status = CourtStatus.Available,
+                  ImageUrl = "/images/courts/b1-1.jpg" },
       new Court { CourtName = "Sân Pickleball C1", CourtCode = "PK-C1", CourtTypeId = typeMap["Pickleball"],
                   ComplexId = complexCG, PricePerHour = 150000, CourtSize = "Tiêu chuẩn",
                   Description = "Sân pickleball tiêu chuẩn",
                   Location = "Tầng 2 Khu C", Capacity = 4, Surface = "Nhựa",
-                  OpenTime = new TimeOnly(6,0), CloseTime = new TimeOnly(22,0), Status = CourtStatus.Available },
+                  OpenTime = new TimeOnly(6,0), CloseTime = new TimeOnly(22,0), Status = CourtStatus.Available,
+                  ImageUrl = "/images/courts/c1-1.jpg" },
       new Court { CourtName = "Sân Tennis D1",    CourtCode = "TN-D1", CourtTypeId = typeMap["Tennis"],
                   ComplexId = complexTX, PricePerHour = 250000, CourtSize = "Tiêu chuẩn",
                   Description = "Sân mặt cứng, đèn cao áp",
                   Location = "Ngoài trời Khu D", Capacity = 4, Surface = "Mặt cứng",
-                  OpenTime = new TimeOnly(6,0), CloseTime = new TimeOnly(22,0), Status = CourtStatus.Available }
+                  OpenTime = new TimeOnly(6,0), CloseTime = new TimeOnly(22,0), Status = CourtStatus.Available,
+                  ImageUrl = "/images/courts/d1-1.jpg" }
     };
     await context.Courts.AddRangeAsync(courts);
     await context.SaveChangesAsync();
 
-    // Seed some secondary images for "Sân Cầu Lông A1" and "Sân Bóng Đá B1"
-    var courtA1 = context.Courts.First(c => c.CourtCode == "CL-A1").CourtId;
-    var courtB1 = context.Courts.First(c => c.CourtCode == "BD-B1").CourtId;
-
-    var extraImages = new[]
+    var courtImages = new List<CourtImage>
     {
-      new CourtImage { CourtId = courtA1, ImageUrl = "https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=600", IsPrimary = false, SortOrder = 1, CreatedAt = DateTime.UtcNow },
-      new CourtImage { CourtId = courtA1, ImageUrl = "https://images.unsplash.com/photo-1521412644187-c49fa049e84d?q=80&w=600", IsPrimary = false, SortOrder = 2, CreatedAt = DateTime.UtcNow },
-      new CourtImage { CourtId = courtB1, ImageUrl = "https://images.unsplash.com/photo-1459865264687-595d652de67e?q=80&w=600", IsPrimary = false, SortOrder = 1, CreatedAt = DateTime.UtcNow },
-      new CourtImage { CourtId = courtB1, ImageUrl = "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=600", IsPrimary = false, SortOrder = 2, CreatedAt = DateTime.UtcNow }
+      // CL-A1
+      new CourtImage { CourtId = courts[0].CourtId, ImageUrl = "/images/courts/a1-1.jpg", IsPrimary = true, SortOrder = 1, CreatedAt = DateTime.UtcNow },
+      new CourtImage { CourtId = courts[0].CourtId, ImageUrl = "/images/courts/a1-2.jpg", IsPrimary = false, SortOrder = 2, CreatedAt = DateTime.UtcNow },
+      new CourtImage { CourtId = courts[0].CourtId, ImageUrl = "/images/courts/a1-3.jpg", IsPrimary = false, SortOrder = 3, CreatedAt = DateTime.UtcNow },
+
+      // CL-A2
+      new CourtImage { CourtId = courts[1].CourtId, ImageUrl = "/images/courts/a1-2.jpg", IsPrimary = true, SortOrder = 1, CreatedAt = DateTime.UtcNow },
+      new CourtImage { CourtId = courts[1].CourtId, ImageUrl = "/images/courts/a1-1.jpg", IsPrimary = false, SortOrder = 2, CreatedAt = DateTime.UtcNow },
+      new CourtImage { CourtId = courts[1].CourtId, ImageUrl = "/images/courts/a1-3.jpg", IsPrimary = false, SortOrder = 3, CreatedAt = DateTime.UtcNow },
+
+      // BD-B1
+      new CourtImage { CourtId = courts[2].CourtId, ImageUrl = "/images/courts/b1-1.jpg", IsPrimary = true, SortOrder = 1, CreatedAt = DateTime.UtcNow },
+      new CourtImage { CourtId = courts[2].CourtId, ImageUrl = "/images/courts/b1-2.jpg", IsPrimary = false, SortOrder = 2, CreatedAt = DateTime.UtcNow },
+      new CourtImage { CourtId = courts[2].CourtId, ImageUrl = "/images/courts/b1-3.jpg", IsPrimary = false, SortOrder = 3, CreatedAt = DateTime.UtcNow },
+
+      // PK-C1
+      new CourtImage { CourtId = courts[3].CourtId, ImageUrl = "/images/courts/c1-1.jpg", IsPrimary = true, SortOrder = 1, CreatedAt = DateTime.UtcNow },
+      new CourtImage { CourtId = courts[3].CourtId, ImageUrl = "/images/courts/c1-2.jpg", IsPrimary = false, SortOrder = 2, CreatedAt = DateTime.UtcNow },
+      new CourtImage { CourtId = courts[3].CourtId, ImageUrl = "/images/courts/c1-3.jpg", IsPrimary = false, SortOrder = 3, CreatedAt = DateTime.UtcNow },
+
+      // TN-D1
+      new CourtImage { CourtId = courts[4].CourtId, ImageUrl = "/images/courts/d1-1.jpg", IsPrimary = true, SortOrder = 1, CreatedAt = DateTime.UtcNow },
+      new CourtImage { CourtId = courts[4].CourtId, ImageUrl = "/images/courts/d1-2.jpg", IsPrimary = false, SortOrder = 2, CreatedAt = DateTime.UtcNow },
+      new CourtImage { CourtId = courts[4].CourtId, ImageUrl = "/images/courts/d1-3.jpg", IsPrimary = false, SortOrder = 3, CreatedAt = DateTime.UtcNow }
     };
-    await context.CourtImages.AddRangeAsync(extraImages);
+    await context.CourtImages.AddRangeAsync(courtImages);
     await context.SaveChangesAsync();
   }
 

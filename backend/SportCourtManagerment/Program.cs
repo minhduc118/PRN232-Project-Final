@@ -1,13 +1,22 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.OData;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OData.Edm;
+using Microsoft.OData.ModelBuilder;
 using Microsoft.OpenApi.Models;
 using SportCourtManagerment.Data;
+using SportCourtManagerment.DTOs.Courts;
+using SportCourtManagerment.DTOs.Reviews;
+using SportCourtManagerment.Repositories.Implementations;
+using SportCourtManagerment.Repositories.Interfaces;
 using SportCourtManagerment.Services;
 using SportCourtManagerment.Services.Email;
 using SportCourtManagerment.Services.Bookings;
 using SportCourtManagerment.Services.Promotions;
+using SportCourtManagerment.Services.Implementations;
+using SportCourtManagerment.Services.Interfaces;
 
 namespace SportCourtManagerment;
 
@@ -35,8 +44,20 @@ public class Program
     builder.Services.AddScoped<TokenService>();
     builder.Services.AddScoped<IEmailService, EmailService>();
     builder.Services.AddScoped<IBookingService, BookingService>();
-    builder.Services.AddScoped<IPromotionService, PromotionService>();
+    builder.Services.AddScoped<SportCourtManagerment.Services.Promotions.IPromotionService, SportCourtManagerment.Services.Promotions.PromotionService>();
     builder.Services.AddSingleton<CloudinaryService>();
+
+    // ── Repositories (Clean Architecture) ─────
+    builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+    builder.Services.AddScoped<ICourtRepository, CourtRepository>();
+    builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+    builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
+
+    // ── Business Services ─────────────────────
+    builder.Services.AddScoped<ICourtService, CourtService>();
+    builder.Services.AddScoped<IReviewService, ReviewService>();
+    builder.Services.AddScoped<SportCourtManagerment.Services.Interfaces.IPromotionService, SportCourtManagerment.Services.Implementations.PromotionService>();
+    builder.Services.AddScoped<IHomeService, HomeService>();
 
     // ── JWT Authentication ────────────────────
     var jwtSection = builder.Configuration.GetSection("Jwt");
@@ -66,21 +87,34 @@ public class Program
     // ── Authorization ─────────────────────────
     builder.Services.AddAuthorization();
 
-    // ── Controllers ───────────────────────────
+    // ── Controllers + OData ───────────────────
     builder.Services.AddControllers()
       .AddJsonOptions(opts =>
       {
-        // Serialize enums as strings (e.g. "Pending" not 0)
         opts.JsonSerializerOptions.Converters.Add(
           new System.Text.Json.Serialization.JsonStringEnumConverter()
         );
-      });
+      })
+      .AddOData(options => options
+        .Select()
+        .Filter()
+        .OrderBy()
+        .SetMaxTop(100)
+        .Count()
+        .Expand()
+        .AddRouteComponents("odata", GetEdmModel()));
 
-    // ── CORS (allow React dev server) ─────────
+    // ── CORS (allow React and MVC dev servers) ─────────
     builder.Services.AddCors(options =>
     {
       options.AddPolicy("AllowFrontend", policy =>
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000")
+        policy.WithOrigins(
+                "http://localhost:5173", 
+                "http://localhost:3000",
+                "http://localhost:5166",
+                "https://localhost:7121",
+                "http://localhost:64735",
+                "https://localhost:44391")
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials());
@@ -149,7 +183,6 @@ public class Program
       app.UseSwaggerUI(c =>
       {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Sports Court API v1");
-        c.RoutePrefix = string.Empty; // Swagger at root "/"
       });
     }
 
@@ -163,5 +196,14 @@ public class Program
     app.MapControllers();
 
     await app.RunAsync();
+  }
+
+  /// <summary>Builds the OData Entity Data Model for queryable endpoints.</summary>
+  private static IEdmModel GetEdmModel()
+  {
+    var builder = new ODataConventionModelBuilder();
+    builder.EntitySet<CourtListDto>("Courts").EntityType.HasKey(c => c.CourtId);
+    builder.EntitySet<ReviewDto>("Reviews").EntityType.HasKey(r => r.ReviewId);
+    return builder.GetEdmModel();
   }
 }

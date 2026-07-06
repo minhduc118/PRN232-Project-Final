@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+
 using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.Models;
@@ -131,6 +136,8 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             return _context.Courts
                 .AsNoTracking()
                 .Where(c => !c.IsDeleted)
+                .Include(c => c.Complex)
+
                 .Include(c => c.CourtType)
                 .Include(c => c.CourtImages)
                 .Include(c => c.CourtPricings)
@@ -143,6 +150,8 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             return await _context.Courts
                 .AsNoTracking()
                 .Where(c => !c.IsDeleted)
+                .Include(c => c.Complex)
+
                 .Include(c => c.CourtType)
                 .Include(c => c.CourtImages)
                 .Include(c => c.CourtPricings)
@@ -162,5 +171,14 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
                     .ThenInclude(cp => cp.TimeSlot)
                 .FirstOrDefaultAsync(c => c.CourtId == courtId);
         }
+
+        public async Task<IEnumerable<Court>> GetCourtsByComplexAsync(int complexId)
+        {
+            return await _context.Courts
+                .Include(c => c.CourtType)
+                .Where(c => c.ComplexId == complexId && !c.IsDeleted)
+                .ToListAsync();
+        }
     }
 }
+

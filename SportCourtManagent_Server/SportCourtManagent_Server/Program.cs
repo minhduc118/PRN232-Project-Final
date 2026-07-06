@@ -43,12 +43,17 @@ builder.Services.AddScoped<IWaitlistRepository, WaitlistRepository>();
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 builder.Services.AddScoped<IEquipmentInventoryRepository, EquipmentInventoryRepository>();
 builder.Services.AddScoped<IMaintenanceScheduleRepository, MaintenanceScheduleRepository>();
+builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<IStaffShiftRepository, StaffShiftRepository>();
 builder.Services.AddScoped<IPlayerRequestRepository, PlayerRequestRepository>();
 builder.Services.AddScoped<IPlayerRequestMemberRepository, PlayerRequestMemberRepository>();
 builder.Services.AddScoped<ITaskItemRepository, TaskItemRepository>();
 
+builder.Services.AddScoped<IComplexCourtTypeServiceRepository, ComplexCourtTypeServiceRepository>();
+
 // Service DI registration
+builder.Services.AddScoped<IServiceCatalogService, ServiceCatalogService>();
+builder.Services.AddScoped<IComplexCourtTypeOfferingService, ComplexCourtTypeOfferingService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IBookingManagementService, BookingManagementService>();
 builder.Services.AddScoped<ICourtService, CourtService>();
@@ -57,11 +62,15 @@ builder.Services.AddScoped<ICourtBookingService, CourtBookingService>();
 builder.Services.AddScoped<ISePayService, SePayService>();
 builder.Services.AddScoped<IServiceService, ServiceService>();
 builder.Services.AddSingleton<ITournamentLockManager, TournamentLockManager>();
+builder.Services.AddScoped<IStaffService, StaffService>();
+builder.Services.AddScoped<IMaintenanceScheduleService, MaintenanceScheduleService>();
+
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler =
         ReferenceHandler.IgnoreCycles;
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+
 }).AddOData(options => options
     .Select()
     .Filter()
@@ -76,11 +85,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.SetIsOriginAllowed(origin => true)
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
+
+builder.Services.AddSignalR();
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -146,12 +158,12 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 // Auto-migrate and seed database
-using (var scope = app.Services.CreateScope())
-{
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await dbContext.Database.MigrateAsync();
-    await DbSeeder.SeedAsync(dbContext);
-}
+//using (var scope = app.Services.CreateScope())
+//{
+//    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+//    await dbContext.Database.MigrateAsync();
+//    await DbSeeder.SeedAsync(dbContext);
+//}
 
 // Configure the HTTP request pipeline. Always enable Swagger for checking
 app.UseSwagger();
@@ -172,8 +184,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<SportCourtManagent_Server.Hubs.SlotStatusHub>("/hubs/slot-status");
 
 app.Run();
+
 
 Microsoft.OData.Edm.IEdmModel GetEdmModel()
 {

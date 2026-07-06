@@ -71,11 +71,11 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
                         var serviceRepo = scope.ServiceProvider.GetRequiredService<IServiceRepository>();
                         foreach (var bs in booking.BookingServices)
                         {
-                            var service = serviceRepo.GetById(bs.ServiceId);
+                            var service = serviceRepo.GetByIdAsync(bs.ServiceId).GetAwaiter().GetResult();
                             if (service != null)
                             {
                                 service.StockQty += bs.Quantity;
-                                serviceRepo.Update(service);
+                                serviceRepo.UpdateAsync(service).GetAwaiter().GetResult();
                             }
                         }
                     }

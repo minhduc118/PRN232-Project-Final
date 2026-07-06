@@ -16,19 +16,17 @@ namespace SportCourtManagent_Server.Services.Implements
             _serviceRepository = serviceRepository;
         }
 
-        public Task<IEnumerable<Service>> GetAllServicesAsync()
+        public async Task<IEnumerable<Service>> GetAllServicesAsync()
         {
-            var services = _serviceRepository.GetAll();
-            return Task.FromResult(services);
+            return await _serviceRepository.GetAllAsync();
         }
 
-        public Task<Service?> GetServiceByIdAsync(int id)
+        public async Task<Service?> GetServiceByIdAsync(int id)
         {
-            var service = _serviceRepository.GetById(id);
-            return Task.FromResult(service);
+            return await _serviceRepository.GetByIdAsync(id);
         }
 
-        public Task<Service> CreateServiceAsync(ServiceRequestDto dto)
+        public async Task<Service> CreateServiceAsync(ServiceRequestDto dto)
         {
             var service = new Service
             {
@@ -38,16 +36,16 @@ namespace SportCourtManagent_Server.Services.Implements
                 StockQty = dto.StockQty
             };
 
-            _serviceRepository.Add(service);
-            return Task.FromResult(service);
+            await _serviceRepository.AddAsync(service);
+            return service;
         }
 
-        public Task<bool> UpdateServiceAsync(int id, ServiceRequestDto dto)
+        public async Task<bool> UpdateServiceAsync(int id, ServiceRequestDto dto)
         {
-            var existingService = _serviceRepository.GetById(id);
+            var existingService = await _serviceRepository.GetByIdAsync(id);
             if (existingService == null)
             {
-                return Task.FromResult(false);
+                return false;
             }
 
             existingService.ServiceName = dto.ServiceName;
@@ -55,20 +53,20 @@ namespace SportCourtManagent_Server.Services.Implements
             existingService.Price = dto.Price;
             existingService.StockQty = dto.StockQty;
 
-            _serviceRepository.Update(existingService);
-            return Task.FromResult(true);
+            await _serviceRepository.UpdateAsync(existingService);
+            return true;
         }
 
-        public Task<bool> DeleteServiceAsync(int id)
+        public async Task<bool> DeleteServiceAsync(int id)
         {
-            var existingService = _serviceRepository.GetById(id);
+            var existingService = await _serviceRepository.GetByIdAsync(id);
             if (existingService == null)
             {
-                return Task.FromResult(false);
+                return false;
             }
 
-            _serviceRepository.Delete(id);
-            return Task.FromResult(true);
+            await _serviceRepository.DeleteAsync(id);
+            return true;
         }
     }
 }

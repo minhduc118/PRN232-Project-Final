@@ -7,6 +7,8 @@ using SportCourtManagent_Server.DTOs;
 using SportCourtManagent_Server.DTOs.Booking;
 using SportCourtManagent_Server.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using SportCourtManagent_Server.Helpers;
+
 
 namespace SportCourtManagent_Server.Controllers
 {
@@ -29,13 +31,14 @@ namespace SportCourtManagent_Server.Controllers
       try
       {
         filter ??= new BookingFilterParams();
-        if (!TryGetUserId(out int userId)) return Unauthorized(new { message = "Không xác định được người dùng." });
+        if (!TryGetUserId(out int userId)) return Unauthorized(ApiResults.Fail("Không xác định được người dùng.", 401));
         var result = await _bookingService.GetPagedCustomerBookingsAsync(userId, filter);
-        return Ok(new { data = result });
+        return Ok(ApiResults.Ok(result));
+
       }
       catch (Exception ex)
       {
-        return StatusCode(500, new { message = ex.Message });
+        return StatusCode(500, ApiResults.Fail(ex.Message, 500));
       }
     }
 
@@ -48,11 +51,12 @@ namespace SportCourtManagent_Server.Controllers
       {
         filter ??= new BookingFilterParams();
         var result = await _bookingService.GetPagedAdminBookingsAsync(filter);
-        return Ok(new { data = result });
+        return Ok(ApiResults.Ok(result));
+
       }
       catch (Exception ex)
       {
-        return StatusCode(500, new { message = ex.Message });
+        return StatusCode(500, ApiResults.Fail(ex.Message, 500));
       }
     }
 
@@ -63,12 +67,12 @@ namespace SportCourtManagent_Server.Controllers
       try
       {
         var result = await _bookingService.GetBookingDetailAsync(id);
-        if (result == null) return NotFound(new { message = "Không tìm thấy đơn đặt sân." });
-        return Ok(new { data = result });
+        if (result == null) return NotFound(ApiResults.Fail("Không tìm thấy đơn đặt sân.", 404));
+        return Ok(ApiResults.Ok(result));
       }
       catch (Exception ex)
       {
-        return StatusCode(500, new { message = ex.Message });
+        return StatusCode(500, ApiResults.Fail(ex.Message, 500));
       }
     }
 
@@ -78,17 +82,37 @@ namespace SportCourtManagent_Server.Controllers
     {
       try
       {
-        if (!TryGetUserId(out int userId)) return Unauthorized(new { message = "Không xác định được người dùng." });
+        if (!TryGetUserId(out int userId)) return Unauthorized(ApiResults.Fail("Không xác định được người dùng.", 401));
         var result = await _bookingService.CreateBookingAsync(userId, request);
-        return CreatedAtAction(nameof(GetById), new { id = result.BookingId }, new { data = result, message = "Đặt sân thành công." });
+        return CreatedAtAction(nameof(GetById), new { id = result.BookingId }, ApiResults.Ok(result, "Đặt sân thành công.", 201));
       }
       catch (ArgumentException ex)
       {
-        return BadRequest(new { message = ex.Message });
+        return BadRequest(ApiResults.Fail(ex.Message, 400));
       }
       catch (Exception ex)
       {
-        return StatusCode(500, new { message = ex.Message });
+        return StatusCode(500, ApiResults.Fail(ex.Message, 500));
+      }
+    }
+
+    /// <summary>Creates recurring bookings for customer.</summary>
+    [HttpPost("recurring")]
+    public async Task<IActionResult> CreateRecurring([FromBody] CreateRecurringBookingRequest request)
+    {
+      try
+      {
+        if (!TryGetUserId(out int userId)) return Unauthorized(ApiResults.Fail("Không xác định được người dùng.", 401));
+        var result = await _bookingService.CreateRecurringBookingAsync(userId, request);
+        return Ok(ApiResults.Ok(result, "Đặt sân định kỳ thành công."));
+      }
+      catch (ArgumentException ex)
+      {
+        return BadRequest(ApiResults.Fail(ex.Message, 400));
+      }
+      catch (Exception ex)
+      {
+        return StatusCode(500, ApiResults.Fail(ex.Message, 500));
       }
     }
 

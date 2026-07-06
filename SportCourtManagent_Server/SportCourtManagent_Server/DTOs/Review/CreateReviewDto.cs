@@ -21,3 +21,4 @@ public class CreateReviewDto
     [MaxLength(1000, ErrorMessage = "Comment tối đa 1000 ký tự.")]
     public string? Comment { get; set; }
 }
+

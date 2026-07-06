@@ -412,7 +412,8 @@ Users ──< UserRoles >── Roles
   └──> MembershipTiers
 
 Complexes ──< Courts
-Complexes ──< Users (Manager/Staff)
+Complexes ──< StaffShifts : "phân ca"
+Complexes ──< Users (Manager) : "quản lý"
 Courts ──< CourtPricing >── TimeSlots
 Courts ──< MaintenanceSchedules
 Promotions ──< Bookings
@@ -620,12 +621,12 @@ Promotions ──< Bookings
 
 ### FE-18: Quản lý ca làm việc nhân viên (Staff Shift)
 
-| Mục               | Chi tiết                                        |
-| ----------------- | ----------------------------------------------- |
-| **Mô tả**         | Phân ca và theo dõi lịch làm việc của nhân viên |
-| **Actor**         | Admin                                           |
-| **Precondition**  | Đăng nhập với quyền Admin                       |
-| **Postcondition** | Lịch ca được lưu, nhân viên nhận thông báo      |
+| Mục               | Chi tiết                                                                                 |
+| ----------------- | ---------------------------------------------------------------------------------------- |
+| **Mô tả**         | Phân ca theo tổ hợp sân (Complex) và theo dõi lịch làm việc của nhân viên                |
+| **Actor**         | Admin, Quản lý (Manager)                                                                 |
+| **Precondition**  | Đăng nhập với quyền Admin hoặc Quản lý được gán cho tổ hợp sân                           |
+| **Postcondition** | Lịch ca được lưu, nhân viên nhận thông báo                                               |
 
 **Ca làm việc:**
 | Ca       | Giờ           |
@@ -635,7 +636,9 @@ Promotions ──< Bookings
 | Ca tối   | 18:00 – 23:00 |
 
 **Chức năng:**
-- Xếp ca theo tuần/tháng.
+- Xếp ca làm việc gắn liền với một tổ hợp sân cụ thể (`ComplexId`).
+- Admin có thể xếp ca cho toàn bộ tổ hợp sân, Manager chỉ xếp ca cho tổ hợp sân mình quản lý.
+- Đảm bảo tính ràng buộc: Một nhân viên chỉ có thể làm tối đa 1 ca tại 1 tổ hợp sân trong cùng một thời điểm (không thể trùng ca ở 2 tổ hợp sân khác nhau).
 - Staff xem lịch ca của mình.
 - Nhận thông báo khi có thay đổi ca.
 - Thống kê giờ công theo tháng.
@@ -759,6 +762,8 @@ Users ──< UserRoles >── Roles
 Courts ──< CourtPricing >── TimeSlots
 Courts ──< MaintenanceSchedules
 Promotions ──< Bookings
+Complexes ──< StaffShifts : "phân ca"
+Complexes ──< Courts : "chứa"
 ```
 
 ---

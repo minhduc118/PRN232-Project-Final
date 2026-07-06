@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using SportCourtManagent_Server.DTOs;
 using SportCourtManagent_Server.DTOs.Promotion;
 using SportCourtManagent_Server.Services.Interfaces;
+using SportCourtManagent_Server.Helpers;
 
 namespace SportCourtManagent_Server.Controllers
 {
@@ -27,11 +28,11 @@ namespace SportCourtManagent_Server.Controllers
       {
         filter ??= new PromotionFilterParams();
         var result = await _promoService.GetPagedPromotionsAsync(filter);
-        return Ok(new { data = result });
+        return Ok(ApiResults.Ok(result));
       }
       catch (Exception ex)
       {
-        return StatusCode(500, new { message = ex.Message });
+        return StatusCode(500, ApiResults.Fail(ex.Message, 500));
       }
     }
 
@@ -42,12 +43,12 @@ namespace SportCourtManagent_Server.Controllers
       try
       {
         var result = await _promoService.GetPromotionByIdAsync(id);
-        if (result == null) return NotFound(new { message = "Không tìm thấy mã khuyến mãi." });
-        return Ok(new { data = result });
+        if (result == null) return NotFound(ApiResults.Fail("Không tìm thấy mã khuyến mãi.", 404));
+        return Ok(ApiResults.Ok(result));
       }
       catch (Exception ex)
       {
-        return StatusCode(500, new { message = ex.Message });
+        return StatusCode(500, ApiResults.Fail(ex.Message, 500));
       }
     }
 
@@ -58,9 +59,9 @@ namespace SportCourtManagent_Server.Controllers
     {
       try
       {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid) return BadRequest(ApiResults.Fail("Dữ liệu không hợp lệ.", 400));
         var result = await _promoService.CreatePromotionAsync(request);
-        return CreatedAtAction(nameof(GetById), new { id = result.PromotionId }, new { data = result, message = "Tạo khuyến mãi thành công." });
+        return CreatedAtAction(nameof(GetById), new { id = result.PromotionId }, ApiResults.Ok(result, "Tạo khuyến mãi thành công.", 201));
       }
       catch (ArgumentException ex)
       {
@@ -68,11 +69,11 @@ namespace SportCourtManagent_Server.Controllers
       }
       catch (InvalidOperationException ex)
       {
-        return BadRequest(new { message = ex.Message });
+        return BadRequest(ApiResults.Fail(ex.Message, 400));
       }
       catch (Exception ex)
       {
-        return StatusCode(500, new { message = ex.Message });
+        return StatusCode(500, ApiResults.Fail(ex.Message, 500));
       }
     }
 
@@ -83,10 +84,10 @@ namespace SportCourtManagent_Server.Controllers
     {
       try
       {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid) return BadRequest(ApiResults.Fail("Dữ liệu không hợp lệ.", 400));
         var result = await _promoService.UpdatePromotionAsync(id, request);
-        if (result == null) return NotFound(new { message = "Không tìm thấy mã khuyến mãi." });
-        return Ok(new { data = result, message = "Cập nhật khuyến mãi thành công." });
+        if (result == null) return NotFound(ApiResults.Fail("Không tìm thấy mã khuyến mãi.", 404));
+        return Ok(ApiResults.Ok(result, "Cập nhật khuyến mãi thành công."));
       }
       catch (ArgumentException ex)
       {
@@ -98,7 +99,7 @@ namespace SportCourtManagent_Server.Controllers
       }
       catch (Exception ex)
       {
-        return StatusCode(500, new { message = ex.Message });
+        return StatusCode(500, ApiResults.Fail(ex.Message, 500));
       }
     }
 
@@ -110,12 +111,12 @@ namespace SportCourtManagent_Server.Controllers
       try
       {
         var deleted = await _promoService.DeletePromotionAsync(id);
-        if (!deleted) return NotFound(new { message = "Không tìm thấy mã khuyến mãi." });
-        return Ok(new { message = "Xóa khuyến mãi thành công." });
+        if (!deleted) return NotFound(ApiResults.Fail("Không tìm thấy mã khuyến mãi.", 404));
+        return Ok(ApiResults.Ok(null, "Xóa khuyến mãi thành công."));
       }
       catch (Exception ex)
       {
-        return StatusCode(500, new { message = ex.Message });
+        return StatusCode(500, ApiResults.Fail(ex.Message, 500));
       }
     }
 
@@ -125,13 +126,13 @@ namespace SportCourtManagent_Server.Controllers
     {
       try
       {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
+        if (!ModelState.IsValid) return BadRequest(ApiResults.Fail("Dữ liệu không hợp lệ.", 400));
         var result = await _promoService.ValidateCouponAsync(request);
-        return Ok(new { data = result });
+        return Ok(ApiResults.Ok(result));
       }
       catch (Exception ex)
       {
-        return StatusCode(500, new { message = ex.Message });
+        return StatusCode(500, ApiResults.Fail(ex.Message, 500));
       }
     }
   }

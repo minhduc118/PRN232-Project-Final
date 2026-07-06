@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -23,10 +24,21 @@ namespace SportCourtManagent_Server.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal Price { get; set; }
 
+        [Required]
+        [MaxLength(30)]
+        public string Unit { get; set; } = "cái";
+
+        [MaxLength(300)]
+        public string? Description { get; set; }
+
         public int StockQty { get; set; } = 0;
+
+        public bool IsActive { get; set; } = true;
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public ICollection<BookingService> BookingServices { get; set; } = new List<BookingService>();
         public ICollection<EquipmentInventory> EquipmentInventories { get; set; } = new List<EquipmentInventory>();
+        public ICollection<ComplexCourtTypeService> ComplexCourtTypeServices { get; set; } = new List<ComplexCourtTypeService>();
     }
 }
-

@@ -73,6 +73,8 @@ namespace SportCourtManagent_Server.Services.Implements
                 CourtTypeName = c.CourtType.TypeName,
                 CourtTypeId = c.CourtTypeId,
                 CourtSize = c.CourtSize,
+                Location = c.Complex.ComplexName + " - " + c.Complex.Address,
+
                 ImageUrl = c.CourtImages.OrderByDescending(ci => ci.IsPrimary).Select(ci => ci.ImageUrl).FirstOrDefault(),
                 Status = c.Status.ToString(),
                 OpenTime = c.OpenTime,
@@ -99,6 +101,7 @@ namespace SportCourtManagent_Server.Services.Implements
                     ? projected.OrderByDescending(c => c.CourtName)
                     : projected.OrderBy(c => c.CourtName),
                 _ => projected.OrderBy(c => c.CourtName),
+
             };
 
             //Pagination
@@ -133,6 +136,8 @@ namespace SportCourtManagent_Server.Services.Implements
                 CourtName = court.CourtName,
                 CourtCode = court.CourtCode,
                 CourtSize = court.CourtSize,
+                Location = court.Complex.ComplexName + " - " + court.Complex.Address,
+
                 ImageUrl = court.CourtImages.OrderByDescending(ci => ci.IsPrimary).Select(ci => ci.ImageUrl).FirstOrDefault(),
                 OpenTime = court.OpenTime,
                 CloseTime = court.CloseTime,
@@ -155,10 +160,11 @@ namespace SportCourtManagent_Server.Services.Implements
                 {
                     PricingId = cp.PricingId,
                     SlotId = cp.SlotId,
-                    SlotName = cp.TimeSlot.SlotName,
-                    StartTime = cp.TimeSlot.StartTime,
-                    EndTime = cp.TimeSlot.EndTime,
-                    DayType = cp.TimeSlot.DayType.ToString(),
+                    SlotName = cp.TimeSlot?.SlotName ?? "Không xác định",
+                    StartTime = cp.TimeSlot?.StartTime ?? TimeSpan.Zero,
+                    EndTime = cp.TimeSlot?.EndTime ?? TimeSpan.Zero,
+                    DayType = cp.TimeSlot?.DayType.ToString() ?? "Weekday",
+
                     Price = cp.Price,
                 }).OrderBy(p => p.StartTime).ToList(),
                 ReviewSummary = new CourtReviewSummaryDto
@@ -193,9 +199,10 @@ namespace SportCourtManagent_Server.Services.Implements
                 .Select(cp => new AvailabilitySlotDto
                 {
                     SlotId = cp.SlotId,
-                    SlotName = cp.TimeSlot.SlotName,
-                    StartTime = cp.TimeSlot.StartTime,
-                    EndTime = cp.TimeSlot.EndTime,
+                    SlotName = cp.TimeSlot?.SlotName ?? "Không xác định",
+                    StartTime = cp.TimeSlot?.StartTime ?? TimeSpan.Zero,
+                    EndTime = cp.TimeSlot?.EndTime ?? TimeSpan.Zero,
+
                     Price = cp.Price,
                     Status = isUnderMaintenance
                                 ? "Maintenance"
@@ -227,6 +234,8 @@ namespace SportCourtManagent_Server.Services.Implements
                     CourtTypeName = c.CourtType.TypeName,
                     CourtTypeId = c.CourtTypeId,
                     CourtSize = c.CourtSize,
+                    Location = c.Complex.ComplexName + " - " + c.Complex.Address,
+
                     ImageUrl = c.CourtImages.OrderByDescending(ci => ci.IsPrimary).Select(ci => ci.ImageUrl).FirstOrDefault(),
                     Status = c.Status.ToString(),
                     OpenTime = c.OpenTime,

@@ -64,6 +64,7 @@ namespace SportCourtManagent_Server.Models
         public ICollection<CourtComplex> ManagedComplexes { get; set; } = new List<CourtComplex>();
         public ICollection<PlayerRequest> PlayerRequests { get; set; } = new List<PlayerRequest>();
         public ICollection<PlayerRequestMember> PlayerRequestMembers { get; set; } = new List<PlayerRequestMember>();
+        public ICollection<StaffComplex> ComplexAssignments { get; set; } = new List<StaffComplex>();
     }
 }
 

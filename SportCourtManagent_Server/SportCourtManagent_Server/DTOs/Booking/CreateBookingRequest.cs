@@ -6,7 +6,10 @@ namespace SportCourtManagent_Server.DTOs.Booking
 {
   public class ServiceItemRequest
   {
+    [Range(1, int.MaxValue, ErrorMessage = "Service ID must be valid")]
     public int ServiceId { get; set; }
+
+    [Range(1, 1000, ErrorMessage = "Quantity must be between 1 and 1000")]
     public int Quantity { get; set; }
   }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using SportCourtManagent_Server.Enums;
 
 namespace SportCourtManagent_Server.DTOs.Booking
@@ -12,6 +13,15 @@ namespace SportCourtManagent_Server.DTOs.Booking
     public PaymentStatus Status { get; set; }
     public decimal RefundAmount { get; set; }
     public DateTime? PaidAt { get; set; }
+  }
+
+  public class BookingServiceItemDto
+  {
+    public int ServiceId { get; set; }
+    public string ServiceName { get; set; } = null!;
+    public int Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal TotalPrice { get; set; }
   }
 
   public class BookingDto
@@ -38,5 +48,6 @@ namespace SportCourtManagent_Server.DTOs.Booking
     public string? CancelReason { get; set; }
     public DateTime CreatedAt { get; set; }
     public PaymentDto? Payment { get; set; }
+    public List<BookingServiceItemDto> Services { get; set; } = new List<BookingServiceItemDto>();
   }
 }

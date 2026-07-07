@@ -70,6 +70,11 @@ namespace SportCourtManagent_Server.Models
                 .HasIndex(b => b.BookingCode)
                 .IsUnique();
 
+            modelBuilder.Entity<Booking>()
+                .HasIndex(b => new { b.CourtId, b.SlotId, b.BookingDate }, "IX_Booking_Court_Slot_Date")
+                .IsUnique()
+                .HasFilter("[Status] != 2"); // 2 is BookingStatus.Cancelled
+
             modelBuilder.Entity<Payment>()
                 .HasIndex(p => p.TransactionId)
                 .IsUnique();

@@ -74,6 +74,7 @@ namespace SportCourtManagent_Server.Services.Implements
                 CourtTypeId = c.CourtTypeId,
                 CourtSize = c.CourtSize,
                 Location = c.Complex.ComplexName + " - " + c.Complex.Address,
+
                 ImageUrl = c.CourtImages.OrderByDescending(ci => ci.IsPrimary).Select(ci => ci.ImageUrl).FirstOrDefault(),
                 Status = c.Status.ToString(),
                 OpenTime = c.OpenTime,
@@ -99,7 +100,8 @@ namespace SportCourtManagent_Server.Services.Implements
                 "name" => p.SortDescending
                     ? projected.OrderByDescending(c => c.CourtName)
                     : projected.OrderBy(c => c.CourtName),
-                _ => projected.OrderBy(c => c.CourtId),
+                _ => projected.OrderBy(c => c.CourtName),
+
             };
 
             //Pagination
@@ -135,6 +137,7 @@ namespace SportCourtManagent_Server.Services.Implements
                 CourtCode = court.CourtCode,
                 CourtSize = court.CourtSize,
                 Location = court.Complex.ComplexName + " - " + court.Complex.Address,
+
                 ImageUrl = court.CourtImages.OrderByDescending(ci => ci.IsPrimary).Select(ci => ci.ImageUrl).FirstOrDefault(),
                 OpenTime = court.OpenTime,
                 CloseTime = court.CloseTime,
@@ -161,6 +164,7 @@ namespace SportCourtManagent_Server.Services.Implements
                     StartTime = cp.TimeSlot?.StartTime ?? TimeSpan.Zero,
                     EndTime = cp.TimeSlot?.EndTime ?? TimeSpan.Zero,
                     DayType = cp.TimeSlot?.DayType.ToString() ?? "Weekday",
+
                     Price = cp.Price,
                 }).OrderBy(p => p.StartTime).ToList(),
                 ReviewSummary = new CourtReviewSummaryDto
@@ -178,13 +182,15 @@ namespace SportCourtManagent_Server.Services.Implements
             var court = await _courtRepo.GetCourtWithPricingsAsync(courtId);
             if (court is null) return null;
 
-            // Get all bookings for this court on the given date (non-cancelled)
+            // Get all bookings for this court on the given date (non-cancelled and non-expired)
             var targetDate = date.Date;
+            var now = DateTime.UtcNow;
             var bookedSlotIds = await _db.Bookings
                 .AsNoTracking()
                 .Where(b => b.CourtId == courtId
                              && b.BookingDate.Date == targetDate
-                             && b.Status != BookingStatus.Cancelled)
+                             && b.Status != BookingStatus.Cancelled
+                             && (b.Status != BookingStatus.Pending || !b.ExpiredAt.HasValue || b.ExpiredAt > now))
                 .Select(b => b.SlotId)
                 .ToListAsync();
 
@@ -198,6 +204,7 @@ namespace SportCourtManagent_Server.Services.Implements
                     SlotName = cp.TimeSlot?.SlotName ?? "Không xác định",
                     StartTime = cp.TimeSlot?.StartTime ?? TimeSpan.Zero,
                     EndTime = cp.TimeSlot?.EndTime ?? TimeSpan.Zero,
+
                     Price = cp.Price,
                     Status = isUnderMaintenance
                                 ? "Maintenance"
@@ -230,6 +237,7 @@ namespace SportCourtManagent_Server.Services.Implements
                     CourtTypeId = c.CourtTypeId,
                     CourtSize = c.CourtSize,
                     Location = c.Complex.ComplexName + " - " + c.Complex.Address,
+
                     ImageUrl = c.CourtImages.OrderByDescending(ci => ci.IsPrimary).Select(ci => ci.ImageUrl).FirstOrDefault(),
                     Status = c.Status.ToString(),
                     OpenTime = c.OpenTime,

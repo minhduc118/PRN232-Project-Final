@@ -11,20 +11,25 @@ using SportCourtManagent_Server.DTOs;
 using SportCourtManagent_Server.DTOs.Court;
 using SportCourtManagent_Server.Models;
 using SportCourtManagent_Server.Services.Interfaces;
+using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.Helpers;
 
 namespace SportCourtManagent_Server.Controllers
 {
     [ApiController]
     [Route("api/courts")]
-    public class CourtsController : ControllerBase
+    public class CourtsController : ODataController
     {
         private readonly ICourtService _courtService;
+        private readonly ICourtTypeRepository _courtTypeRepo;
+        private readonly ITimeSlotRepository _timeSlotRepo;
         private readonly AppDbContext _context;
 
-        public CourtsController(ICourtService courtService, AppDbContext context)
+        public CourtsController(ICourtService courtService, ICourtTypeRepository courtTypeRepo, ITimeSlotRepository timeSlotRepo, AppDbContext context)
         {
             _courtService = courtService;
+            _courtTypeRepo = courtTypeRepo;
+            _timeSlotRepo = timeSlotRepo;
             _context = context;
         }
 
@@ -75,6 +80,24 @@ namespace SportCourtManagent_Server.Controllers
                 return Ok(ApiResults.Ok(result));
             }
         }
+
+
+        // GET /api/time-slots
+        [HttpGet("/api/time-slots")]
+        public async Task<IActionResult> GetTimeSlots()
+        {
+            var slots = await _timeSlotRepo.GetAllAsync();
+            var result = slots.Select(s => new
+            {
+                slotId = s.SlotId,
+                slotName = s.SlotName,
+                startTime = s.StartTime.ToString(@"hh\:mm"),
+                endTime = s.EndTime.ToString(@"hh\:mm"),
+                dayType = s.DayType.ToString()
+            }).OrderBy(s => s.startTime);
+            return Ok(new { success = true, data = result });
+        }
+
 
         // GET /api/courts/{id} — Court detail (Combined compatibility)
         [HttpGet("{id:int}")]
@@ -144,6 +167,7 @@ namespace SportCourtManagent_Server.Controllers
             return Ok(ApiResults.Ok(combinedResult));
         }
 
+
         // GET /api/courts/{id}/availability?date=YYYY-MM-DD
         [HttpGet("{id:int}/availability")]
         public async Task<IActionResult> GetCourtAvailability(int id, [FromQuery] DateTime date)
@@ -153,6 +177,7 @@ namespace SportCourtManagent_Server.Controllers
                 return NotFound(ApiResults.Fail("Không tìm thấy sân.", 404));
 
             return Ok(ApiResults.Ok(availability));
+
         }
 
         // GET /odata/courts — OData query
@@ -332,3 +357,4 @@ namespace SportCourtManagent_Server.Controllers
         }
     }
 }
+

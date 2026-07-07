@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SportCourtManagent_Server.DTOs;
 using SportCourtManagent_Server.DTOs.Promotion;
 using SportCourtManagent_Server.Services.Interfaces;
 using SportCourtManagent_Server.Helpers;
@@ -19,13 +20,14 @@ namespace SportCourtManagent_Server.Controllers
       _promoService = promoService ?? throw new ArgumentNullException(nameof(promoService));
     }
 
-    /// <summary>Gets all promotions.</summary>
+    /// <summary>Gets paged promotions with optional filters.</summary>
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] PromotionFilterParams? filter)
     {
       try
       {
-        var result = await _promoService.GetAllPromotionsAsync();
+        filter ??= new PromotionFilterParams();
+        var result = await _promoService.GetPagedPromotionsAsync(filter);
         return Ok(ApiResults.Ok(result));
       }
       catch (Exception ex)
@@ -61,6 +63,10 @@ namespace SportCourtManagent_Server.Controllers
         var result = await _promoService.CreatePromotionAsync(request);
         return CreatedAtAction(nameof(GetById), new { id = result.PromotionId }, ApiResults.Ok(result, "Tạo khuyến mãi thành công.", 201));
       }
+      catch (ArgumentException ex)
+      {
+        return BadRequest(new { message = ex.Message });
+      }
       catch (InvalidOperationException ex)
       {
         return BadRequest(ApiResults.Fail(ex.Message, 400));
@@ -82,6 +88,14 @@ namespace SportCourtManagent_Server.Controllers
         var result = await _promoService.UpdatePromotionAsync(id, request);
         if (result == null) return NotFound(ApiResults.Fail("Không tìm thấy mã khuyến mãi.", 404));
         return Ok(ApiResults.Ok(result, "Cập nhật khuyến mãi thành công."));
+      }
+      catch (ArgumentException ex)
+      {
+        return BadRequest(new { message = ex.Message });
+      }
+      catch (InvalidOperationException ex)
+      {
+        return BadRequest(new { message = ex.Message });
       }
       catch (Exception ex)
       {

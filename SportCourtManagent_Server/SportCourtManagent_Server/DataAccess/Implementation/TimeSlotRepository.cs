@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.Models;
 
@@ -14,29 +16,36 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             _context = context;
         }
 
-        public IEnumerable<TimeSlot> GetAll()
+        public async Task<IEnumerable<TimeSlot>> GetAllAsync()
         {
-            throw new NotImplementedException();
+            return await _context.TimeSlots.ToListAsync();
         }
 
-        public TimeSlot? GetById(int id)
+        public async Task<TimeSlot?> GetByIdAsync(int id)
         {
-            throw new NotImplementedException();
+            return await _context.TimeSlots.FindAsync(id);
         }
 
-        public void Add(TimeSlot entity)
+        public async Task AddAsync(TimeSlot entity)
         {
-            throw new NotImplementedException();
+            _context.TimeSlots.Add(entity);
+            await _context.SaveChangesAsync();
         }
 
-        public void Update(TimeSlot entity)
+        public async Task UpdateAsync(TimeSlot entity)
         {
-            throw new NotImplementedException();
+            _context.TimeSlots.Update(entity);
+            await _context.SaveChangesAsync();
         }
 
-        public void Delete(int id)
+        public async Task DeleteAsync(int id)
         {
-            throw new NotImplementedException();
+            var entity = await _context.TimeSlots.FindAsync(id);
+            if (entity != null)
+            {
+                _context.TimeSlots.Remove(entity);
+                await _context.SaveChangesAsync();
+            }
         }
     }
 }

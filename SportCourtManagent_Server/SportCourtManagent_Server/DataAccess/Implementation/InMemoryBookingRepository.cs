@@ -1,0 +1,86 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
+using SportCourtManagent_Server.DataAccess.Interfaces;
+using SportCourtManagent_Server.Models;
+
+namespace SportCourtManagent_Server.DataAccess.Implementation
+{
+    public class InMemoryBookingRepository : IInMemoryBookingRepository
+    {
+        private readonly IMemoryCache _memoryCache;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
+        private static readonly ConcurrentDictionary<string, Booking> _pendingBookings = new();
+
+        public InMemoryBookingRepository(IMemoryCache memoryCache, IServiceScopeFactory serviceScopeFactory)
+        {
+            _memoryCache = memoryCache;
+            _serviceScopeFactory = serviceScopeFactory;
+        }
+
+        public Task SaveAsync(Booking booking, TimeSpan expiration)
+        {
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                .SetAbsoluteExpiration(expiration)
+                .RegisterPostEvictionCallback(OnBookingEvicted, _serviceScopeFactory);
+
+            _memoryCache.Set(booking.BookingCode, booking, cacheEntryOptions);
+            _pendingBookings[booking.BookingCode] = booking;
+            return Task.CompletedTask;
+        }
+
+        public Task<Booking?> GetByCodeAsync(string bookingCode)
+        {
+            _pendingBookings.TryGetValue(bookingCode, out var booking);
+            return Task.FromResult(booking);
+        }
+
+        public Task<IEnumerable<Booking>> GetAllPendingAsync()
+        {
+            return Task.FromResult<IEnumerable<Booking>>(_pendingBookings.Values);
+        }
+
+        public Task RemoveAsync(string bookingCode)
+        {
+            _memoryCache.Remove(bookingCode);
+            _pendingBookings.TryRemove(bookingCode, out _);
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> HasConflictingBookingAsync(int courtId, int slotId, DateTime bookingDate)
+        {
+            var conflict = _pendingBookings.Values.Any(b => b.CourtId == courtId 
+                                                         && b.SlotId == slotId 
+                                                         && b.BookingDate.Date == bookingDate.Date);
+            return Task.FromResult(conflict);
+        }
+
+        private static void OnBookingEvicted(object key, object? value, EvictionReason reason, object? state)
+        {
+            if (reason == EvictionReason.Expired && value is Booking booking && state is IServiceScopeFactory scopeFactory)
+            {
+                _pendingBookings.TryRemove(booking.BookingCode, out _);
+
+                if (booking.BookingServices != null && booking.BookingServices.Any())
+                {
+                    using (var scope = scopeFactory.CreateScope())
+                    {
+                        var serviceRepo = scope.ServiceProvider.GetRequiredService<IServiceRepository>();
+                        foreach (var bs in booking.BookingServices)
+                        {
+                            var service = serviceRepo.GetByIdAsync(bs.ServiceId).GetAwaiter().GetResult();
+                            if (service != null)
+                            {
+                                service.StockQty += bs.Quantity;
+                                serviceRepo.UpdateAsync(service).GetAwaiter().GetResult();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

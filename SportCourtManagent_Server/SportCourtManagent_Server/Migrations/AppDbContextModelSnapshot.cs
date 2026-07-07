@@ -87,6 +87,9 @@ namespace SportCourtManagent_Server.Migrations
                     b.Property<TimeSpan>("EndTime")
                         .HasColumnType("time");
 
+                    b.Property<DateTime?>("ExpiredAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Note")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -120,8 +123,6 @@ namespace SportCourtManagent_Server.Migrations
                     b.HasIndex("BookingCode")
                         .IsUnique();
 
-                    b.HasIndex("CourtId");
-
                     b.HasIndex("PromotionId");
 
                     b.HasIndex("SlotId");
@@ -129,6 +130,10 @@ namespace SportCourtManagent_Server.Migrations
                     b.HasIndex("TournamentId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex(new[] { "CourtId", "SlotId", "BookingDate" }, "IX_Booking_Court_Slot_Date")
+                        .IsUnique()
+                        .HasFilter("[Status] != 2");
 
                     b.ToTable("Bookings");
                 });
@@ -1487,6 +1492,9 @@ namespace SportCourtManagent_Server.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ExpiredAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");

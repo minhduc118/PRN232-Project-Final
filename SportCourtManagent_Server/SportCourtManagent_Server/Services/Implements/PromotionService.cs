@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 using SportCourtManagent_Server.DataAccess.Interfaces;
+using SportCourtManagent_Server.DTOs;
 using SportCourtManagent_Server.DTOs.Promotion;
 using SportCourtManagent_Server.Enums;
 using SportCourtManagent_Server.Models;
@@ -13,17 +15,61 @@ namespace SportCourtManagent_Server.Services.Implements
   public class PromotionService : IPromotionService
   {
     private readonly IPromotionRepository _promoRepo;
+    private readonly IMemoryCache _cache;
+    private const string CacheKey = "PromotionsList";
 
-    public PromotionService(IPromotionRepository promoRepo)
+    public PromotionService(IPromotionRepository promoRepo, IMemoryCache cache)
     {
       _promoRepo = promoRepo ?? throw new ArgumentNullException(nameof(promoRepo));
+      _cache = cache ?? throw new ArgumentNullException(nameof(cache));
     }
 
-    /// <summary>Gets all promotions asynchronous.</summary>
+    /// <summary>Gets all promotions asynchronous with caching.</summary>
     public async Task<IEnumerable<PromotionDto>> GetAllPromotionsAsync()
     {
-      var promos = await _promoRepo.GetAllAsync();
-      return promos.Select(MapToDto).ToList();
+      if (!_cache.TryGetValue(CacheKey, out List<PromotionDto>? promos) || promos == null)
+      {
+        var list = await _promoRepo.GetAllAsync();
+        promos = list.Select(MapToDto).ToList();
+        _cache.Set(CacheKey, promos, TimeSpan.FromMinutes(5));
+      }
+      return promos;
+    }
+
+    /// <summary>Gets paged promotions with filtering asynchronous.</summary>
+    public async Task<PagedResult<PromotionDto>> GetPagedPromotionsAsync(PromotionFilterParams filter)
+    {
+      var allPromos = await GetAllPromotionsAsync();
+      var query = FilterPromotions(allPromos, filter);
+      var total = query.Count();
+      var items = query
+        .Skip((filter.PageNumber - 1) * filter.PageSize)
+        .Take(filter.PageSize)
+        .ToList();
+
+      return new PagedResult<PromotionDto>
+      {
+        Items = items,
+        TotalCount = total,
+        PageNumber = filter.PageNumber,
+        PageSize = filter.PageSize
+      };
+    }
+
+    /// <summary>Filters promotions list in memory.</summary>
+    private static IEnumerable<PromotionDto> FilterPromotions(IEnumerable<PromotionDto> list, PromotionFilterParams filter)
+    {
+      var query = list;
+      if (!string.IsNullOrWhiteSpace(filter.Keyword))
+      {
+        var kw = filter.Keyword.Trim().ToLower();
+        query = query.Where(p => p.PromoCode.ToLower().Contains(kw) || p.PromoName.ToLower().Contains(kw));
+      }
+      if (filter.IsActive.HasValue)
+      {
+        query = query.Where(p => p.IsActive == filter.IsActive.Value);
+      }
+      return query;
     }
 
     /// <summary>Gets a promotion by id asynchronous.</summary>
@@ -37,6 +83,8 @@ namespace SportCourtManagent_Server.Services.Implements
     public async Task<PromotionDto> CreatePromotionAsync(CreatePromotionRequest request)
     {
       if (request == null) throw new ArgumentNullException(nameof(request));
+
+      ValidatePromotionRules(request.DiscountType, request.DiscountValue, request.MinOrderAmount, request.MaxDiscount, request.UsageLimit, request.StartDate, request.EndDate);
 
       var existing = await _promoRepo.GetByCodeAsync(request.PromoCode);
       if (existing != null)
@@ -62,6 +110,7 @@ namespace SportCourtManagent_Server.Services.Implements
       };
 
       await _promoRepo.AddAsync(promo);
+      _cache.Remove(CacheKey);
       return MapToDto(promo);
     }
 
@@ -69,6 +118,8 @@ namespace SportCourtManagent_Server.Services.Implements
     public async Task<PromotionDto?> UpdatePromotionAsync(int id, UpdatePromotionRequest request)
     {
       if (request == null) throw new ArgumentNullException(nameof(request));
+
+      ValidatePromotionRules(request.DiscountType, request.DiscountValue, request.MinOrderAmount, request.MaxDiscount, request.UsageLimit, request.StartDate, request.EndDate);
 
       var promo = await _promoRepo.GetByIdAsync(id);
       if (promo == null) return null;
@@ -85,6 +136,7 @@ namespace SportCourtManagent_Server.Services.Implements
       promo.IsActive = request.IsActive;
 
       await _promoRepo.UpdateAsync(promo);
+      _cache.Remove(CacheKey);
       return MapToDto(promo);
     }
 
@@ -95,6 +147,7 @@ namespace SportCourtManagent_Server.Services.Implements
       if (promo == null) return false;
 
       await _promoRepo.DeleteAsync(id);
+      _cache.Remove(CacheKey);
       return true;
     }
 
@@ -179,6 +232,22 @@ namespace SportCourtManagent_Server.Services.Implements
         IsActive = p.IsActive,
         CreatedAt = p.CreatedAt
       };
+    }
+
+    private static void ValidatePromotionRules(DiscountType discountType, decimal discountValue, decimal minOrderAmount, decimal? maxDiscount, int? usageLimit, DateTime startDate, DateTime endDate)
+    {
+      if (endDate < startDate)
+        throw new ArgumentException("Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.");
+      if (discountValue <= 0)
+        throw new ArgumentException("Giá trị giảm giá phải lớn hơn 0.");
+      if (discountType == DiscountType.Percent && discountValue > 100)
+        throw new ArgumentException("Khuyến mãi theo phần trăm không được vượt quá 100%.");
+      if (minOrderAmount < 0)
+        throw new ArgumentException("Giá trị đơn hàng tối thiểu không được âm.");
+      if (maxDiscount.HasValue && maxDiscount.Value <= 0)
+        throw new ArgumentException("Số tiền giảm tối đa phải lớn hơn 0.");
+      if (usageLimit.HasValue && usageLimit.Value <= 0)
+        throw new ArgumentException("Giới hạn sử dụng phải lớn hơn 0.");
     }
   }
 }

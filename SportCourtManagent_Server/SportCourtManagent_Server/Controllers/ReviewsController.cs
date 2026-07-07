@@ -30,7 +30,7 @@ namespace SportCourtManagent_Server.Controllers
             [FromQuery] int pageSize = 10)
         {
             var result = await _reviewService.GetCourtReviewsAsync(courtId, pageNumber, pageSize);
-            return Ok(ApiResults.Ok(result));
+            return Ok(result);
 
         }
 

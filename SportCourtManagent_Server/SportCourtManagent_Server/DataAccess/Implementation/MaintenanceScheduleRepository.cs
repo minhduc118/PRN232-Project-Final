@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DataAccess.Interfaces;
+using SportCourtManagent_Server.Enums;
 using SportCourtManagent_Server.Models;
 
 namespace SportCourtManagent_Server.DataAccess.Implementation
@@ -14,29 +18,56 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             _context = context;
         }
 
-        public IEnumerable<MaintenanceSchedule> GetAll()
+        public async Task<MaintenanceSchedule> CreateAsync(MaintenanceSchedule schedule)
         {
-            throw new NotImplementedException();
+            _context.MaintenanceSchedules.Add(schedule);
+            await _context.SaveChangesAsync();
+            return schedule;
         }
 
-        public MaintenanceSchedule? GetById(int id)
+        public async Task<bool> DeleteAsync(MaintenanceSchedule schedule)
         {
-            throw new NotImplementedException();
+            _context.MaintenanceSchedules.Remove(schedule);
+            return await _context.SaveChangesAsync() > 0;
         }
 
-        public void Add(MaintenanceSchedule entity)
+        public async Task<(List<MaintenanceSchedule> Items, int TotalCount)> GetByComplexAsync(int complexId, MaintenanceStatus? status = null, int page = 1, int pageSize = 10)
         {
-            throw new NotImplementedException();
+            var query = _context.MaintenanceSchedules
+                .Include(ms => ms.Court)
+                .ThenInclude(c => c.Complex)
+                .Include(ms => ms.AssignedStaff)
+                .Where(ms => ms.Court.ComplexId == complexId)
+                .AsQueryable();
+
+            if (status.HasValue)
+            {
+                query = query.Where(ms => ms.Status == status.Value);
+            }
+
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(ms => ms.StartDateTime)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, totalCount);
         }
 
-        public void Update(MaintenanceSchedule entity)
+        public async Task<MaintenanceSchedule?> GetByIdAsync(int id)
         {
-            throw new NotImplementedException();
+            return await _context.MaintenanceSchedules
+                .Include(ms => ms.Court)
+                .ThenInclude(c => c.Complex)
+                .Include(ms => ms.AssignedStaff)
+                .FirstOrDefaultAsync(ms => ms.MaintenanceId == id);
         }
 
-        public void Delete(int id)
+        public async Task<bool> UpdateAsync(MaintenanceSchedule schedule)
         {
-            throw new NotImplementedException();
+            _context.MaintenanceSchedules.Update(schedule);
+            return await _context.SaveChangesAsync() > 0;
         }
     }
 }

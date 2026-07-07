@@ -205,6 +205,7 @@ erDiagram
     Users         ||--o{ Tasks           : "giao việc"
     Bookings      ||--o{ Tasks           : "liên kết"
     Users         ||--o{ CourtComplexes  : "quản lý"
+    CourtComplexes ||--o{ StaffShifts     : "phân ca tại"
 ```
 
 ---
@@ -346,6 +347,7 @@ NoShow (không đến, không hủy trước)
 | IX_Waitlists_CourtSlotDate | Waitlists | CourtId, SlotId, WaitDate | Kiểm tra hàng chờ |
 | IX_MaintenanceSchedules_Court | MaintenanceSchedules | CourtId, Status | Lịch bảo trì |
 | IX_StaffShifts_StaffDate | StaffShifts | StaffId, ShiftDate | Lịch ca nhân viên |
+| IX_StaffShifts_ComplexDate | StaffShifts | ComplexId, ShiftDate | Lịch ca theo khu vực |
 | IX_PlayerRequests_Status | PlayerRequests | Status | Danh sách tin mở |
 
 ---
@@ -415,6 +417,7 @@ NoShow (không đến, không hủy trước)
 |-----|------|-------|
 | ShiftId | INT PK | Mã ca |
 | StaffId | INT FK | Nhân viên |
+| ComplexId | INT FK | Tổ hợp sân làm việc (CourtComplexes) |
 | ShiftDate | DATE | Ngày làm |
 | ShiftType | VARCHAR | Morning/Afternoon/Evening |
 | StartTime / EndTime | TIME | Giờ ca |

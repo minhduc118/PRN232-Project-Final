@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.OData;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddMemoryCache();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -29,6 +30,7 @@ builder.Services.AddScoped<ITimeSlotRepository, TimeSlotRepository>();
 builder.Services.AddScoped<ICourtPricingRepository, CourtPricingRepository>();
 builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
+builder.Services.AddSingleton<IInMemoryBookingRepository, InMemoryBookingRepository>();
 builder.Services.AddScoped<IServiceRepository, ServiceRepository>();
 builder.Services.AddScoped<IBookingServiceRepository, BookingServiceRepository>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
@@ -41,6 +43,7 @@ builder.Services.AddScoped<IWaitlistRepository, WaitlistRepository>();
 builder.Services.AddScoped<IInvoiceRepository, InvoiceRepository>();
 builder.Services.AddScoped<IEquipmentInventoryRepository, EquipmentInventoryRepository>();
 builder.Services.AddScoped<IMaintenanceScheduleRepository, MaintenanceScheduleRepository>();
+builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<IStaffShiftRepository, StaffShiftRepository>();
 builder.Services.AddScoped<IPlayerRequestRepository, PlayerRequestRepository>();
 builder.Services.AddScoped<IPlayerRequestMemberRepository, PlayerRequestMemberRepository>();
@@ -51,14 +54,30 @@ builder.Services.AddScoped<IComplexCourtTypeServiceRepository, ComplexCourtTypeS
 // Service DI registration
 builder.Services.AddScoped<IServiceCatalogService, ServiceCatalogService>();
 builder.Services.AddScoped<IComplexCourtTypeOfferingService, ComplexCourtTypeOfferingService>();
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserAccessService, UserAccessService>();
+builder.Services.AddScoped<IUserManagementService, UserManagementService>();
+builder.Services.AddScoped<IRoleManagementService, RoleManagementService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IBookingManagementService, BookingManagementService>();
 builder.Services.AddScoped<ICourtService, CourtService>();
+builder.Services.AddScoped<ICourtComplexService, CourtComplexService>();
+builder.Services.AddScoped<ICourtTypeService, CourtTypeService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<ICourtBookingService, CourtBookingService>();
+builder.Services.AddScoped<ISePayService, SePayService>();
+builder.Services.AddScoped<IServiceService, ServiceService>();
+builder.Services.AddSingleton<ITournamentLockManager, TournamentLockManager>();
+builder.Services.AddScoped<IStaffService, StaffService>();
+builder.Services.AddScoped<IMaintenanceScheduleService, MaintenanceScheduleService>();
+
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler =
         ReferenceHandler.IgnoreCycles;
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+
 }).AddOData(options => options
     .Select()
     .Filter()
@@ -146,12 +165,13 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 // Auto-migrate and seed database
-using (var scope = app.Services.CreateScope())
-{
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await dbContext.Database.MigrateAsync();
-    await DbSeeder.SeedAsync(dbContext);
-}
+//using (var scope = app.Services.CreateScope())
+//{
+//    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+//    await dbContext.Database.MigrateAsync();
+//    await DbSeeder.SeedAsync(dbContext);
+//}
+
 
 // Configure the HTTP request pipeline. Always enable Swagger for checking
 app.UseSwagger();

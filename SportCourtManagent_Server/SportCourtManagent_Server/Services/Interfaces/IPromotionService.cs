@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using SportCourtManagent_Server.DTOs;
 using SportCourtManagent_Server.DTOs.Promotion;
 
 namespace SportCourtManagent_Server.Services.Interfaces
@@ -8,6 +9,9 @@ namespace SportCourtManagent_Server.Services.Interfaces
   {
     /// <summary>Gets all promotions asynchronous.</summary>
     Task<IEnumerable<PromotionDto>> GetAllPromotionsAsync();
+
+    /// <summary>Gets paged promotions with filtering asynchronous.</summary>
+    Task<PagedResult<PromotionDto>> GetPagedPromotionsAsync(PromotionFilterParams filter);
 
     /// <summary>Gets a promotion by id asynchronous.</summary>
     Task<PromotionDto?> GetPromotionByIdAsync(int id);

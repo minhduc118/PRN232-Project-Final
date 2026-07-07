@@ -5,10 +5,10 @@ namespace SportCourtManagent_Server.DataAccess.Interfaces
 {
     public interface IPaymentRepository
     {
-        IEnumerable<Payment> GetAll();
-        Payment? GetById(int id);
-        void Add(Payment entity);
-        void Update(Payment entity);
-        void Delete(int id);
+        Task<IEnumerable<Payment>> GetAllAsync();
+        Task<Payment?> GetByIdAsync(int id);
+        Task AddAsync(Payment entity);
+        Task UpdateAsync(Payment entity);
+        Task DeleteAsync(int id);
     }
 }

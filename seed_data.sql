@@ -2,13 +2,15 @@
 -- SQL SEED DATA SCRIPT - SPORT COURT MANAGEMENT SYSTEM
 -- ===================================================================
 
-USE [SportsCourtDB]; -- Ensure you are using the correct database name
+USE [PRN232_SCM_DB]; -- Ensure you are using the correct database name
 GO
 SET QUOTED_IDENTIFIER ON;
 SET ANSI_NULLS ON;
 GO
 
 -- Safe, re-runnable clean up phase (deletes existing records in dependency order)
+IF OBJECT_ID('dbo.Tasks', 'U') IS NOT NULL DELETE FROM [dbo].[Tasks];
+IF OBJECT_ID('dbo.ComplexCourtTypeServices', 'U') IS NOT NULL DELETE FROM [dbo].[ComplexCourtTypeServices];
 IF OBJECT_ID('dbo.AuditLogs', 'U') IS NOT NULL DELETE FROM [dbo].[AuditLogs];
 IF OBJECT_ID('dbo.PlayerRequestMembers', 'U') IS NOT NULL DELETE FROM [dbo].[PlayerRequestMembers];
 IF OBJECT_ID('dbo.PlayerRequests', 'U') IS NOT NULL DELETE FROM [dbo].[PlayerRequests];
@@ -41,71 +43,71 @@ GO
 
 -- 1. Insert Roles
 SET IDENTITY_INSERT [Roles] ON;
-INSERT INTO [Roles] ([RoleId], [RoleName], [Description], [CreatedAt]) VALUES
-(1, 'Admin', N'Quản trị toàn bộ hệ thống', GETDATE()),
-(2, 'Staff', N'Nhân viên hỗ trợ vận hành', GETDATE()),
-(3, 'Coach', N'Huấn luyện viên thể thao', GETDATE()),
-(4, 'Customer', N'Khách hàng đặt sân', GETDATE());
+INSERT INTO [Roles] ([RoleId], [RoleName], [Description]) VALUES
+(1, 'Admin', N'Quản trị toàn bộ hệ thống'),
+(2, 'Staff', N'Nhân viên hỗ trợ vận hành'),
+(3, 'Coach', N'Huấn luyện viên thể thao'),
+(4, 'Customer', N'Khách hàng đặt sân');
 SET IDENTITY_INSERT [Roles] OFF;
 GO
 
 -- 2. Insert MembershipTiers
 SET IDENTITY_INSERT [MembershipTiers] ON;
-INSERT INTO [MembershipTiers] ([TierId], [TierName], [MinPoints], [DiscountPercent], [Description], [CreatedAt]) VALUES
-(1, 'Bronze', 0, 0.00, N'Thành viên cơ bản', GETDATE()),
-(2, 'Silver', 500, 5.00, N'Giảm 5% mỗi booking', GETDATE()),
-(3, 'Gold', 2000, 10.00, N'Giảm 10% + ưu tiên đặt sân', GETDATE()),
-(4, 'Platinum', 5000, 15.00, N'Giảm 15% + dịch vụ VIP', GETDATE());
+INSERT INTO [MembershipTiers] ([TierId], [TierName], [MinPoints], [DiscountPercent]) VALUES
+(1, 'Bronze', 0, 0.00),
+(2, 'Silver', 500, 5.00),
+(3, 'Gold', 2000, 10.00),
+(4, 'Platinum', 5000, 15.00);
 SET IDENTITY_INSERT [MembershipTiers] OFF;
 GO
 
 -- 3. Insert CourtTypes
 SET IDENTITY_INSERT [CourtTypes] ON;
-INSERT INTO [CourtTypes] ([CourtTypeId], [TypeName], [Description], [IsActive], [CreatedAt]) VALUES
-(1, N'Cầu lông', N'Sân cầu lông tiêu chuẩn BWF', 1, GETDATE()),
-(2, N'Bóng đá', N'Sân bóng đá mini 5v5 / 7v7', 1, GETDATE()),
-(3, N'Pickleball', N'Sân pickleball tiêu chuẩn', 1, GETDATE()),
-(4, N'Tennis', N'Sân tennis mặt cứng / đất nện', 1, GETDATE()),
-(5, N'Bóng rổ', N'Sân bóng rổ 3x3 / 5v5', 1, GETDATE());
+INSERT INTO [CourtTypes] ([CourtTypeId], [TypeName], [IsActive]) VALUES
+(1, N'Cầu lông', 1),
+(2, N'Bóng đá', 1),
+(3, N'Pickleball', 1),
+(4, N'Tennis', 1),
+(5, N'Bóng rổ', 1);
 SET IDENTITY_INSERT [CourtTypes] OFF;
 GO
 
 -- 4. Insert TimeSlots
 SET IDENTITY_INSERT [TimeSlots] ON;
-INSERT INTO [TimeSlots] ([SlotId], [SlotName], [StartTime], [EndTime], [DayType], [IsActive]) VALUES
-(1, N'Sáng sớm', '05:00:00', '07:00:00', 'Weekday', 1),
-(2, N'Buổi sáng', '07:00:00', '11:00:00', 'Weekday', 1),
-(3, N'Buổi trưa', '11:00:00', '13:00:00', 'Weekday', 1),
-(4, N'Buổi chiều', '13:00:00', '17:00:00', 'Weekday', 1),
-(5, N'Giờ vàng', '17:00:00', '21:00:00', 'Weekday', 1),
-(6, N'Tối muộn', '21:00:00', '23:00:00', 'Weekday', 1),
-(7, N'Cuối tuần sáng', '06:00:00', '12:00:00', 'Weekend', 1),
-(8, N'Cuối tuần chiều', '12:00:00', '18:00:00', 'Weekend', 1),
-(9, N'Cuối tuần tối', '18:00:00', '23:00:00', 'Weekend', 1);
+INSERT INTO [TimeSlots] ([SlotId], [SlotName], [StartTime], [EndTime], [DayType]) VALUES
+(1, N'Sáng sớm', '05:00:00', '07:00:00', 0),
+(2, N'Buổi sáng', '07:00:00', '11:00:00', 0),
+(3, N'Buổi trưa', '11:00:00', '13:00:00', 0),
+(4, N'Buổi chiều', '13:00:00', '17:00:00', 0),
+(5, N'Giờ vàng', '17:00:00', '21:00:00', 0),
+(6, N'Tối muộn', '21:00:00', '23:00:00', 0),
+(7, N'Cuối tuần sáng', '06:00:00', '12:00:00', 1),
+(8, N'Cuối tuần chiều', '12:00:00', '18:00:00', 1),
+(9, N'Cuối tuần tối', '18:00:00', '23:00:00', 1);
 SET IDENTITY_INSERT [TimeSlots] OFF;
 GO
 
--- 5. Insert Users (Passwords are BCrypt hashes of: Admin@123, Staff@123, Coach@123, Customer@123)
+-- 5. Insert Users
 SET IDENTITY_INSERT [Users] ON;
-INSERT INTO [Users] ([UserId], [FullName], [Email], [Phone], [PasswordHash], [IsActive], [IsEmailVerified], [MembershipTierId], [CreatedAt], [LoyaltyPoints], [Gender]) VALUES
-(1, 'System Admin', 'admin@sportscourtms.vn', '0900000001', '$2a$11$B3X9ngp8IGqoU2H3yEZhZ.66WJnUtRTu5pfwbfGw3h7TAbBE/8PCi', 1, 1, 4, GETDATE(), 0, 'Male'),
-(2, 'Nguyễn Văn An', 'staff@sportscourtms.vn', '0900000002', '$2a$11$3bpecDWLBV.A7PedIsc9TOIFFOlEZuiHfr2TB9okofi1IUIsfQBpS', 1, 1, 1, GETDATE(), 0, 'Male'),
-(3, 'Trần Thị Bình', 'coach@sportscourtms.vn', '0900000003', '$2a$11$j/0Dmeuu2TKr7ITShicISuR1VdpMlQSf1qIyHzV9ItuvVh/JWCa.a', 1, 1, 2, GETDATE(), 0, 'Female'),
-(4, 'Lê Văn Cường', 'customer@gmail.com', '0912345678', '$2a$11$p2.A.zWVick1.hl/qpK75uzMPZQB34oyad054MbL01NwaUe2GBKjq', 1, 1, 1, GETDATE(), 0, 'Male');
+INSERT INTO [Users] ([UserId], [FullName], [Email], [Phone], [PasswordHash], [IsActive], [MembershipTierId], [CreatedAt], [LoyaltyPoints], [Gender], [SkillLevel]) VALUES
+(1, 'System Admin', 'admin@sportscourtms.vn', '0900000001', '$2a$11$B3X9ngp8IGqoU2H3yEZhZ.66WJnUtRTu5pfwbfGw3h7TAbBE/8PCi', 1, 4, GETDATE(), 0, 0, 0),
+(2, 'Nguyễn Văn An', 'staff@sportscourtms.vn', '0900000002', '$2a$11$3bpecDWLBV.A7PedIsc9TOIFFOlEZuiHfr2TB9okofi1IUIsfQBpS', 1, 1, GETDATE(), 0, 0, 0),
+(3, 'Trần Thị Bình', 'coach@sportscourtms.vn', '0900000003', '$2a$11$j/0Dmeuu2TKr7ITShicISuR1VdpMlQSf1qIyHzV9ItuvVh/JWCa.a', 1, 2, GETDATE(), 0, 1, 0),
+(4, 'Lê Văn Cường', 'customer@gmail.com', '0912345678', '$2a$11$p2.A.zWVick1.hl/qpK75uzMPZQB34oyad054MbL01NwaUe2GBKjq', 1, 1, GETDATE(), 0, 0, 0);
 SET IDENTITY_INSERT [Users] OFF;
 GO
 
 -- 6. Insert UserRoles
 SET IDENTITY_INSERT [UserRoles] ON;
-INSERT INTO [UserRoles] ([UserRoleId], [UserId], [RoleId], [AssignedAt]) VALUES
-(1, 1, 1, GETDATE()), -- Admin
-(2, 2, 2, GETDATE()), -- Staff
-(3, 3, 3, GETDATE()), -- Coach
-(4, 4, 4, GETDATE()); -- Customer
+INSERT INTO [UserRoles] ([UserRoleId], [UserId], [RoleId]) VALUES
+(1, 1, 1), -- Admin
+(2, 2, 2), -- Staff
+(3, 3, 3), -- Coach
+(4, 4, 4); -- Customer
 SET IDENTITY_INSERT [UserRoles] OFF;
 GO
 
--- 7. Insert CourtComplexes (22 tổ hợp sân toàn Hà Nội)
+-- 7. Insert CourtComplexes (30 tổ hợp sân toàn Hà Nội)
 SET IDENTITY_INSERT [CourtComplexes] ON;
 INSERT INTO [CourtComplexes] ([ComplexId], [ComplexName], [Address], [ManagerId], [Description], [ImageUrl], [IsDeleted], [CreatedAt]) VALUES
 (1,  N'Tổ hợp thể thao Cầu Giấy',         N'Dịch Vọng, Cầu Giấy, Hà Nội',           1, N'Tổ hợp thể thao hiện đại hàng đầu tại Cầu Giấy với các sân trong nhà điều hòa.', 'https://images.unsplash.com/photo-1545224497-5d750c673417?q=80&w=800', 0, GETDATE()),
@@ -129,103 +131,192 @@ INSERT INTO [CourtComplexes] ([ComplexId], [ComplexName], [Address], [ManagerId]
 (19, N'ProCourt Phúc Thọ',                  N'Vân Hà, Phúc Thọ, Hà Nội',             1, N'Sân thể thao chuyên nghiệp kết hợp hồ bơi tại huyện Phúc Thọ.',                    'https://images.unsplash.com/photo-1600548063393-c1e61dba8e6a?q=80&w=800', 0, GETDATE()),
 (20, N'MegaFit Quốc Oai',                   N'Quốc Oai, Quốc Oai, Hà Nội',           2, N'Tổ hợp thể thao diện tích lớn nhất tại huyện Quốc Oai.',                            'https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=800', 0, GETDATE()),
 (21, N'PowerZone Thạch Thất',               N'Thạch Thất, Thạch Thất, Hà Nội',        1, N'Tổ hợp thể thao hiện đại mới khai trương tại huyện Thạch Thất.',                    'https://images.unsplash.com/photo-1604313483578-7bb6aa51c5a8?q=80&w=800', 0, GETDATE()),
-(22, N'SportCenter Ba Vì',                   N'Tản Đà, Ba Vì, Hà Nội',                2, N'Khu thể thao dã ngoại ven sông Đà, không khí trong lành tuyệt vời.',                 'https://images.unsplash.com/photo-1553692459-f8f49db820c2?q=80&w=800', 0, GETDATE());
+(22, N'SportCenter Ba Vì',                   N'Tản Đà, Ba Vì, Hà Nội',                2, N'Khu thể thao dã ngoại ven sông Đà, không khí trong lành tuyệt vời.',                 'https://images.unsplash.com/photo-1553692459-f8f49db820c2?q=80&w=800', 0, GETDATE()),
+(23, N'Tổ hợp thể thao Hoài Đức',           N'Trạm Trôi, Hoài Đức, Hà Nội',           1, N'Khu phức hợp thể thao đa năng gồm sân bóng đá mini và cụm sân cầu lông tiêu chuẩn.', 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=800', 0, GETDATE()),
+(24, N'SportyClub Đông Anh',                 N'Cao Lỗ, Đông Anh, Hà Nội',              2, N'Tổ hợp thể thao hiện đại bậc nhất khu vực Đông Anh với hệ thống mái che toàn diện.',  'https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=800', 0, GETDATE()),
+(25, N'DeltaArena Chương Mỹ',                N'Chúc Sơn, Chương Mỹ, Hà Nội',           1, N'Khu liên hợp thể thao rộng lớn phục vụ hoạt động tập luyện và thi đấu phong trào.', 'https://images.unsplash.com/photo-1530541930197-ff16ac917b0e?q=80&w=800', 0, GETDATE()),
+(26, N'KingSport Thanh Oai',                 N'Kim Bài, Thanh Oai, Hà Nội',            2, N'Khu thể thao chuyên nghiệp với mặt sân cỏ thế hệ mới và dàn đèn cao áp hiện đại.',  'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=800', 0, GETDATE()),
+(27, N'VietSport Mỹ Đức',                    N'Đại Nghĩa, Mỹ Đức, Hà Nội',             1, N'Tổ hợp sân thể thao cộng đồng thoáng đãng, cơ sở vật chất đầy đủ, tiện nghi.',     'https://images.unsplash.com/photo-1519766304817-4f37bda74a27?q=80&w=800', 0, GETDATE()),
+(28, N'RoyalCourt Phú Xuyên',                N'Phú Xuyên, Phú Xuyên, Hà Nội',          2, N'Hệ thống sân bóng đá và cầu lông chất lượng cao, phục vụ cư dân Phú Xuyên.',        'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=800', 0, GETDATE()),
+(29, N'OlympicHub Ứng Hòa',                  N'Vân Đình, Ứng Hòa, Hà Nội',             1, N'Trung tâm thể thao đa năng chất lượng, điểm hẹn lý tưởng cho những người đam mê thể thao.', 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800', 0, GETDATE()),
+(30, N'GoldenSport Sơn Tây',                 N'Lê Lợi, Sơn Tây, Hà Nội',               2, N'Tổ hợp thể thao cao cấp tại thị xã Sơn Tây, trang bị đầy đủ khu dịch vụ phụ trợ.',  'https://images.unsplash.com/photo-1505250469613-27bac4f40014?q=80&w=800', 0, GETDATE()),
+(31, N'Vinhomes Ocean Park Arena',           N'Đa Tốn, Gia Lâm, Hà Nội',               1, N'Khu phức hợp thể thao ngoài trời hiện đại tại đại đô thị Ocean Park.',              'https://images.unsplash.com/photo-1545224497-5d750c673417?q=80&w=800', 0, GETDATE()),
+(32, N'Tổ hợp thể thao Nghĩa Tân',           N'Nghĩa Tân, Cầu Giấy, Hà Nội',           2, N'Cụm sân cầu lông và bóng rổ hoạt động sôi nổi lâu đời.',                            'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?q=80&w=800', 0, GETDATE()),
+(33, N'Bách Khoa Sport Center',              N'Tạ Quang Bửu, Hai Bà Trưng, Hà Nội',    1, N'Sân vận động và tổ hợp thể thao phục vụ sinh viên và cư dân.',                       'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800', 0, GETDATE()),
+(34, N'Mỹ Đình Stadium Complex',             N'Lê Đức Thọ, Nam Từ Liêm, Hà Nội',      2, N'Cụm sân phụ quanh sân vận động quốc gia Mỹ Đình, đạt chuẩn thi đấu.',                'https://images.unsplash.com/photo-1567025822912-efefe9cf4ac4?q=80&w=800', 0, GETDATE()),
+(35, N'Hoàng Mai Football Club',             N'Đền Lừ, Hoàng Mai, Hà Nội',             1, N'Hệ thống sân bóng đá cỏ nhân tạo chất lượng cao mở cửa cả ngày.',                    'https://images.unsplash.com/photo-1515923256482-1c04580b477a?q=80&w=800', 0, GETDATE()),
+(36, N'Tây Hồ Club & Spa',                   N'Quảng An, Tây Hồ, Hà Nội',              2, N'Khu thể thao kết hợp nghỉ dưỡng cao cấp ven Hồ Tây.',                               'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=800', 0, GETDATE()),
+(37, N'Thanh Xuân Club',                     N'Ngụy Như Kon Tum, Thanh Xuân, Hà Nội',  1, N'Sân chơi thể thao năng động cho giới văn phòng và người trẻ.',                       'https://images.unsplash.com/photo-1489944440615-453fc2b6a9a9?q=80&w=800', 0, GETDATE()),
+(38, N'Đống Đa Arena',                       N'Đặng Tiến Đông, Đống Đa, Hà Nội',       2, N'Tổ hợp thể thao đa năng gồm bóng rổ, cầu lông và pickleball.',                       'https://images.unsplash.com/photo-1519861531473-9200262188bf?q=80&w=800', 0, GETDATE()),
+(39, N'Long Biên Golf & Sports',             N'Phúc Đồng, Long Biên, Hà Nội',          1, N'Khu liên hợp thể thao và dịch vụ cao cấp nhất quận Long Biên.',                      'https://images.unsplash.com/photo-1590227531827-a70e50f21f16?q=80&w=800', 0, GETDATE()),
+(40, N'Bắc Từ Liêm Hub',                     N'Đức Thắng, Bắc Từ Liêm, Hà Nội',        2, N'Sân bóng đá cỏ nhân tạo và sân cầu lông trong nhà rộng rãi.',                        'https://images.unsplash.com/photo-1591035897819-f4bdf739f446?q=80&w=800', 0, GETDATE()),
+(41, N'Tổ hợp thể thao Gia Lâm',             N'Trâu Quỳ, Gia Lâm, Hà Nội',             1, N'Sân tập luyện đa năng phục vụ cư dân huyện Gia Lâm.',                                'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=800', 0, GETDATE()),
+(42, N'Đông Anh Arena',                      N'Cao Lỗ, Đông Anh, Hà Nội',              2, N'Cụm sân thể thao mái che khẩu độ lớn, không ngại thời tiết mưa nắng.',              'https://images.unsplash.com/photo-1551958219-acbc595b85e4?q=80&w=800', 0, GETDATE()),
+(43, N'Sóc Sơn Sporty',                      N'Đền Sóc, Sóc Sơn, Hà Nội',              1, N'Địa điểm lý tưởng cho các trận bóng đá và cầu lông giao hữu cuối tuần.',             'https://images.unsplash.com/photo-1579758629938-03607ccdbaba?q=80&w=800', 0, GETDATE()),
+(44, N'Mê Linh Club',                        N'Đại Thịnh, Mê Linh, Hà Nội',            2, N'Khu thể thao gia đình kết hợp vui chơi giải trí thoáng mát.',                        'https://images.unsplash.com/photo-1519863512547-ab547415a8b8?q=80&w=800', 0, GETDATE()),
+(45, N'Sơn Tây Stadium Side',                N'Phú Thịnh, Sơn Tây, Hà Nội',            1, N'Tổ hợp sân thể thao cạnh sân vận động thị xã Sơn Tây.',                              'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?q=80&w=800', 0, GETDATE()),
+(46, N'Ba Vì Green Field',                   N'Tản Lĩnh, Ba Vì, Hà Nội',               2, N'Sân cỏ tự nhiên view núi rừng Ba Vì, không khí trong lành.',                         'https://images.unsplash.com/photo-1575650772416-eb9b0b72b29e?q=80&w=800', 0, GETDATE()),
+(47, N'Phúc Thọ Sport Hub',                  N'Phúc Thọ, Phúc Thọ, Hà Nội',            1, N'Sân cầu lông phong trào chất lượng tốt, thảm PVC tiêu chuẩn.',                       'https://images.unsplash.com/photo-1590488398561-f59d40adae5d?q=80&w=800', 0, GETDATE()),
+(48, N'Thạch Thất Arena',                    N'Liên Quan, Thạch Thất, Hà Nội',         2, N'Sân bóng đá mini cỏ nhân tạo chất lượng cao phục vụ thanh thiếu niên.',              'https://images.unsplash.com/photo-1570129477492-45c003edd2be?q=80&w=800', 0, GETDATE()),
+(49, N'Quốc Oai Club',                       N'Quốc Oai, Quốc Oai, Hà Nội',            1, N'Tổ hợp thể thao mới đầu tư, trang thiết bị hiện đại.',                               'https://images.unsplash.com/photo-1600548063393-c1e61dba8e6a?q=80&w=800', 0, GETDATE()),
+(50, N'Chương Mỹ Sporty',                    N'Chúc Sơn, Chương Mỹ, Hà Nội',           2, N'Khu sân tập trung tâm huyện Chương Mỹ với bãi đỗ xe rộng rãi.',                      'https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=800', 0, GETDATE()),
+(51, N'Đan Phượng Arena',                    N'Phùng, Đan Phượng, Hà Nội',             1, N'Sân bóng rổ và cầu lông chất lượng hàng đầu khu vực Đan Phượng.',                    'https://images.unsplash.com/photo-1604313483578-7bb6aa51c5a8?q=80&w=800', 0, GETDATE()),
+(52, N'Hoài Đức Sport Park',                 N'Trạm Trôi, Hoài Đức, Hà Nội',           2, N'Khu công viên thể thao đa năng, mát mẻ nhiều cây xanh.',                             'https://images.unsplash.com/photo-1553692459-f8f49db820c2?q=80&w=800', 0, GETDATE()),
+(53, N'Thanh Oai Hub',                       N'Kim Bài, Thanh Oai, Hà Nội',            1, N'Cụm sân bóng cỏ nhân tạo phục vụ bóng đá phong trào.',                               'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=800', 0, GETDATE()),
+(54, N'Mỹ Đức Arena',                        N'Đại Nghĩa, Mỹ Đức, Hà Nội',             2, N'Sân tập cầu lông mái che kiên cố, ánh sáng chuẩn thi đấu.',                          'https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=800', 0, GETDATE()),
+(55, N'Ứng Hòa Sports',                      N'Vân Đình, Ứng Hòa, Hà Nội',             1, N'Trung tâm thể dục thể thao quận huyện, nhiều hoạt động sôi nổi.',                    'https://images.unsplash.com/photo-1530541930197-ff16ac917b0e?q=80&w=800', 0, GETDATE()),
+(56, N'Thường Tín Club',                     N'Thường Tín, Thường Tín, Hà Nội',        2, N'Địa điểm giao lưu bóng đá và tennis hàng đầu Thường Tín.',                           'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=800', 0, GETDATE()),
+(57, N'Phú Xuyên Arena',                     N'Phú Xuyên, Phú Xuyên, Hà Nội',          1, N'Sân thể thao cộng đồng khang trang, phục vụ cư dân địa phương.',                      'https://images.unsplash.com/photo-1519766304817-4f37bda74a27?q=80&w=800', 0, GETDATE()),
+(58, N'Cầu Giấy Premium',                    N'Trung Hòa, Cầu Giấy, Hà Nội',           2, N'Sân pickleball trong nhà điều hòa cao cấp, dịch vụ nước uống miễn phí.',             'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=800', 0, GETDATE()),
+(59, N'Tổ hợp thể thao Yên Hòa',             N'Yên Hòa, Cầu Giấy, Hà Nội',             1, N'Sân bóng đá mini 7 người đông đúc, náo nhiệt.',                                      'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800', 0, GETDATE()),
+(60, N'Hà Đông Premium Center',              N'Mộ Lao, Hà Đông, Hà Nội',               2, N'Khu phức hợp thể thao đẳng cấp cao, hồ bơi bốn mùa bên cạnh.',                       'https://images.unsplash.com/photo-1505250469613-27bac4f40014?q=80&w=800', 0, GETDATE()),
+(61, N'Thanh Xuân Nam Center',               N'Thanh Xuân Nam, Thanh Xuân, Hà Nội',    1, N'Sân cầu lông sàn gỗ tự nhiên chống trơn trượt.',                                     'https://images.unsplash.com/photo-1545224497-5d750c673417?q=80&w=800', 0, GETDATE()),
+(62, N'Đống Đa Central Park',                N'Láng Hạ, Đống Đa, Hà Nội',              2, N'Khu thể thao văn phòng tiện lợi, phục vụ các giải đấu công sở.',                     'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?q=80&w=800', 0, GETDATE()),
+(63, N'Hai Bà Trưng Hub',                    N'Minh Khai, Hai Bà Trưng, Hà Nội',       1, N'Sân bóng rổ ngoài trời đạt chuẩn thi đấu FIBA.',                                     'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800', 0, GETDATE()),
+(64, N'Hoàn Kiếm Lake View',                 N'Tràng Tiền, Hoàn Kiếm, Hà Nội',         2, N'Sân cầu lông tầng thượng với tầm nhìn hướng ra Hồ Gươm.',                            'https://images.unsplash.com/photo-1567025822912-efefe9cf4ac4?q=80&w=800', 0, GETDATE()),
+(65, N'Ba Đình Sport Center',                N'Giảng Võ, Ba Đình, Hà Nội',             1, N'Nhà thi đấu đa năng quy mô lớn, sức chứa khán đài 500 người.',                       'https://images.unsplash.com/photo-1515923256482-1c04580b477a?q=80&w=800', 0, GETDATE()),
+(66, N'Tây Hồ Water Sport',                  N'Nhật Tân, Tây Hồ, Hà Nội',              2, N'Khu thể thao bãi biển ngoài trời độc đáo.',                                          'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=800', 0, GETDATE()),
+(67, N'Hoàng Mai Lakeside',                  N'Linh Đàm, Hoàng Mai, Hà Nội',           1, N'Cụm sân bóng đá cỏ nhân tạo ven hồ Linh Đàm thơ mộng.',                              'https://images.unsplash.com/photo-1489944440615-453fc2b6a9a9?q=80&w=800', 0, GETDATE()),
+(68, N'Long Biên Air Sports',                N'Gia Thụy, Long Biên, Hà Nội',           2, N'Khu sân thể thao liên kết hàng không, dịch vụ chuyên nghiệp.',                       'https://images.unsplash.com/photo-1519861531473-9200262188bf?q=80&w=800', 0, GETDATE()),
+(69, N'Nam Từ Liêm Arena',                   N'Mỹ Đình, Nam Từ Liêm, Hà Nội',          1, N'Tổ hợp sân tennis và pickleball ngoài trời có đèn đêm cực sáng.',                    'https://images.unsplash.com/photo-1590227531827-a70e50f21f16?q=80&w=800', 0, GETDATE()),
+(70, N'Bắc Từ Liêm Campus',                  N'Cổ Nhuế, Bắc Từ Liêm, Hà Nội',          2, N'Tổ hợp thể thao học đường mở cửa cho người dân vào sinh hoạt.',                      'https://images.unsplash.com/photo-1591035897819-f4bdf739f446?q=80&w=800', 0, GETDATE());
 SET IDENTITY_INSERT [CourtComplexes] OFF;
 GO
 
--- 8. Insert Courts (35 sân, trải đều các loại, các trạng thái)
+-- 8. Insert Courts (10 sân mỗi tổ hợp cho tất cả 70 tổ hợp = 700 sân)
 SET IDENTITY_INSERT [Courts] ON;
-INSERT INTO [Courts] ([CourtId], [CourtName], [CourtCode], [CourtTypeId], [ComplexId], [PricePerHour], [CourtSize], [Description], [Location], [Capacity], [Surface], [OpenTime], [CloseTime], [Status], [IsDeleted], [CreatedAt]) VALUES
--- Complex 1 (Cầu Giấy): 2 Cầu lông + 1 Pickleball
-(1,  N'Sân Cầu Lông A1',     'CL-A1',   1, 1, 100000.00, N'Tiêu chuẩn', N'Sân cầu lông tiêu chuẩn, sàn gỗ, điều hòa',         N'Tầng 1 Khu A', 4,  N'Gỗ',       '06:00:00', '22:00:00', 'Available',   0, GETDATE()),
-(2,  N'Sân Cầu Lông A2',     'CL-A2',   1, 1, 100000.00, N'Tiêu chuẩn', N'Sân cầu lông tiêu chuẩn, sàn nhựa PVC',              N'Tầng 1 Khu A', 4,  N'Nhựa PVC', '06:00:00', '22:00:00', 'Maintenance', 0, GETDATE()),
-(3,  N'Sân Pickleball C1',   'PK-C1',   3, 1, 150000.00, N'Tiêu chuẩn', N'Sân pickleball tiêu chuẩn trong nhà điều hòa',       N'Tầng 2 Khu C', 4,  N'Nhựa',     '06:00:00', '22:00:00', 'Available',   0, GETDATE()),
--- Complex 2 (Thanh Xuân): 1 Bóng đá + 1 Tennis
-(4,  N'Sân Bóng Đá B1',      'BD-B1',   2, 2, 300000.00, N'Sân 5 người', N'Sân 5v5 cỏ nhân tạo thế hệ 3 cao cấp',            N'Ngoài trời Khu B', 10, N'Cỏ nhân tạo', '06:00:00', '22:00:00', 'Available',   0, GETDATE()),
-(5,  N'Sân Tennis D1',       'TN-D1',   4, 2, 250000.00, N'Tiêu chuẩn', N'Sân tennis mặt cứng, đèn cao áp',                   N'Ngoài trời Khu D', 4,  N'Mặt cứng', '06:00:00', '22:00:00', 'Inactive',    0, GETDATE()),
--- Complex 3 (Đống Đa): Cầu lông + Bóng rổ
-(6,  N'Sân Cầu Lông DD1',    'CL-DD1',  1, 3, 90000.00,  N'Tiêu chuẩn', N'Sân cầu lông tại Đống Đa, giao thông thuận tiện',   N'Tầng 1',       4,  N'Gỗ',       '06:00:00', '22:00:00', 'Available',   0, GETDATE()),
-(7,  N'Sân Bóng Rổ DD1',     'BR-DD1',  5, 3, 120000.00, N'3x3',        N'Sân bóng rổ 3x3 trong nhà',                          N'Tầng 2',       6,  N'Nhựa',     '07:00:00', '21:00:00', 'Available',   0, GETDATE()),
--- Complex 4 (Hoàng Mai): Bóng đá lớn + Cầu lông
-(8,  N'Sân Bóng Đá HM1',     'BD-HM1',  2, 4, 500000.00, N'Sân 7 người', N'Sân bóng đá 7v7 cỏ nhân tạo cao cấp',             N'Khu A Ngoài trời', 14, N'Cỏ nhân tạo', '06:00:00', '22:00:00', 'Available',   0, GETDATE()),
-(9,  N'Sân Cầu Lông HM1',    'CL-HM1',  1, 4, 95000.00,  N'Tiêu chuẩn', N'Sân cầu lông trong nhà điều hòa',                   N'Khu B',        4,  N'PVC',      '06:00:00', '22:00:00', 'Available',   0, GETDATE()),
--- Complex 5 (Hà Đông): Tennis + Pickleball
-(10, N'Sân Tennis HD1',       'TN-HD1',  4, 5, 220000.00, N'Tiêu chuẩn', N'Sân tennis đất nện kiểu Pháp',                      N'Khu A',        4,  N'Đất nện',  '06:00:00', '22:00:00', 'Available',   0, GETDATE()),
-(11, N'Sân Pickleball HD1',   'PK-HD1',  3, 5, 140000.00, N'Tiêu chuẩn', N'Sân pickleball ngoài trời có mái che',               N'Khu B',        4,  N'Nhựa',     '06:00:00', '22:00:00', 'Maintenance', 0, GETDATE()),
--- Complex 6 (Long Biên): Bóng đá + Tennis
-(12, N'Sân Bóng Đá LB1',     'BD-LB1',  2, 6, 350000.00, N'Sân 5 người', N'Sân mini bóng đá 5v5 mới khai trương',             N'Khu A',        10, N'Cỏ nhân tạo', '05:00:00', '23:00:00', 'Available',   0, GETDATE()),
-(13, N'Sân Tennis LB1',       'TN-LB1',  4, 6, 240000.00, N'Tiêu chuẩn', N'Sân tennis mặt cứng tiêu chuẩn',                    N'Khu B',        4,  N'Mặt cứng', '06:00:00', '22:00:00', 'Available',   0, GETDATE()),
--- Complex 7 (Tây Hồ): Cầu lông + Pickleball
-(14, N'Sân Cầu Lông TH1',    'CL-TH1',  1, 7, 110000.00, N'Tiêu chuẩn', N'Sân cầu lông view Hồ Tây tuyệt đẹp',               N'Tầng 1',       4,  N'Gỗ',       '06:00:00', '22:00:00', 'Available',   0, GETDATE()),
-(15, N'Sân Pickleball TH1',   'PK-TH1',  3, 7, 160000.00, N'Tiêu chuẩn', N'Sân pickleball cao cấp gần Hồ Tây',                 N'Tầng 2',       4,  N'Nhựa',     '06:00:00', '22:00:00', 'Available',   0, GETDATE()),
--- Complex 8 (Bắc Từ Liêm): Bóng rổ + Cầu lông
-(16, N'Sân Bóng Rổ BTL1',    'BR-BTL1', 5, 8, 130000.00, N'5v5',        N'Sân bóng rổ 5v5 trong nhà tiêu chuẩn',               N'Khu A',        10, N'Gỗ',       '07:00:00', '21:00:00', 'Available',   0, GETDATE()),
-(17, N'Sân Cầu Lông BTL1',   'CL-BTL1', 1, 8, 95000.00,  N'Tiêu chuẩn', N'Sân cầu lông đôi, sàn nhựa PVC',                    N'Khu B',        4,  N'PVC',      '06:00:00', '22:00:00', 'Available',   0, GETDATE()),
--- Complex 9 (Nam Từ Liêm): Bóng đá + Tennis
-(18, N'Sân Bóng Đá NTL1',    'BD-NTL1', 2, 9, 420000.00, N'Sân 7 người', N'Sân 7v7 cỏ nhân tạo tại Nam Từ Liêm',             N'Khu A',        14, N'Cỏ nhân tạo', '05:30:00', '22:30:00', 'Available',   0, GETDATE()),
-(19, N'Sân Tennis NTL1',      'TN-NTL1', 4, 9, 230000.00, N'Tiêu chuẩn', N'Sân tennis mặt cứng, chiếu sáng ban đêm',           N'Khu B',        4,  N'Mặt cứng', '06:00:00', '22:00:00', 'Maintenance', 0, GETDATE()),
--- Complex 10 (Gia Lâm): Cầu lông + Bóng rổ
-(20, N'Sân Cầu Lông GL1',    'CL-GL1',  1, 10, 85000.00, N'Tiêu chuẩn', N'Sân cầu lông sinh thái không gian xanh mát',        N'Khu A',        4,  N'PVC',      '06:00:00', '22:00:00', 'Available',   0, GETDATE()),
-(21, N'Sân Bóng Rổ GL1',     'BR-GL1',  5, 10, 110000.00, N'3x3',       N'Sân bóng rổ ngoài trời',                             N'Khu B',        6,  N'Nhựa',     '06:00:00', '21:00:00', 'Available',   0, GETDATE()),
--- Complex 11 (Hai Bà Trưng): Tennis + Pickleball
-(22, N'Sân Tennis HBT1',      'TN-HBT1', 4, 11, 260000.00, N'Tiêu chuẩn', N'Sân tennis đất nện cao cấp với HLV',              N'Khu A',        4,  N'Đất nện',  '06:00:00', '22:00:00', 'Available',   0, GETDATE()),
-(23, N'Sân Pickleball HBT1',  'PK-HBT1', 3, 11, 155000.00, N'Tiêu chuẩn', N'Sân pickleball trong nhà điều hòa',               N'Khu B',        4,  N'Nhựa',     '06:00:00', '22:00:00', 'Inactive',    0, GETDATE()),
--- Complex 12 (Hoàn Kiếm): Cầu lông (văn phòng)
-(24, N'Sân Cầu Lông HK1',    'CL-HK1',  1, 12, 120000.00, N'Tiêu chuẩn', N'Sân cầu lông tại trung tâm Hoàn Kiếm',            N'Tầng 2',       4,  N'PVC',      '06:30:00', '21:00:00', 'Available',   0, GETDATE()),
--- Complex 13 (Thanh Trì): Bóng đá + Cầu lông
-(25, N'Sân Bóng Đá TT1',     'BD-TT1',  2, 13, 280000.00, N'Sân 5 người', N'Sân 5v5 cỏ nhân tạo tại Thanh Trì',              N'Khu A',        10, N'Cỏ nhân tạo', '06:00:00', '22:00:00', 'Available',   0, GETDATE()),
-(26, N'Sân Cầu Lông TT1',    'CL-TT1',  1, 13, 80000.00,  N'Tiêu chuẩn', N'Sân cầu lông phục vụ khu dân cư Linh Đàm',        N'Khu B',        4,  N'Gỗ',       '06:00:00', '21:00:00', 'Available',   0, GETDATE()),
--- Complex 14 (Ba Đình): Tennis + Bóng rổ
-(27, N'Sân Tennis BĐ1',       'TN-BD1',  4, 14, 270000.00, N'Tiêu chuẩn', N'Sân tennis cao cấp tại trung tâm Ba Đình',        N'Khu A',        4,  N'Mặt cứng', '06:00:00', '22:00:00', 'Available',   0, GETDATE()),
-(28, N'Sân Bóng Rổ BĐ1',     'BR-BD1',  5, 14, 125000.00, N'5v5',        N'Sân bóng rổ trong nhà tiêu chuẩn',                 N'Khu B',        10, N'Gỗ',       '07:00:00', '21:00:00', 'Available',   0, GETDATE()),
--- Complex 15 (Đan Phượng): Bóng đá 11 người
-(29, N'Sân Bóng Đá DP1',     'BD-DP1',  2, 15, 800000.00, N'Sân 11 người', N'Sân bóng đá 11 người cỏ tự nhiên tại Đan Phượng', N'Khu A',      22, N'Cỏ tự nhiên', '06:00:00', '22:00:00', 'Available',   0, GETDATE()),
--- Complex 16 (Mê Linh): Pickleball + Cầu lông
-(30, N'Sân Pickleball ML1',   'PK-ML1',  3, 16, 140000.00, N'Tiêu chuẩn', N'Sân pickleball kết hợp khu nghỉ dưỡng',           N'Khu A',        4,  N'Nhựa',     '06:00:00', '22:00:00', 'Available',   0, GETDATE()),
-(31, N'Sân Cầu Lông ML1',    'CL-ML1',  1, 16, 90000.00,  N'Tiêu chuẩn', N'Sân cầu lông ngoài trời có mái che',               N'Khu B',        4,  N'PVC',      '06:00:00', '21:00:00', 'Maintenance', 0, GETDATE()),
--- Complex 17 (Sóc Sơn): Bóng đá ngoài trời
-(32, N'Sân Bóng Đá SS1',     'BD-SS1',  2, 17, 200000.00, N'Sân 5 người', N'Sân bóng đá ngoài trời không khí trong lành',    N'Khu A',        10, N'Cỏ nhân tạo', '06:00:00', '22:00:00', 'Available',   0, GETDATE()),
--- Complex 18 (Thường Tín): Tennis
-(33, N'Sân Tennis ThT1',      'TN-THT1', 4, 18, 200000.00, N'Tiêu chuẩn', N'Sân tennis mặt cứng phục vụ huyện Thường Tín',   N'Khu A',        4,  N'Mặt cứng', '06:00:00', '21:00:00', 'Available',   0, GETDATE()),
--- Complex 19 (Phúc Thọ): Cầu lông + Bóng rổ
-(34, N'Sân Cầu Lông PT1',    'CL-PT1',  1, 19, 85000.00,  N'Tiêu chuẩn', N'Sân cầu lông mới khai trương tại Phúc Thọ',       N'Khu A',        4,  N'PVC',      '06:00:00', '22:00:00', 'Available',   0, GETDATE()),
--- Complex 20 (Quốc Oai): Bóng đá
-(35, N'Sân Bóng Đá QO1',     'BD-QO1',  2, 20, 250000.00, N'Sân 7 người', N'Sân bóng đá tại huyện Quốc Oai phục vụ cư dân', N'Khu A',        14, N'Cỏ nhân tạo', '06:00:00', '22:00:00', 'Available',   0, GETDATE());
+DECLARE @ComplexId INT = 1;
+DECLARE @CourtCounter INT = 1;
+DECLARE @CourtTypeName NVARCHAR(50);
+DECLARE @CourtTypeId INT;
+DECLARE @Price DECIMAL(18,2);
+DECLARE @Size NVARCHAR(50);
+DECLARE @CodePrefix NVARCHAR(5);
+DECLARE @CourtId INT = 1;
+
+WHILE @ComplexId <= 70
+BEGIN
+    SET @CourtCounter = 1;
+    WHILE @CourtCounter <= 10
+    BEGIN
+        SET @CourtTypeId = ((@ComplexId + @CourtCounter) % 5) + 1;
+        
+        IF @CourtTypeId = 1
+        BEGIN
+            SET @CourtTypeName = N'Sân Cầu Lông';
+            SET @CodePrefix = N'CL';
+            SET @Price = 100000.00;
+            SET @Size = N'Tiêu chuẩn';
+        END
+        ELSE IF @CourtTypeId = 2
+        BEGIN
+            SET @CourtTypeName = N'Sân Bóng Đá';
+            SET @CodePrefix = N'BD';
+            SET @Price = 300000.00;
+            SET @Size = N'Sân 5 người';
+        END
+        ELSE IF @CourtTypeId = 3
+        BEGIN
+            SET @CourtTypeName = N'Sân Pickleball';
+            SET @CodePrefix = N'PB';
+            SET @Price = 150000.00;
+            SET @Size = N'Tiêu chuẩn';
+        END
+        ELSE IF @CourtTypeId = 4
+        BEGIN
+            SET @CourtTypeName = N'Sân Tennis';
+            SET @CodePrefix = N'TN';
+            SET @Price = 250000.00;
+            SET @Size = N'Tiêu chuẩn';
+        END
+        ELSE
+        BEGIN
+            SET @CourtTypeId = 5;
+            SET @CourtTypeName = N'Sân Bóng Rổ';
+            SET @CodePrefix = N'BR';
+            SET @Price = 120000.00;
+            SET @Size = N'Tiêu chuẩn';
+        END
+
+        INSERT INTO [Courts] ([CourtId], [CourtName], [CourtCode], [CourtTypeId], [ComplexId], [PricePerHour], [CourtSize], [OpenTime], [CloseTime], [Status], [IsDeleted])
+        VALUES (
+            @CourtId,
+            @CourtTypeName + N' ' + CAST(@ComplexId AS NVARCHAR(10)) + N'-' + CAST(@CourtCounter AS NVARCHAR(10)),
+            @CodePrefix + N'-' + CAST(@ComplexId AS NVARCHAR(10)) + N'0' + CAST(@CourtCounter AS NVARCHAR(10)),
+            @CourtTypeId,
+            @ComplexId,
+            @Price,
+            @Size,
+            '06:00:00',
+            '22:00:00',
+            0, -- Available
+            0  -- Not Deleted
+        );
+
+        SET @CourtId = @CourtId + 1;
+        SET @CourtCounter = @CourtCounter + 1;
+    END
+    SET @ComplexId = @ComplexId + 1;
+END
 SET IDENTITY_INSERT [Courts] OFF;
 GO
 
+-- 9. Insert CourtImages (Tự động gán 1 ảnh chất lượng cao cho mỗi sân)
+DECLARE @InsertedCourtId INT;
+DECLARE @TypeId INT;
+DECLARE @ImgUrl NVARCHAR(500);
 
--- 9. Insert CourtImages
-SET IDENTITY_INSERT [CourtImages] ON;
-INSERT INTO [CourtImages] ([ImageId], [CourtId], [ImageUrl], [IsPrimary], [SortOrder], [CreatedAt]) VALUES
-(1, 1, 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=600', 0, 1, GETDATE()),
-(2, 1, 'https://images.unsplash.com/photo-1521412644187-c49fa049e84d?q=80&w=600', 0, 2, GETDATE()),
-(3, 3, 'https://images.unsplash.com/photo-1459865264687-595d652de67e?q=80&w=600', 0, 1, GETDATE()),
-(4, 3, 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=600', 0, 2, GETDATE());
-SET IDENTITY_INSERT [CourtImages] OFF;
+DECLARE court_cursor CURSOR FOR 
+SELECT CourtId, CourtTypeId FROM [Courts] WHERE IsDeleted = 0;
+
+OPEN court_cursor;
+FETCH NEXT FROM court_cursor INTO @InsertedCourtId, @TypeId;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    IF @TypeId = 1
+        SET @ImgUrl = 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?q=80&w=600';
+    ELSE IF @TypeId = 2
+        SET @ImgUrl = 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=600';
+    ELSE IF @TypeId = 3
+        SET @ImgUrl = 'https://images.unsplash.com/photo-1459865264687-595d652de67e?q=80&w=600';
+    ELSE IF @TypeId = 4
+        SET @ImgUrl = 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?q=80&w=600';
+    ELSE
+        SET @ImgUrl = 'https://images.unsplash.com/photo-1519766304817-4f37bda74a27?q=80&w=600';
+
+    INSERT INTO [CourtImages] ([CourtId], [ImageUrl], [IsPrimary])
+    VALUES (@InsertedCourtId, @ImgUrl, 1);
+
+    FETCH NEXT FROM court_cursor INTO @InsertedCourtId, @TypeId;
+END
+
+CLOSE court_cursor;
+DEALLOCATE court_cursor;
+GO
 GO
 
 -- 10. Insert CourtPricing
 SET IDENTITY_INSERT [CourtPricing] ON;
-INSERT INTO [CourtPricing] ([PricingId], [CourtId], [SlotId], [Price], [PeakMultiplier], [EffectiveFrom], [CreatedAt]) VALUES
-(1, 1, 1, 80000.00, 1.00, CAST(GETDATE() AS DATE), GETDATE()),
-(2, 1, 2, 100000.00, 1.00, CAST(GETDATE() AS DATE), GETDATE()),
-(3, 1, 3, 90000.00, 1.00, CAST(GETDATE() AS DATE), GETDATE()),
-(4, 1, 4, 100000.00, 1.00, CAST(GETDATE() AS DATE), GETDATE()),
-(5, 1, 5, 150000.00, 1.50, CAST(GETDATE() AS DATE), GETDATE()),
-(6, 1, 6, 120000.00, 1.20, CAST(GETDATE() AS DATE), GETDATE()),
-(7, 3, 2, 300000.00, 1.00, CAST(GETDATE() AS DATE), GETDATE()),
-(8, 3, 4, 300000.00, 1.00, CAST(GETDATE() AS DATE), GETDATE()),
-(9, 3, 5, 500000.00, 1.50, CAST(GETDATE() AS DATE), GETDATE()),
-(10, 3, 7, 400000.00, 1.20, CAST(GETDATE() AS DATE), GETDATE()),
-(11, 3, 8, 400000.00, 1.20, CAST(GETDATE() AS DATE), GETDATE()),
-(12, 3, 9, 600000.00, 1.50, CAST(GETDATE() AS DATE), GETDATE());
+INSERT INTO [CourtPricing] ([PricingId], [CourtId], [SlotId], [Price], [EffectiveFrom]) VALUES
+(1, 1, 1, 80000.00, CAST(GETDATE() AS DATE)),
+(2, 1, 2, 100000.00, CAST(GETDATE() AS DATE)),
+(3, 1, 3, 90000.00, CAST(GETDATE() AS DATE)),
+(4, 1, 4, 100000.00, CAST(GETDATE() AS DATE)),
+(5, 1, 5, 150000.00, CAST(GETDATE() AS DATE)),
+(6, 1, 6, 120000.00, CAST(GETDATE() AS DATE)),
+(7, 3, 2, 300000.00, CAST(GETDATE() AS DATE)),
+(8, 3, 4, 300000.00, CAST(GETDATE() AS DATE)),
+(9, 3, 5, 500000.00, CAST(GETDATE() AS DATE)),
+(10, 3, 7, 400000.00, CAST(GETDATE() AS DATE)),
+(11, 3, 8, 400000.00, CAST(GETDATE() AS DATE)),
+(12, 3, 9, 600000.00, CAST(GETDATE() AS DATE));
 SET IDENTITY_INSERT [CourtPricing] OFF;
 GO
 
 -- 11. Insert Services
 SET IDENTITY_INSERT [Services] ON;
-INSERT INTO [Services] ([ServiceId], [ServiceName], [Category], [Price], [Unit], [Description], [MinStock], [IsActive], [CreatedAt]) VALUES
+INSERT INTO [Services] ([ServiceId], [ServiceName], [Category], [Price], [Unit], [Description], [StockQty], [IsActive], [CreatedAt]) VALUES
 (1, N'Thuê vợt cầu lông', 'Equipment', 30000.00, N'cây/giờ', N'Vợt Yonex tiêu chuẩn', 5, 1, GETDATE()),
 (2, N'Thuê bóng cầu lông', 'Equipment', 10000.00, N'ống', N'Hộp 12 quả', 10, 1, GETDATE()),
 (3, N'Thuê giày thể thao', 'Equipment', 20000.00, N'đôi/giờ', N'Size 36-44', 8, 1, GETDATE()),
@@ -239,33 +330,87 @@ GO
 
 -- 12. Insert EquipmentInventory
 SET IDENTITY_INSERT [EquipmentInventory] ON;
-INSERT INTO [EquipmentInventory] ([InventoryId], [ServiceId], [ItemCode], [Condition], [PurchaseDate], [PurchasePrice], [IsAvailable], [CreatedAt]) VALUES
-(1, 1, 'VOT-001', 'Good', '2026-01-01', 500000.00, 1, GETDATE()),
-(2, 1, 'VOT-002', 'Good', '2026-01-01', 500000.00, 1, GETDATE()),
-(3, 1, 'VOT-003', 'Damaged', '2026-01-01', 500000.00, 0, GETDATE()),
-(4, 2, 'BONG-001', 'Good', '2026-01-01', 150000.00, 1, GETDATE()),
-(5, 2, 'BONG-002', 'Good', '2026-01-01', 150000.00, 1, GETDATE()),
-(6, 3, 'GIAY-001', 'Good', '2026-01-15', 300000.00, 1, GETDATE()),
-(7, 3, 'GIAY-002', 'Good', '2026-01-15', 300000.00, 1, GETDATE());
+INSERT INTO [EquipmentInventory] ([InventoryId], [ServiceId], [ItemCode], [Condition], [PurchaseDate], [PurchasePrice], [IsAvailable]) VALUES
+(1, 1, 'VOT-001', 0, '2026-01-01', 500000.00, 1),
+(2, 1, 'VOT-002', 0, '2026-01-01', 500000.00, 1),
+(3, 1, 'VOT-003', 1, '2026-01-01', 500000.00, 0),
+(4, 2, 'BONG-001', 0, '2026-01-01', 150000.00, 1),
+(5, 2, 'BONG-002', 0, '2026-01-01', 150000.00, 1),
+(6, 3, 'GIAY-001', 0, '2026-01-15', 300000.00, 1),
+(7, 3, 'GIAY-002', 0, '2026-01-15', 300000.00, 1);
 SET IDENTITY_INSERT [EquipmentInventory] OFF;
 GO
 
 -- 13. Insert Promotions
 SET IDENTITY_INSERT [Promotions] ON;
 INSERT INTO [Promotions] ([PromotionId], [PromoCode], [PromoName], [DiscountType], [DiscountValue], [MinOrderAmount], [StartDate], [EndDate], [IsActive], [CreatedAt], [UsedCount]) VALUES
-(1, 'WELCOME10', N'Chào mừng thành viên mới', 'Percent', 10.00, 0.00, '2026-01-01', '2026-12-31', 1, GETDATE(), 0),
-(2, 'SUMMER20', N'Khuyến mãi hè 2026', 'Percent', 20.00, 200000.00, '2026-06-01', '2026-08-31', 1, GETDATE(), 0),
-(3, 'FIXED50K', N'Giảm 50k đơn từ 300k', 'FixedAmount', 50000.00, 300000.00, '2026-05-01', '2026-07-31', 1, GETDATE(), 0);
+(1, 'WELCOME10', N'Chào mừng thành viên mới', 0, 10.00, 0.00, '2026-01-01', '2026-12-31', 1, GETDATE(), 0),
+(2, 'SUMMER20', N'Khuyến mãi hè 2026', 0, 20.00, 200000.00, '2026-06-01', '2026-08-31', 1, GETDATE(), 0),
+(3, 'FIXED50K', N'Giảm 50k đơn từ 300k', 1, 50000.00, 300000.00, '2026-05-01', '2026-07-31', 1, GETDATE(), 0);
 SET IDENTITY_INSERT [Promotions] OFF;
 GO
 
 -- 14. Insert StaffShifts
 SET IDENTITY_INSERT [StaffShifts] ON;
-INSERT INTO [StaffShifts] ([ShiftId], [StaffId], [ShiftDate], [ShiftType], [StartTime], [EndTime], [CreatedAt]) VALUES
-(1, 2, '2026-05-14', 'Morning', '06:00:00', '14:00:00', GETDATE()),
-(2, 2, '2026-05-15', 'Afternoon', '14:00:00', '22:00:00', GETDATE()),
-(3, 2, '2026-05-16', 'Morning', '06:00:00', '14:00:00', GETDATE());
+INSERT INTO [StaffShifts] ([ShiftId], [StaffId], [ShiftDate], [ShiftType], [StartTime], [EndTime]) VALUES
+(1, 2, '2026-05-14', 0, '06:00:00', '14:00:00'),
+(2, 2, '2026-05-15', 1, '14:00:00', '22:00:00'),
+(3, 2, '2026-05-16', 0, '06:00:00', '14:00:00');
 SET IDENTITY_INSERT [StaffShifts] OFF;
+GO
+
+-- 15. Insert ComplexCourtTypeServices (Các dịch vụ cung cấp theo tổ hợp và loại sân)
+-- Không cần SET IDENTITY_INSERT ON
+DELETE FROM [ComplexCourtTypeServices];
+
+DECLARE @CompId INT = 1;
+DECLARE @CTypeId INT = 1;
+
+WHILE @CompId <= 70
+BEGIN
+    SET @CTypeId = 1;
+    WHILE @CTypeId <= 5
+    BEGIN
+        -- Gán dịch vụ Nước suối (ServiceId = 4) làm Included cho tất cả các loại sân
+        INSERT INTO [ComplexCourtTypeServices] ([ComplexId], [CourtTypeId], [ServiceId], [Price], [StockQty], [ServiceMode], [IsActive], [CreatedAt])
+        VALUES (@CompId, @CTypeId, 4, 0.00, 100, 0, 1, GETDATE());
+
+        -- Gán dịch vụ Nước tăng lực (ServiceId = 5) làm Optional cho tất cả
+        INSERT INTO [ComplexCourtTypeServices] ([ComplexId], [CourtTypeId], [ServiceId], [Price], [StockQty], [ServiceMode], [IsActive], [CreatedAt])
+        VALUES (@CompId, @CTypeId, 5, 20000.00, 50, 1, 1, GETDATE());
+
+        -- Gán dịch vụ Thuê giày (ServiceId = 3) làm Optional cho tất cả
+        INSERT INTO [ComplexCourtTypeServices] ([ComplexId], [CourtTypeId], [ServiceId], [Price], [StockQty], [ServiceMode], [IsActive], [CreatedAt])
+        VALUES (@CompId, @CTypeId, 3, 20000.00, 20, 1, 1, GETDATE());
+
+        -- Gán dịch vụ HLV cơ bản (ServiceId = 6) làm Optional cho tất cả
+        INSERT INTO [ComplexCourtTypeServices] ([ComplexId], [CourtTypeId], [ServiceId], [Price], [StockQty], [ServiceMode], [IsActive], [CreatedAt])
+        VALUES (@CompId, @CTypeId, 6, 200000.00, 5, 1, 1, GETDATE());
+
+        -- Gán dịch vụ HLV nâng cao (ServiceId = 7) làm Optional cho tất cả
+        INSERT INTO [ComplexCourtTypeServices] ([ComplexId], [CourtTypeId], [ServiceId], [Price], [StockQty], [ServiceMode], [IsActive], [CreatedAt])
+        VALUES (@CompId, @CTypeId, 7, 400000.00, 3, 1, 1, GETDATE());
+
+        -- Nếu là Cầu lông (CourtTypeId = 1) -> thêm Thuê vợt (1) và Thuê bóng cầu lông (2)
+        IF @CTypeId = 1
+        BEGIN
+            INSERT INTO [ComplexCourtTypeServices] ([ComplexId], [CourtTypeId], [ServiceId], [Price], [StockQty], [ServiceMode], [IsActive], [CreatedAt])
+            VALUES (@CompId, @CTypeId, 1, 30000.00, 20, 1, 1, GETDATE());
+
+            INSERT INTO [ComplexCourtTypeServices] ([ComplexId], [CourtTypeId], [ServiceId], [Price], [StockQty], [ServiceMode], [IsActive], [CreatedAt])
+            VALUES (@CompId, @CTypeId, 2, 10000.00, 50, 1, 1, GETDATE());
+        END
+        -- Nếu là Bóng đá, Pickleball, Tennis, Bóng rổ -> thêm dịch vụ Tổ chức giải đấu (8)
+        ELSE
+        BEGIN
+            INSERT INTO [ComplexCourtTypeServices] ([ComplexId], [CourtTypeId], [ServiceId], [Price], [StockQty], [ServiceMode], [IsActive], [CreatedAt])
+            VALUES (@CompId, @CTypeId, 8, 2000000.00, 1, 1, 1, GETDATE());
+        END
+
+        SET @CTypeId = @CTypeId + 1;
+    END
+    SET @CompId = @CompId + 1;
+END
 GO
 
 PRINT '=== Temporary Seed Data Inserted Successfully ===';

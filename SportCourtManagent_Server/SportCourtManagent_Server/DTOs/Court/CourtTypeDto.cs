@@ -11,4 +11,7 @@ public class CourtTypeDto
 
     /// <summary>Number of active courts of this type.</summary>
     public int CourtCount { get; set; }
+    public string? IconUrl { get; set; }
+    public string? Description { get; set; }
 }
+

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.Models;
 
@@ -14,29 +16,36 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             _context = context;
         }
 
-        public IEnumerable<Payment> GetAll()
+        public async Task<IEnumerable<Payment>> GetAllAsync()
         {
-            throw new NotImplementedException();
+            return await _context.Payments.Include(p => p.Booking).ToListAsync();
         }
 
-        public Payment? GetById(int id)
+        public async Task<Payment?> GetByIdAsync(int id)
         {
-            throw new NotImplementedException();
+            return await _context.Payments.Include(p => p.Booking).FirstOrDefaultAsync(p => p.PaymentId == id);
         }
 
-        public void Add(Payment entity)
+        public async Task AddAsync(Payment entity)
         {
-            throw new NotImplementedException();
+            _context.Payments.Add(entity);
+            await _context.SaveChangesAsync();
         }
 
-        public void Update(Payment entity)
+        public async Task UpdateAsync(Payment entity)
         {
-            throw new NotImplementedException();
+            _context.Payments.Update(entity);
+            await _context.SaveChangesAsync();
         }
 
-        public void Delete(int id)
+        public async Task DeleteAsync(int id)
         {
-            throw new NotImplementedException();
+            var entity = await _context.Payments.FindAsync(id);
+            if (entity != null)
+            {
+                _context.Payments.Remove(entity);
+                await _context.SaveChangesAsync();
+            }
         }
     }
 }

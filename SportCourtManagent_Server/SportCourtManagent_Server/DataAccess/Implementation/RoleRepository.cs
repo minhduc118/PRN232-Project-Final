@@ -1,6 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.Models;
 
@@ -15,36 +16,29 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             _context = context;
         }
 
-        public IEnumerable<Role> GetAll()
+        public async Task<IReadOnlyList<Role>> GetAllAsync() =>
+            await _context.Roles
+                .Include(r => r.UserRoles)
+                .OrderBy(r => r.RoleId)
+                .ToListAsync();
+
+        public Task<Role?> GetByIdAsync(int id) =>
+            _context.Roles.FirstOrDefaultAsync(r => r.RoleId == id);
+
+        public Task<Role?> GetByNameAsync(string roleName) =>
+            _context.Roles.FirstOrDefaultAsync(r => r.RoleName == roleName);
+
+        public async Task<int> GetAdminRoleIdAsync()
         {
-            return _context.Roles.ToList();
+            var role = await _context.Roles.FirstAsync(r => r.RoleName == "Admin");
+            return role.RoleId;
         }
 
-        public Role? GetById(int id)
+        public async Task<int> CountActiveAdminsAsync()
         {
-            return _context.Roles.Find(id);
-        }
-
-        public void Add(Role entity)
-        {
-            _context.Roles.Add(entity);
-            _context.SaveChanges();
-        }
-
-        public void Update(Role entity)
-        {
-            _context.Roles.Update(entity);
-            _context.SaveChanges();
-        }
-
-        public void Delete(int id)
-        {
-            var entity = _context.Roles.Find(id);
-            if (entity != null)
-            {
-                _context.Roles.Remove(entity);
-                _context.SaveChanges();
-            }
+            var adminRoleId = await GetAdminRoleIdAsync();
+            return await _context.UserRoles
+                .CountAsync(ur => ur.RoleId == adminRoleId && ur.User.IsActive);
         }
     }
 }

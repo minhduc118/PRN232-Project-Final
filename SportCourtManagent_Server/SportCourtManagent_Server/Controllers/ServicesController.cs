@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using SportCourtManagent_Server.DTOs.Service;
 using SportCourtManagent_Server.Helpers;
 using SportCourtManagent_Server.Services.Interfaces;
+
 namespace SportCourtManagent_Server.Controllers
 {
     [ApiController]
@@ -29,6 +30,7 @@ namespace SportCourtManagent_Server.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = ex.Message });
+
             }
         }
 
@@ -45,6 +47,7 @@ namespace SportCourtManagent_Server.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = ex.Message });
+
             }
         }
 
@@ -65,6 +68,7 @@ namespace SportCourtManagent_Server.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = ex.Message });
+
             }
         }
 
@@ -86,6 +90,7 @@ namespace SportCourtManagent_Server.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = ex.Message });
+
             }
         }
 
@@ -103,6 +108,7 @@ namespace SportCourtManagent_Server.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = ex.Message });
+
             }
         }
     }

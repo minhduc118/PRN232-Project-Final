@@ -36,6 +36,8 @@ namespace SportCourtManagent_Server.Models
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        public DateTime? ExpiredAt { get; set; }
+
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
     }
 }

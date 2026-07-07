@@ -128,8 +128,8 @@ namespace SportCourtManagent_Server.Controllers
                 capacity = 4, 
                 surface = "Acrylic", 
                 status = courtFromDb.Status.ToString(),
-                openTime = courtFromDb.OpenTime, // Return raw TimeSpan to ensure correct .NET serialization
-                closeTime = courtFromDb.CloseTime, // Return raw TimeSpan to ensure correct .NET serialization
+                openTime = courtFromDb.OpenTime,
+                closeTime = courtFromDb.CloseTime,
                 pricePerHour = courtFromDb.PricePerHour,
                 courtSize = courtFromDb.CourtSize,
                 imageUrl = courtFromDb.CourtImages.OrderByDescending(i => i.IsPrimary).Select(i => i.ImageUrl).FirstOrDefault() ?? "",
@@ -151,8 +151,8 @@ namespace SportCourtManagent_Server.Controllers
                     pricingId = p.PricingId,
                     slotId = p.SlotId,
                     slotName = p.SlotName,
-                    startTime = p.StartTime, // Return raw TimeSpan directly (avoids short time hh:mm format parse crash in FE)
-                    endTime = p.EndTime, // Return raw TimeSpan directly (avoids short time hh:mm format parse crash in FE)
+                    startTime = p.StartTime,
+                    endTime = p.EndTime,
                     dayType = p.DayType,
                     price = p.Price,
                     peakMultiplier = 1.0
@@ -198,7 +198,7 @@ namespace SportCourtManagent_Server.Controllers
             if (string.IsNullOrWhiteSpace(dto.CourtCode))
                 return BadRequest(new { message = "Mã sân không được để trống." });
 
-            if (await _context.Courts.AnyAsync(c => c.CourtCode == dto.CourtCode && !c.IsDeleted))
+            if (await _courtService.ExistsByCodeAsync(dto.CourtCode))
                 return Conflict(new { message = "Mã sân đã tồn tại." });
 
             if (!TimeSpan.TryParse(dto.OpenTime, out var openTime) || !TimeSpan.TryParse(dto.CloseTime, out var closeTime))
@@ -264,12 +264,7 @@ namespace SportCourtManagent_Server.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id, [FromBody] CourtDto dto)
         {
-            var court = await _context.Courts
-                .Include(c => c.CourtType)
-                .Include(c => c.Complex)
-                .Include(c => c.CourtImages)
-                .FirstOrDefaultAsync(c => c.CourtId == id && !c.IsDeleted);
-
+            var court = await _courtService.GetByIdAsync(id);
             if (court == null)
                 return NotFound(new { message = "Không tìm thấy sân." });
 
@@ -278,67 +273,17 @@ namespace SportCourtManagent_Server.Controllers
             if (string.IsNullOrWhiteSpace(dto.CourtCode))
                 return BadRequest(new { message = "Mã sân không được để trống." });
 
-            if (await _context.Courts.AnyAsync(c => c.CourtCode == dto.CourtCode && c.CourtId != id && !c.IsDeleted))
+            if (await _courtService.ExistsByCodeAsync(dto.CourtCode, id))
                 return Conflict(new { message = "Mã sân đã tồn tại." });
 
-            if (!TimeSpan.TryParse(dto.OpenTime, out var openTime) || !TimeSpan.TryParse(dto.CloseTime, out var closeTime))
-                return BadRequest(new { message = "Thời gian hoạt động không đúng định dạng." });
-
-            if (!System.Enum.TryParse<SportCourtManagent_Server.Enums.CourtStatus>(dto.Status, true, out var status))
-                status = SportCourtManagent_Server.Enums.CourtStatus.Available;
-
-            court.CourtName = dto.CourtName.Trim();
-            court.CourtCode = dto.CourtCode.Trim();
-            court.CourtTypeId = dto.CourtTypeId;
-            court.ComplexId = dto.ComplexId;
-            court.Status = status;
-            court.OpenTime = openTime;
-            court.CloseTime = closeTime;
-            court.PricePerHour = dto.PricePerHour;
-            court.CourtSize = dto.CourtSize;
-
-            var primaryImage = court.CourtImages.FirstOrDefault(i => i.IsPrimary);
-            if (!string.IsNullOrWhiteSpace(dto.ImageUrl))
+            try
             {
-                if (primaryImage != null)
-                {
-                    primaryImage.ImageUrl = dto.ImageUrl.Trim();
-                }
-                else
-                {
-                    _context.CourtImages.Add(new CourtImage
-                    {
-                        CourtId = court.CourtId,
-                        ImageUrl = dto.ImageUrl.Trim(),
-                        IsPrimary = true
-                    });
-                }
+                await _courtService.UpdateAsync(id, dto);
+                return Ok(ApiResults.Ok(null, "Cập nhật sân thể thao thành công."));
             }
-            else if (primaryImage != null)
-            {
-                _context.CourtImages.Remove(primaryImage);
-            }
-
-            await _context.SaveChangesAsync();
-
-            var result = new CourtDto
-            {
-                CourtId = court.CourtId,
-                CourtName = court.CourtName,
-                CourtCode = court.CourtCode,
-                CourtTypeId = court.CourtTypeId,
-                CourtTypeName = court.CourtType.TypeName,
-                ComplexId = court.ComplexId,
-                ComplexName = court.Complex?.ComplexName,
-                Status = court.Status.ToString(),
-                OpenTime = court.OpenTime.ToString(@"hh\:mm"),
-                CloseTime = court.CloseTime.ToString(@"hh\:mm"),
-                PricePerHour = court.PricePerHour,
-                CourtSize = court.CourtSize,
-                ImageUrl = dto.ImageUrl
-            };
-
-            return Ok(result);
+            catch (System.Collections.Generic.KeyNotFoundException) { return NotFound(ApiResults.Fail("Không tìm thấy sân.", 404)); }
+            catch (System.ArgumentException ex) { return BadRequest(ApiResults.Fail(ex.Message)); }
+            catch (System.InvalidOperationException ex) { return BadRequest(ApiResults.Fail(ex.Message)); }
         }
 
         // DELETE /api/courts/{id} — Delete court (Admin)
@@ -346,15 +291,16 @@ namespace SportCourtManagent_Server.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
-            var court = await _context.Courts.FirstOrDefaultAsync(c => c.CourtId == id && !c.IsDeleted);
-            if (court == null)
-                return NotFound(new { message = "Không tìm thấy sân." });
+            try
+            {
+                var court = await _courtService.GetByIdAsync(id);
+                if (court == null)
+                    return NotFound(ApiResults.Fail("Không tìm thấy sân.", 404));
 
-            court.IsDeleted = true;
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Xóa sân thành công." });
+                await _courtService.DeleteAsync(id);
+                return Ok(ApiResults.Ok(null, "Xóa sân thành công."));
+            }
+            catch (System.InvalidOperationException ex) { return BadRequest(ApiResults.Fail(ex.Message)); }
         }
     }
 }
-

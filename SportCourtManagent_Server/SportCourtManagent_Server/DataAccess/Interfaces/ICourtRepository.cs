@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 using SportCourtManagent_Server.Models;
 
 namespace SportCourtManagent_Server.DataAccess.Interfaces
@@ -43,5 +44,9 @@ namespace SportCourtManagent_Server.DataAccess.Interfaces
         Task<decimal> GetCourtPriceAsync(int courtId, int slotId, DateTime date);
         Task<IEnumerable<Court>> GetCourtsByComplexAsync(int complexId);
 
+        Task<IEnumerable<Court>> GetAllWithDetailsAsync(int? complexId = null, string? status = null);
+        Task<Court?> GetByIdWithDetailsAsync(int id);
+        Task SoftDeleteAsync(int id);
+        Task<bool> ExistsByCodeAsync(string courtCode, int? excludeCourtId = null);
     }
 }

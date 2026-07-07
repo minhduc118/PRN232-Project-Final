@@ -41,7 +41,7 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new ArgumentException("Thời gian kết thúc phải sau thời gian bắt đầu.");
             }
 
-            var complex = _complexRepository.GetById(complexId);
+            var complex = await _complexRepository.GetByIdWithDetailsAsync(complexId);
             if (complex == null)
             {
                 throw new KeyNotFoundException($"Không tìm thấy cơ sở với Id {complexId}");
@@ -263,7 +263,7 @@ namespace SportCourtManagent_Server.Services.Implements
 
         public async Task<IEnumerable<MaintenanceCourtResponse>> GetCourtsForMaintenanceAsync(int complexId)
         {
-            var complex = _complexRepository.GetById(complexId);
+            var complex = await _complexRepository.GetByIdWithDetailsAsync(complexId);
             if (complex == null)
             {
                 throw new KeyNotFoundException($"Không tìm thấy cơ sở với Id {complexId}");

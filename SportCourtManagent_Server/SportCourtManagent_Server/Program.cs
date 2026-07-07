@@ -165,12 +165,12 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 // Auto-migrate and seed database
-using (var scope = app.Services.CreateScope())
-{
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await dbContext.Database.MigrateAsync();
-    await DbSeeder.SeedAsync(dbContext);
-}
+//using (var scope = app.Services.CreateScope())
+//{
+//    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+//    await dbContext.Database.MigrateAsync();
+//    await DbSeeder.SeedAsync(dbContext);
+//}
 
 
 // Configure the HTTP request pipeline. Always enable Swagger for checking

@@ -42,6 +42,38 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
                 .Include(c => c.Complex)
                 .Include(c => c.CourtImages)
                 .FirstOrDefaultAsync(c => c.CourtId == id && !c.IsDeleted);
+
+        public async Task AddAsync(Court court)
+        {
+            await _context.Courts.AddAsync(court);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateAsync(Court court)
+        {
+            _context.Entry(court).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task SoftDeleteAsync(int id)
+        {
+            var court = await _context.Courts.FirstOrDefaultAsync(c => c.CourtId == id && !c.IsDeleted);
+            if (court != null)
+            {
+                court.IsDeleted = true;
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task<bool> ExistsByCodeAsync(string courtCode, int? excludeCourtId = null)
+        {
+            var query = _context.Courts.Where(c => c.CourtCode == courtCode && !c.IsDeleted);
+            if (excludeCourtId.HasValue)
+            {
+                query = query.Where(c => c.CourtId != excludeCourtId.Value);
+            }
+            return await query.AnyAsync();
+        }
     }
 }
 

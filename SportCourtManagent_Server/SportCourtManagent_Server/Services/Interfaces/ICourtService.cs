@@ -8,5 +8,9 @@ namespace SportCourtManagent_Server.Services.Interfaces
     {
         Task<IEnumerable<CourtDto>> GetAllAsync(int? complexId, string? status);
         Task<CourtDto?> GetByIdAsync(int id);
+        Task<CourtDto> CreateAsync(CourtDto dto);
+        Task UpdateAsync(int id, CourtDto dto);
+        Task DeleteAsync(int id);
+        Task<bool> ExistsByCodeAsync(string courtCode, int? excludeCourtId = null);
     }
 }

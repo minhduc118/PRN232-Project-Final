@@ -42,13 +42,13 @@ namespace SportCourtManagent_Server.Controllers
             [FromBody] CreateReviewDto dto)
         {
             if (!TryGetUserId(out int userId))
-                return Unauthorized(new { message = "Token không hợp lệ hoặc không xác định được người dùng." });
+                return Unauthorized(ApiResults.Fail("Token không hợp lệ hoặc không xác định được người dùng.", 401));
 
 
             var (review, error) = await _reviewService.CreateReviewAsync(courtId, userId, dto);
 
             if (error is not null)
-                return BadRequest(new { message = error });
+                return BadRequest(ApiResults.Fail(error, 400));
 
             return StatusCode(201, ApiResults.Ok(review, "Tạo đánh giá thành công.", 201));
 

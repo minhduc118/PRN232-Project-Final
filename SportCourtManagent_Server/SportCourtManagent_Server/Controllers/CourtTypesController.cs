@@ -29,7 +29,10 @@ namespace SportCourtManagent_Server.Controllers
                 {
                     CourtTypeId = t.CourtTypeId,
                     TypeName = t.TypeName,
-                    IsActive = t.IsActive
+                    IsActive = t.IsActive,
+                    CourtCount = t.Courts != null ? t.Courts.Count : 0,
+                    IconUrl = "",
+                    Description = ""
                 })
                 .ToListAsync();
 

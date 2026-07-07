@@ -51,7 +51,7 @@ namespace SportCourtManagent_Server.Models
             }
 
             // 4. Seed Users
-            if (!await context.Users.AnyAsync())
+            if (!await context.Users.AnyAsync(u => u.Email == "admin@sportcourt.vn"))
             {
                 var bronze = await context.MembershipTiers.FirstOrDefaultAsync(t => t.TierName == "Bronze")
                     ?? await context.MembershipTiers.FirstOrDefaultAsync();
@@ -228,8 +228,8 @@ namespace SportCourtManagent_Server.Models
             if (!await context.ComplexCourtTypeServices.AnyAsync())
             {
                 complex ??= await context.CourtComplexes.FirstOrDefaultAsync();
-                var badminton = await context.CourtTypes.FirstOrDefaultAsync(t => t.TypeName == "Cầu lông") ?? await context.CourtTypes.FirstOrDefaultAsync();
-                var pickleball = await context.CourtTypes.FirstOrDefaultAsync(t => t.TypeName == "Pickleball") ?? await context.CourtTypes.FirstOrDefaultAsync();
+                var badminton = await context.CourtTypes.FirstOrDefaultAsync(t => t.TypeName == "Cầu lông" || t.TypeName == "Badminton") ?? await context.CourtTypes.FirstOrDefaultAsync();
+                var pickleball = await context.CourtTypes.FirstOrDefaultAsync(t => t.TypeName == "Pickleball" || t.TypeName == "PickleBall") ?? await context.CourtTypes.FirstOrDefaultAsync();
 
                 var water = await context.Services.FirstOrDefaultAsync(s => s.ServiceName == "Nước suối");
                 var towel = await context.Services.FirstOrDefaultAsync(s => s.ServiceName == "Khăn lạnh");

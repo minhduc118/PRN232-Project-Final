@@ -81,20 +81,6 @@ namespace SportCourtManagent_Server.Controllers
             }
         }
 
-        // GET /api/court-types
-        [HttpGet("/api/court-types")]
-        public IActionResult GetCourtTypes()
-        {
-            var types = _courtTypeRepo.GetAll().Select(ct => new
-            {
-                courtTypeId = ct.CourtTypeId,
-                typeName = ct.TypeName,
-                iconUrl = "",
-                description = "",
-                courtCount = ct.Courts?.Count ?? 0
-            });
-            return Ok(new { success = true, data = types });
-        }
 
         // GET /api/time-slots
         [HttpGet("/api/time-slots")]

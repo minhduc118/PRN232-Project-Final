@@ -71,6 +71,7 @@ builder.Services.AddScoped<IServiceService, ServiceService>();
 builder.Services.AddSingleton<ITournamentLockManager, TournamentLockManager>();
 builder.Services.AddScoped<IStaffService, StaffService>();
 builder.Services.AddScoped<IMaintenanceScheduleService, MaintenanceScheduleService>();
+builder.Services.AddScoped<ITaskItemService, TaskItemService>();
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {

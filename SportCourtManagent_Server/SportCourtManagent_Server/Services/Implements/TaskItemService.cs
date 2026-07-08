@@ -75,7 +75,7 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new ArgumentException("Thiếu các trường bắt buộc.");
             }
 
-            var complex = _complexRepository.GetById(complexId);
+            var complex = _complexRepository.GetByIdWithDetailsAsync(complexId);
             if (complex == null)
             {
                 throw new KeyNotFoundException($"Không tìm thấy cơ sở với Id {complexId}.");

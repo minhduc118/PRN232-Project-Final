@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SportCourtManagent_Server.DTOs.Staff;
 using SportCourtManagent_Server.Services.Interfaces;
 
 namespace SportCourtManagent_Server.Controllers.Manager
 {
+    [Authorize(Roles = "Admin,Manager")]
     [Route("api/manager/complexes/{complexId:int}/staff")]
     [ApiController]
     public class StaffManagementController : ControllerBase
@@ -251,6 +253,72 @@ namespace SportCourtManagent_Server.Controllers.Manager
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = $"Lỗi hệ thống: {ex.Message}" });
+            }
+        }
+
+        // POST /api/manager/complexes/{complexId}/staff/shifts/{shiftId}/check-in
+        [HttpPost("shifts/{shiftId:int}/check-in")]
+        public async Task<IActionResult> ManagerCheckIn([FromRoute] int complexId, [FromRoute] int shiftId)
+        {
+            try
+            {
+                var shift = await _staffService.GetShiftByIdAsync(shiftId);
+                if (shift == null || shift.ComplexId != complexId)
+                {
+                    return NotFound(new { Message = "Không tìm thấy ca trực tại cơ sở này." });
+                }
+
+                var updated = await _staffService.CheckInShiftAsync(shift.StaffId, shiftId);
+                return Ok(updated);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = $"Lỗi hệ thống: {ex.Message}" });
+            }
+        }
+
+        // POST /api/manager/complexes/{complexId}/staff/shifts/{shiftId}/check-out
+        [HttpPost("shifts/{shiftId:int}/check-out")]
+        public async Task<IActionResult> ManagerCheckOut([FromRoute] int complexId, [FromRoute] int shiftId)
+        {
+            try
+            {
+                var shift = await _staffService.GetShiftByIdAsync(shiftId);
+                if (shift == null || shift.ComplexId != complexId)
+                {
+                    return NotFound(new { Message = "Không tìm thấy ca trực tại cơ sở này." });
+                }
+
+                var updated = await _staffService.CheckOutShiftAsync(shift.StaffId, shiftId);
+                return Ok(updated);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { Message = ex.Message });
             }
             catch (Exception ex)
             {

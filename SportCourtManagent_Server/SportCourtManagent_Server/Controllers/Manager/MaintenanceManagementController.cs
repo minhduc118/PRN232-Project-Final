@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SportCourtManagent_Server.DTOs.Maintenance;
@@ -9,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace SportCourtManagent_Server.Controllers.Manager
 {
+    [Authorize(Roles = "Admin,Manager")]
     [Route("api/manager/complexes/{complexId:int}/maintenance")]
     [ApiController]
     public class MaintenanceManagementController : ControllerBase

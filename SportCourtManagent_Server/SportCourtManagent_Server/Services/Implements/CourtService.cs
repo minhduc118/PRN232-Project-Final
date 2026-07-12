@@ -54,6 +54,11 @@ namespace SportCourtManagent_Server.Services.Implements
             if (p.MaxPrice.HasValue)
                 query = query.Where(c => c.CourtPricings.Any(cp => cp.Price <= p.MaxPrice.Value));
 
+            if (p.TimeSlotId.HasValue)
+            {
+                query = query.Where(c => c.CourtPricings.Any(cp => cp.SlotId == p.TimeSlotId.Value));
+            }
+
             // Filter by availability on a specific date + time slot
             if (p.Date.HasValue)
             {
@@ -201,6 +206,8 @@ namespace SportCourtManagent_Server.Services.Implements
             var isUnderMaintenance = court.Status == CourtStatus.Maintenance;
 
             var slots = court.CourtPricings
+                .GroupBy(cp => cp.SlotId)
+                .Select(g => g.First())
                 .Select(cp => new AvailabilitySlotDto
                 {
                     SlotId = cp.SlotId,

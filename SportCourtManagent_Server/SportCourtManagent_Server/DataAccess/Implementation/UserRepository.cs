@@ -33,6 +33,9 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
         public Task<bool> ExistsByEmailAsync(string email) =>
             _context.Users.AnyAsync(u => u.Email == email);
 
+        public Task<bool> ExistsByPhoneAsync(string phone) =>
+            _context.Users.AnyAsync(u => u.Phone == phone);
+
         public async Task<IReadOnlyList<User>> GetPagedWithDetailsAsync(
             string? search,
             string? role,

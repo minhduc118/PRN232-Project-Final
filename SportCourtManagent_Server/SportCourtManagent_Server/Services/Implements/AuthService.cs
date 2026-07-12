@@ -37,6 +37,9 @@ namespace SportCourtManagent_Server.Services.Implements
             if (await _userRepo.ExistsByEmailAsync(request.Email))
                 return "Email này đã được đăng ký.";
 
+            if (!string.IsNullOrWhiteSpace(request.Phone) && await _userRepo.ExistsByPhoneAsync(request.Phone))
+                return "Số điện thoại này đã được đăng ký.";
+
             var defaultTier = await _tierRepo.GetByNameAsync("Bronze")
                 ?? await _tierRepo.GetFirstAsync();
 

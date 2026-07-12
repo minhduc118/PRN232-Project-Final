@@ -10,6 +10,7 @@ namespace SportCourtManagent_Server.DataAccess.Interfaces
         Task<User?> GetByIdWithDetailsAsync(int id);
         Task<User?> GetByEmailWithDetailsAsync(string email);
         Task<bool> ExistsByEmailAsync(string email);
+        Task<bool> ExistsByPhoneAsync(string phone);
         Task<IReadOnlyList<User>> GetPagedWithDetailsAsync(
             string? search,
             string? role,

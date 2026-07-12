@@ -13,12 +13,13 @@ namespace SportCourtManagent_Server.DTOs.Auth
         [StringLength(100, ErrorMessage = "Email không được vượt quá 100 ký tự.")]
         public string Email { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "Số điện thoại là bắt buộc.")]
         [Phone(ErrorMessage = "Số điện thoại không đúng định dạng.")]
         [StringLength(15, ErrorMessage = "Số điện thoại không được vượt quá 15 ký tự.")]
         public string? Phone { get; set; }
 
         [Required(ErrorMessage = "Mật khẩu là bắt buộc.")]
-        [StringLength(100, MinimumLength = 6, ErrorMessage = "Mật khẩu phải từ 6 đến 100 ký tự.")]
+        [RegularExpression(@"^(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{8,}$", ErrorMessage = "Mật khẩu phải dài tối thiểu 8 ký tự, chứa ít nhất 1 chữ cái in hoa và 1 ký tự đặc biệt.")]
         public string Password { get; set; } = string.Empty;
     }
 }

@@ -128,12 +128,13 @@ namespace SportCourtManagent_Server.Services.Implements
             }
 
             // 3. Extract Tournament Code (TM-xxx)
-            var tourMatch = Regex.Match(payload.Content, @"TM-[0-9]+", RegexOptions.IgnoreCase);
-            if (!tourMatch.Success) tourMatch = Regex.Match(payload.Description, @"TM-[0-9]+", RegexOptions.IgnoreCase);
+            var tourMatch = Regex.Match(payload.Content, @"TM-?[0-9]+", RegexOptions.IgnoreCase);
+            if (!tourMatch.Success) tourMatch = Regex.Match(payload.Description, @"TM-?[0-9]+", RegexOptions.IgnoreCase);
 
             if (tourMatch.Success)
             {
-                string tourCode = tourMatch.Value.ToUpper();
+                string rawTour = tourMatch.Value.ToUpper();
+                string tourCode = rawTour.StartsWith("TM-") ? rawTour : "TM-" + rawTour.Substring(2);
                 if (int.TryParse(tourCode.Substring(3), out int tournamentId))
                 {
                     var tour = await _context.Tournaments
@@ -169,10 +170,10 @@ namespace SportCourtManagent_Server.Services.Implements
             }
 
             // 4. Extract Booking Code (BK-xxxxxxxx)
-            var match = Regex.Match(payload.Content, @"BK-[A-Z0-9]{8}", RegexOptions.IgnoreCase);
+            var match = Regex.Match(payload.Content, @"BK-?[A-Z0-9]{8}", RegexOptions.IgnoreCase);
             if (!match.Success)
             {
-                match = Regex.Match(payload.Description, @"BK-[A-Z0-9]{8}", RegexOptions.IgnoreCase);
+                match = Regex.Match(payload.Description, @"BK-?[A-Z0-9]{8}", RegexOptions.IgnoreCase);
             }
 
             if (!match.Success)
@@ -180,7 +181,8 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new ArgumentException("No valid booking code found in transfer content.");
             }
 
-            string bookingCode = match.Value.ToUpper();
+            string rawCode = match.Value.ToUpper();
+            string bookingCode = rawCode.StartsWith("BK-") ? rawCode : "BK-" + rawCode.Substring(2);
 
             // 5. Retrieve booking
             var booking = await _inMemoryBookingRepository.GetByCodeAsync(bookingCode);

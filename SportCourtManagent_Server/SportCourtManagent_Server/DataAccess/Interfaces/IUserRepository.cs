@@ -20,6 +20,7 @@ namespace SportCourtManagent_Server.DataAccess.Interfaces
         Task<int> CountAsync(string? search, string? role, bool? isActive);
         Task AddAsync(User entity);
         Task UpdateAsync(User entity);
+        Task DeleteAsync(User entity);
         Task SaveChangesAsync();
     }
 }

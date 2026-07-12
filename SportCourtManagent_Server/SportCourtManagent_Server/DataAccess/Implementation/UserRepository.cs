@@ -69,6 +69,12 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             await _context.SaveChangesAsync();
         }
 
+        public async Task DeleteAsync(User entity)
+        {
+            _context.Users.Remove(entity);
+            await _context.SaveChangesAsync();
+        }
+
         public Task SaveChangesAsync() => _context.SaveChangesAsync();
 
         private static IQueryable<User> ApplyFilters(

@@ -137,6 +137,60 @@ namespace SportCourtManagent_Server.Controllers
             }
         }
 
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Create([FromBody] CreateUserRequest request)
+        {
+            try
+            {
+                var (user, error) = await _userManagement.CreateAsync(request);
+                if (error != null)
+                    return BadRequest(ApiResults.Fail(error));
+
+                return CreatedAtAction(nameof(GetById), new { id = user!.UserId }, ApiResults.Ok(user, "Tạo người dùng mới thành công."));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResults.Fail(ex.Message, 500));
+            }
+        }
+
+        [HttpPut("{id:int}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateUserByAdminRequest request)
+        {
+            try
+            {
+                var (user, error) = await _userManagement.UpdateUserByAdminAsync(id, request);
+                if (error != null)
+                    return BadRequest(ApiResults.Fail(error));
+
+                return Ok(ApiResults.Ok(user, "Cập nhật thông tin người dùng thành công."));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResults.Fail(ex.Message, 500));
+            }
+        }
+
+        [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                var error = await _userManagement.DeleteAsync(id);
+                if (error != null)
+                    return BadRequest(ApiResults.Fail(error));
+
+                return Ok(ApiResults.Ok((object?)null, "Xóa người dùng thành công."));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResults.Fail(ex.Message, 500));
+            }
+        }
+
         [HttpPut("profile")]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
         {

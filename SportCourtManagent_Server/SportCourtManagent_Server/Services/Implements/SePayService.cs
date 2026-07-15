@@ -60,6 +60,10 @@ namespace SportCourtManagent_Server.Services.Implements
                     {
                         throw new InvalidOperationException("Giải đấu đã được xác nhận/thanh toán trước đó.");
                     }
+                    if (tour.Status == TournamentStatus.Cancelled || (tour.Status == TournamentStatus.Pending && tour.ExpiredAt.HasValue && tour.ExpiredAt.Value < DateTime.UtcNow))
+                    {
+                        throw new InvalidOperationException("Giải đấu đã hết hạn giữ chỗ hoặc đã bị hủy.");
+                    }
 
                     string tourQrUrl = $"https://img.vietqr.io/image/{bankBin}-{accountNumber}-compact.png?amount={tour.TotalAmount}&addInfo={bookingCode.ToUpper()}&accountName={encodedAccountName}";
                     return new SePayQrCodeResponse
@@ -145,15 +149,29 @@ namespace SportCourtManagent_Server.Services.Implements
                     {
                         throw new InvalidOperationException("Giải đấu đã được thanh toán trước đó.");
                     }
+                    if (tour.Status == TournamentStatus.Cancelled)
+                    {
+                        throw new InvalidOperationException("Giải đấu này đã bị hủy.");
+                    }
                     if (payload.TransferAmount < tour.TotalAmount)
                     {
                         throw new ArgumentException($"Số tiền chuyển ({payload.TransferAmount:N0}đ) nhỏ hơn tổng chi phí giải đấu ({tour.TotalAmount:N0}đ).");
                     }
 
                     tour.Status = TournamentStatus.Paid;
+                    string transactionRef = !string.IsNullOrEmpty(payload.ReferenceCode) ? payload.ReferenceCode : payload.Id.ToString();
                     foreach (var b in tour.Bookings.Where(b => b.Status == BookingStatus.Pending))
                     {
                         b.Status = BookingStatus.Confirmed;
+                        _context.Payments.Add(new Payment
+                        {
+                            BookingId = b.BookingId,
+                            Amount = b.TotalAmount,
+                            PaymentMethod = PaymentMethod.BankTransfer,
+                            TransactionId = $"{transactionRef}-B{b.BookingId}",
+                            Status = PaymentStatus.Success,
+                            PaidAt = DateTime.UtcNow
+                        });
                     }
                     await _context.SaveChangesAsync();
 

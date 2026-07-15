@@ -54,6 +54,23 @@ namespace SportCourtManagent_Server.Controllers
             }
         }
 
+        [HttpPost("google")]
+        public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest request)
+        {
+            try
+            {
+                var (data, error) = await _authService.GoogleLoginAsync(request);
+                if (error != null)
+                    return BadRequest(ApiResults.Fail(error));
+
+                return Ok(ApiResults.Ok(data, "Đăng nhập bằng Google thành công."));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResults.Fail(ex.Message, 500));
+            }
+        }
+
         [Authorize]
         [HttpGet("me")]
         public async Task<IActionResult> GetMe()

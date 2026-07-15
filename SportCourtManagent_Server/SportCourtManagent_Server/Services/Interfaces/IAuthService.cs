@@ -9,5 +9,6 @@ namespace SportCourtManagent_Server.Services.Interfaces
         Task<(AuthResponseDto? Data, string? Error)> LoginAsync(LoginRequest request);
         Task<string?> RegisterAsync(RegisterRequest request);
         Task<UserDto?> GetCurrentUserAsync(int userId);
+        Task<(AuthResponseDto? Data, string? Error)> GoogleLoginAsync(GoogleLoginRequest request);
     }
 }

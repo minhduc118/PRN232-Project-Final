@@ -14,6 +14,7 @@ namespace SportCourtManagent_Server.DTOs.Booking
     public decimal TotalAmount { get; set; }
     public TournamentStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime? ExpiredAt { get; set; }
     public List<BookingDto> Bookings { get; set; } = new List<BookingDto>();
   }
 }

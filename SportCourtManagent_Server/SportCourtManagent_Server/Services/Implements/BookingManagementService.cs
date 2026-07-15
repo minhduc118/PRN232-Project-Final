@@ -853,7 +853,7 @@ namespace SportCourtManagent_Server.Services.Implements
       {
         TournamentId = t.TournamentId, TournamentName = t.TournamentName, Description = t.Description,
         UserId = t.UserId, CustomerName = t.User?.FullName ?? $"User #{t.UserId}", TotalAmount = t.TotalAmount,
-        Status = t.Status, CreatedAt = t.CreatedAt, Bookings = t.Bookings?.Select(MapToDto).ToList() ?? new List<BookingDto>()
+        Status = t.Status, CreatedAt = t.CreatedAt, ExpiredAt = t.ExpiredAt, Bookings = t.Bookings?.Select(MapToDto).ToList() ?? new List<BookingDto>()
       };
     }
 
@@ -864,7 +864,7 @@ namespace SportCourtManagent_Server.Services.Implements
       {
         TournamentId = t.TournamentId, TournamentName = t.TournamentName, Description = t.Description,
         UserId = t.UserId, CustomerName = customerName, TotalAmount = t.TotalAmount,
-        Status = t.Status, CreatedAt = t.CreatedAt, Bookings = bookings.Select(MapToDto).ToList()
+        Status = t.Status, CreatedAt = t.CreatedAt, ExpiredAt = t.ExpiredAt, Bookings = bookings.Select(MapToDto).ToList()
       };
     }
 

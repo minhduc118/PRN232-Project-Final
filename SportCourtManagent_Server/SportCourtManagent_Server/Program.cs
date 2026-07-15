@@ -54,9 +54,16 @@ builder.Services.AddScoped<IComplexCourtTypeServiceRepository, ComplexCourtTypeS
 // Service DI registration
 builder.Services.AddScoped<IServiceCatalogService, ServiceCatalogService>();
 builder.Services.AddScoped<IComplexCourtTypeOfferingService, ComplexCourtTypeOfferingService>();
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserAccessService, UserAccessService>();
+builder.Services.AddScoped<IUserManagementService, UserManagementService>();
+builder.Services.AddScoped<IRoleManagementService, RoleManagementService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IBookingManagementService, BookingManagementService>();
 builder.Services.AddScoped<ICourtService, CourtService>();
+builder.Services.AddScoped<ICourtComplexService, CourtComplexService>();
+builder.Services.AddScoped<ICourtTypeService, CourtTypeService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<ICourtBookingService, CourtBookingService>();
 builder.Services.AddScoped<ISePayService, SePayService>();
@@ -64,6 +71,7 @@ builder.Services.AddScoped<IServiceService, ServiceService>();
 builder.Services.AddSingleton<ITournamentLockManager, TournamentLockManager>();
 builder.Services.AddScoped<IStaffService, StaffService>();
 builder.Services.AddScoped<IMaintenanceScheduleService, MaintenanceScheduleService>();
+builder.Services.AddScoped<ITaskItemService, TaskItemService>();
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {

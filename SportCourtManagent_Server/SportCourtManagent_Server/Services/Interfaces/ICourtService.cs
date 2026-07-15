@@ -1,10 +1,13 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using SportCourtManagent_Server.DTOs;
 using SportCourtManagent_Server.DTOs.Court;
 
 namespace SportCourtManagent_Server.Services.Interfaces
 {
     /// <summary>
-    /// Business logic for court search, detail, and availability.
+    /// Business logic for court search, detail, availability, and CRUD management.
     /// </summary>
     public interface ICourtService
     {
@@ -19,5 +22,12 @@ namespace SportCourtManagent_Server.Services.Interfaces
 
         /// <summary>Returns an IQueryable of courts for OData endpoint.</summary>
         IQueryable<CourtListDto> GetCourtsODataQueryable();
+
+        Task<IEnumerable<CourtDto>> GetAllAsync(int? complexId, string? status);
+        Task<CourtDto?> GetByIdAsync(int id);
+        Task<CourtDto> CreateAsync(CourtDto dto);
+        Task UpdateAsync(int id, CourtDto dto);
+        Task DeleteAsync(int id);
+        Task<bool> ExistsByCodeAsync(string courtCode, int? excludeCourtId = null);
     }
 }

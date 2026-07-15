@@ -1,6 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.Models;
 
@@ -15,36 +16,21 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             _context = context;
         }
 
-        public IEnumerable<UserRole> GetAll()
+        public async Task<IReadOnlyList<UserRole>> GetByUserIdAsync(int userId) =>
+            await _context.UserRoles.Where(ur => ur.UserId == userId).ToListAsync();
+
+        public async Task ReplaceUserRoleAsync(int userId, int roleId)
         {
-            return _context.UserRoles.ToList();
+            var existing = await _context.UserRoles.Where(ur => ur.UserId == userId).ToListAsync();
+            _context.UserRoles.RemoveRange(existing);
+            await _context.UserRoles.AddAsync(new UserRole { UserId = userId, RoleId = roleId });
+            await _context.SaveChangesAsync();
         }
 
-        public UserRole? GetById(int id)
+        public async Task AddAsync(UserRole entity)
         {
-            return _context.UserRoles.Find(id);
-        }
-
-        public void Add(UserRole entity)
-        {
-            _context.UserRoles.Add(entity);
-            _context.SaveChanges();
-        }
-
-        public void Update(UserRole entity)
-        {
-            _context.UserRoles.Update(entity);
-            _context.SaveChanges();
-        }
-
-        public void Delete(int id)
-        {
-            var entity = _context.UserRoles.Find(id);
-            if (entity != null)
-            {
-                _context.UserRoles.Remove(entity);
-                _context.SaveChanges();
-            }
+            await _context.UserRoles.AddAsync(entity);
+            await _context.SaveChangesAsync();
         }
     }
 }

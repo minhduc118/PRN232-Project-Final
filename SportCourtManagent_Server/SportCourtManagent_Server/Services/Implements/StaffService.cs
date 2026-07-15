@@ -98,7 +98,7 @@ namespace SportCourtManagent_Server.Services.Implements
             DateOnly shiftDate = request.ShiftDate.Value;
             ShiftType shiftType = request.ShiftType.Value;
 
-            var complex = _complexRepository.GetById(complexId);
+            var complex = await _complexRepository.GetByIdWithDetailsAsync(complexId);
             if (complex == null)
             {
                 throw new KeyNotFoundException($"Không tìm thấy cơ sở với Id {complexId}");
@@ -217,7 +217,7 @@ namespace SportCourtManagent_Server.Services.Implements
 
         public async Task AssignStaffToComplexAsync(int complexId, int staffId)
         {
-            var complex = _complexRepository.GetById(complexId);
+            var complex = await _complexRepository.GetByIdWithDetailsAsync(complexId);
             if (complex == null)
                 throw new KeyNotFoundException($"Không tìm thấy cơ sở với Id {complexId}.");
 
@@ -234,7 +234,7 @@ namespace SportCourtManagent_Server.Services.Implements
 
         public async Task RemoveStaffFromComplexAsync(int complexId, int staffId)
         {
-            var complex = _complexRepository.GetById(complexId);
+            var complex = await _complexRepository.GetByIdWithDetailsAsync(complexId);
             if (complex == null)
                 throw new KeyNotFoundException($"Không tìm thấy cơ sở với Id {complexId}.");
 
@@ -280,7 +280,7 @@ namespace SportCourtManagent_Server.Services.Implements
             }
             ShiftType shiftType = request.ShiftType.Value;
 
-            var complex = _complexRepository.GetById(complexId);
+            var complex = await _complexRepository.GetByIdWithDetailsAsync(complexId);
             if (complex == null)
             {
                 throw new KeyNotFoundException($"Không tìm thấy cơ sở với Id {complexId}");

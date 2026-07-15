@@ -2,14 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DataAccess.Interfaces;
+using SportCourtManagent_Server.Enums;
 using SportCourtManagent_Server.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 
 namespace SportCourtManagent_Server.DataAccess.Implementation
@@ -22,6 +19,42 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
         {
             _context = context;
         }
+
+        // --- Sync methods (legacy) ---
+
+        public IEnumerable<Court> GetAll()
+        {
+            return _context.Courts.Where(c => !c.IsDeleted).ToList();
+        }
+
+        public Court? GetById(int id)
+        {
+            return _context.Courts.FirstOrDefault(c => c.CourtId == id && !c.IsDeleted);
+        }
+
+        public void Add(Court entity)
+        {
+            _context.Courts.Add(entity);
+            _context.SaveChanges();
+        }
+
+        public void Update(Court entity)
+        {
+            _context.Courts.Update(entity);
+            _context.SaveChanges();
+        }
+
+        public void Delete(int id)
+        {
+            var entity = _context.Courts.Find(id);
+            if (entity != null)
+            {
+                entity.IsDeleted = true;
+                _context.SaveChanges();
+            }
+        }
+
+        // --- Async basic methods ---
 
         public async Task<IEnumerable<Court>> GetAllAsync()
         {
@@ -49,8 +82,8 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
 
         public async Task UpdateAsync(Court entity)
         {
-                _context.Courts.Update(entity);
-            await _context.SaveChangesAsync ();
+            _context.Entry(entity).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
         }
 
         public async Task DeleteAsync(int id)
@@ -62,6 +95,8 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
                 await _context.SaveChangesAsync();
             }
         }
+
+        // --- Advanced query methods (from main) ---
 
         public async Task<decimal> GetCourtPriceAsync(int courtId, int slotId, DateTime date)
         {
@@ -96,40 +131,6 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             return court.PricePerHour * hours;
         }
 
-        // --- Additional methods for Admin & Customer features ---
-
-        public IEnumerable<Court> GetAll()
-        {
-            return _context.Courts.Where(c => !c.IsDeleted).ToList();
-        }
-
-        public Court? GetById(int id)
-        {
-            return _context.Courts.FirstOrDefault(c => c.CourtId == id && !c.IsDeleted);
-        }
-
-        public void Add(Court entity)
-        {
-            _context.Courts.Add(entity);
-            _context.SaveChanges();
-        }
-
-        public void Update(Court entity)
-        {
-            _context.Courts.Update(entity);
-            _context.SaveChanges();
-        }
-
-        public void Delete(int id)
-        {
-            var entity = _context.Courts.Find(id);
-            if (entity != null)
-            {
-                entity.IsDeleted = true;
-                _context.SaveChanges();
-            }
-        }
-
         /// <inheritdoc/>
         public IQueryable<Court> GetCourtsQueryable()
         {
@@ -137,7 +138,6 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
                 .AsNoTracking()
                 .Where(c => !c.IsDeleted)
                 .Include(c => c.Complex)
-
                 .Include(c => c.CourtType)
                 .Include(c => c.CourtImages)
                 .Include(c => c.CourtPricings)
@@ -151,7 +151,6 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
                 .AsNoTracking()
                 .Where(c => !c.IsDeleted)
                 .Include(c => c.Complex)
-
                 .Include(c => c.CourtType)
                 .Include(c => c.CourtImages)
                 .Include(c => c.CourtPricings)
@@ -179,6 +178,53 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
                 .Where(c => c.ComplexId == complexId && !c.IsDeleted)
                 .ToListAsync();
         }
+
+        // --- Methods from feature/model-admin ---
+
+        public async Task<IEnumerable<Court>> GetAllWithDetailsAsync(int? complexId = null, string? status = null)
+        {
+            var query = _context.Courts
+                .Include(c => c.CourtType)
+                .Include(c => c.Complex)
+                .Include(c => c.CourtImages)
+                .Where(c => !c.IsDeleted)
+                .AsQueryable();
+
+            if (complexId.HasValue)
+                query = query.Where(c => c.ComplexId == complexId.Value);
+
+            if (!string.IsNullOrWhiteSpace(status) &&
+                System.Enum.TryParse<CourtStatus>(status, true, out var statusEnum))
+                query = query.Where(c => c.Status == statusEnum);
+
+            return await query.OrderBy(c => c.CourtName).ToListAsync();
+        }
+
+        public Task<Court?> GetByIdWithDetailsAsync(int id) =>
+            _context.Courts
+                .Include(c => c.CourtType)
+                .Include(c => c.Complex)
+                .Include(c => c.CourtImages)
+                .FirstOrDefaultAsync(c => c.CourtId == id && !c.IsDeleted);
+
+        public async Task SoftDeleteAsync(int id)
+        {
+            var court = await _context.Courts.FirstOrDefaultAsync(c => c.CourtId == id && !c.IsDeleted);
+            if (court != null)
+            {
+                court.IsDeleted = true;
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task<bool> ExistsByCodeAsync(string courtCode, int? excludeCourtId = null)
+        {
+            var query = _context.Courts.Where(c => c.CourtCode == courtCode && !c.IsDeleted);
+            if (excludeCourtId.HasValue)
+            {
+                query = query.Where(c => c.CourtId != excludeCourtId.Value);
+            }
+            return await query.AnyAsync();
+        }
     }
 }
-

@@ -893,14 +893,18 @@ namespace SportCourtManagent_Server.Services.Implements
     /// <summary>Gets paged customer bookings with database filtering.</summary>
     public async Task<PagedResult<BookingDto>> GetPagedCustomerBookingsAsync(int userId, BookingFilterParams filter)
     {
-      var query = _context.Bookings.Include(b => b.User).Include(b => b.Court).Include(b => b.TimeSlot).Include(b => b.Promotion).Include(b => b.Payment).Where(b => b.UserId == userId).AsQueryable();
+      var query = _context.Bookings.Include(b => b.User).Include(b => b.Court).Include(b => b.TimeSlot).Include(b => b.Promotion).Include(b => b.Payment).Include(b => b.BookingServices).ThenInclude(bs => bs.Service).Where(b => b.UserId == userId).AsQueryable();
+      if (!string.IsNullOrWhiteSpace(filter.Status) && Enum.TryParse<BookingStatus>(filter.Status, true, out var st))
+      {
+          query = query.Where(b => b.Status == st);
+      }
       return await FilterAndPageBookingsQueryAsync(query, filter);
     }
 
     /// <summary>Gets paged admin bookings with database filtering.</summary>
     public async Task<PagedResult<BookingDto>> GetPagedAdminBookingsAsync(BookingFilterParams filter)
     {
-      var query = _context.Bookings.Include(b => b.User).Include(b => b.Court).Include(b => b.TimeSlot).Include(b => b.Promotion).Include(b => b.Payment).AsQueryable();
+      var query = _context.Bookings.Include(b => b.User).Include(b => b.Court).Include(b => b.TimeSlot).Include(b => b.Promotion).Include(b => b.Payment).Include(b => b.BookingServices).ThenInclude(bs => bs.Service).AsQueryable();
       if (filter.CourtTypeId.HasValue) query = query.Where(b => b.Court != null && b.Court.CourtTypeId == filter.CourtTypeId.Value);
       if (!string.IsNullOrWhiteSpace(filter.Status) && Enum.TryParse<BookingStatus>(filter.Status, true, out var st)) query = query.Where(b => b.Status == st);
       return await FilterAndPageBookingsQueryAsync(query, filter);
@@ -983,6 +987,62 @@ namespace SportCourtManagent_Server.Services.Implements
         OrganizerName = t.User?.FullName ?? "Ẩn danh", Status = t.Status, CreatedAt = t.CreatedAt,
         Courts = t.Bookings?.Select(b => new CourtSlotPublicDto { CourtId = b.CourtId, CourtName = b.Court?.CourtName ?? $"Sân #{b.CourtId}", SlotId = b.SlotId, SlotName = b.TimeSlot?.SlotName ?? $"{b.StartTime:hh\\:mm}-{b.EndTime:hh\\:mm}", StartTime = b.StartTime.ToString("hh\\:mm"), EndTime = b.EndTime.ToString("hh\\:mm"), BookingDate = b.BookingDate, Status = b.Status }).ToList() ?? new List<CourtSlotPublicDto>()
       };
+    }
+
+    /// <summary>Adds services to an existing booking.</summary>
+    public async Task<BookingDto?> AddServicesToBookingAsync(int bookingId, Dictionary<int, int> serviceQuantities)
+    {
+      var booking = await _bookingRepo.GetDetailAsync(bookingId);
+      if (booking == null) return null;
+
+      decimal additionalAmount = 0;
+      foreach (var kvp in serviceQuantities.Where(q => q.Value > 0))
+      {
+        var service = await _context.Services.FindAsync(kvp.Key);
+        if (service == null) throw new ArgumentException($"Dịch vụ #{kvp.Key} không tồn tại.");
+
+        if (service.StockQty < kvp.Value)
+          throw new InvalidOperationException($"Số lượng hàng tồn kho không đủ cho dịch vụ '{service.ServiceName}'. Còn lại: {service.StockQty}, Yêu cầu: {kvp.Value}");
+
+        // Deduct stock
+        service.StockQty -= kvp.Value;
+        _context.Services.Update(service);
+
+        // Check if service already exists in booking
+        var existingService = booking.BookingServices.FirstOrDefault(bs => bs.ServiceId == kvp.Key);
+        if (existingService != null)
+        {
+          existingService.Quantity += kvp.Value;
+          existingService.TotalPrice += service.Price * kvp.Value;
+        }
+        else
+        {
+          var bookingService = new BookingService
+          {
+            BookingId = bookingId,
+            ServiceId = kvp.Key,
+            Quantity = kvp.Value,
+            TotalPrice = service.Price * kvp.Value
+          };
+          booking.BookingServices.Add(bookingService);
+        }
+
+        additionalAmount += service.Price * kvp.Value;
+      }
+
+      booking.TotalAmount += additionalAmount;
+      booking.SubTotal += additionalAmount;
+
+      var addedServicesText = string.Join(", ", serviceQuantities.Where(q => q.Value > 0).Select(q => {
+          var s = _context.Services.Find(q.Key);
+          return $"{s?.ServiceName ?? "Dịch vụ"} x{q.Value}";
+      }));
+      booking.Note = string.IsNullOrEmpty(booking.Note)
+          ? $"Đặt thêm: {addedServicesText}"
+          : $"{booking.Note} | Đặt thêm: {addedServicesText}";
+
+      await _bookingRepo.UpdateAsync(booking);
+      return MapToDto(booking);
     }
   }
 }

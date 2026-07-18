@@ -37,5 +37,8 @@ namespace SportCourtManagent_Server.Services.Interfaces
 
     /// <summary>Updates tournament name and description (Customer only, within 24h of creation).</summary>
     Task<TournamentDto?> UpdateTournamentInfoAsync(int tournamentId, int userId, UpdateTournamentInfoRequest request);
+
+    /// <summary>Adds services to an existing booking.</summary>
+    Task<BookingDto?> AddServicesToBookingAsync(int bookingId, Dictionary<int, int> serviceQuantities);
   }
 }

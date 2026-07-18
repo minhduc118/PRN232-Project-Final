@@ -80,26 +80,37 @@ namespace SportCourtManagent_Server.Services.Implements
             }
 
             var booking = await _inMemoryBookingRepository.GetByCodeAsync(bookingCode);
+            decimal amount;
+            string code;
             if (booking == null)
             {
-                var dbBooking = (await _bookingRepository.GetAllAsync()).FirstOrDefault(b => b.BookingCode == bookingCode);
+                var dbBooking = (await _bookingRepository.GetAllAsync()).FirstOrDefault(b => string.Equals(b.BookingCode, bookingCode, StringComparison.OrdinalIgnoreCase));
                 if (dbBooking != null)
                 {
-                    throw new InvalidOperationException($"Booking is already {dbBooking.Status}.");
+                    amount = dbBooking.TotalAmount;
+                    code = dbBooking.BookingCode;
                 }
-                throw new KeyNotFoundException("Booking session has expired or does not exist.");
+                else
+                {
+                    throw new KeyNotFoundException("Booking session has expired or does not exist.");
+                }
+            }
+            else
+            {
+                amount = booking.TotalAmount;
+                code = booking.BookingCode;
             }
 
-            string qrUrl = $"https://img.vietqr.io/image/{bankBin}-{accountNumber}-compact.png?amount={booking.TotalAmount}&addInfo={booking.BookingCode}&accountName={encodedAccountName}";
+            string qrUrl = $"https://img.vietqr.io/image/{bankBin}-{accountNumber}-compact.png?amount={amount}&addInfo={code}&accountName={encodedAccountName}";
 
             return new SePayQrCodeResponse
             {
-                BookingCode = booking.BookingCode,
-                Amount = booking.TotalAmount,
+                BookingCode = code,
+                Amount = amount,
                 BankBin = bankBin,
                 AccountNumber = accountNumber,
                 AccountName = accountName,
-                Description = booking.BookingCode,
+                Description = code,
                 QrCodeUrl = qrUrl
             };
         }
@@ -187,11 +198,11 @@ namespace SportCourtManagent_Server.Services.Implements
                 }
             }
 
-            // 4. Extract Booking Code (BK-xxxxxxxx)
-            var match = Regex.Match(payload.Content, @"BK-?[A-Z0-9]{8}", RegexOptions.IgnoreCase);
+            // 4. Extract Booking Code (supports BK-XXXXXXXX and BK2026MMDD...)
+            var match = Regex.Match(payload.Content, @"BK-?[A-Z0-9]{8,20}", RegexOptions.IgnoreCase);
             if (!match.Success)
             {
-                match = Regex.Match(payload.Description, @"BK-?[A-Z0-9]{8}", RegexOptions.IgnoreCase);
+                match = Regex.Match(payload.Description, @"BK-?[A-Z0-9]{8,20}", RegexOptions.IgnoreCase);
             }
 
             if (!match.Success)
@@ -200,22 +211,135 @@ namespace SportCourtManagent_Server.Services.Implements
             }
 
             string rawCode = match.Value.ToUpper();
-            string bookingCode = rawCode.StartsWith("BK-") ? rawCode : "BK-" + rawCode.Substring(2);
+            string code1 = rawCode;
+            string code2 = rawCode.StartsWith("BK-") 
+                ? rawCode 
+                : (rawCode.StartsWith("BK") && rawCode.Length > 2 ? "BK-" + rawCode.Substring(2) : rawCode);
 
-            // 5. Retrieve booking
-            var booking = await _inMemoryBookingRepository.GetByCodeAsync(bookingCode);
+            // 5. Retrieve booking (checking both code formats)
+            string bookingCode = code1;
+            var booking = await _inMemoryBookingRepository.GetByCodeAsync(code1);
             if (booking == null)
             {
-                var dbBooking = (await _bookingRepository.GetAllAsync()).FirstOrDefault(b => b.BookingCode == bookingCode);
+                booking = await _inMemoryBookingRepository.GetByCodeAsync(code2);
+                if (booking != null)
+                {
+                    bookingCode = code2;
+                }
+            }
+
+            if (booking == null)
+            {
+                var dbBooking = (await _bookingRepository.GetAllAsync())
+                    .FirstOrDefault(b => string.Equals(b.BookingCode, code1, StringComparison.OrdinalIgnoreCase) 
+                                      || string.Equals(b.BookingCode, code2, StringComparison.OrdinalIgnoreCase));
                 if (dbBooking != null)
                 {
                     if (dbBooking.Status == BookingStatus.Confirmed)
                     {
+                        var paymentRecord = await _context.Payments.FirstOrDefaultAsync(p => p.BookingId == dbBooking.BookingId);
+                        if (paymentRecord == null || paymentRecord.Amount < dbBooking.TotalAmount)
+                        {
+                            decimal remainingBalance = dbBooking.TotalAmount - (paymentRecord?.Amount ?? 0);
+                            if (payload.TransferAmount < remainingBalance)
+                            {
+                                throw new ArgumentException($"Transferred amount ({payload.TransferAmount}) is less than the remaining service balance ({remainingBalance}).");
+                            }
+
+                            if (paymentRecord != null)
+                            {
+                                paymentRecord.Amount = dbBooking.TotalAmount;
+                                paymentRecord.TransactionId = !string.IsNullOrEmpty(payload.ReferenceCode) ? payload.ReferenceCode : payload.Id.ToString();
+                                paymentRecord.PaidAt = DateTime.UtcNow;
+                                _context.Payments.Update(paymentRecord);
+                            }
+                            else
+                            {
+                                var payment = new Payment
+                                {
+                                    BookingId = dbBooking.BookingId,
+                                    Amount = dbBooking.TotalAmount,
+                                    PaymentMethod = PaymentMethod.BankTransfer,
+                                    TransactionId = !string.IsNullOrEmpty(payload.ReferenceCode) ? payload.ReferenceCode : payload.Id.ToString(),
+                                    Status = PaymentStatus.Success,
+                                    PaidAt = DateTime.UtcNow
+                                };
+                                await _context.Payments.AddAsync(payment);
+                            }
+                            await _context.SaveChangesAsync();
+
+                            var court = await _context.Courts.FindAsync(dbBooking.CourtId);
+                            var slot = await _context.TimeSlots.FindAsync(dbBooking.SlotId);
+
+                            return new BookingResponseDto
+                            {
+                                BookingId = dbBooking.BookingId,
+                                BookingCode = dbBooking.BookingCode,
+                                UserId = dbBooking.UserId,
+                                CourtId = dbBooking.CourtId,
+                                CourtName = court?.CourtName ?? "Sân đấu",
+                                SlotId = dbBooking.SlotId,
+                                SlotName = slot?.SlotName ?? "Khung giờ",
+                                BookingDate = dbBooking.BookingDate,
+                                StartTime = dbBooking.StartTime,
+                                EndTime = dbBooking.EndTime,
+                                SubTotal = dbBooking.SubTotal,
+                                DiscountAmount = dbBooking.DiscountAmount,
+                                TotalAmount = dbBooking.TotalAmount,
+                                Status = dbBooking.Status.ToString()
+                            };
+                        }
                         throw new InvalidOperationException("Booking has already been confirmed and paid.");
                     }
+
+                    if (dbBooking.Status == BookingStatus.Pending)
+                    {
+                        // Verify amount
+                        if (payload.TransferAmount < dbBooking.TotalAmount)
+                        {
+                            throw new ArgumentException($"Transferred amount ({payload.TransferAmount}) is less than booking total ({dbBooking.TotalAmount}).");
+                        }
+
+                        // Confirm payment for database booking
+                        dbBooking.Status = BookingStatus.Confirmed;
+                        
+                        var payment = new Payment
+                        {
+                            BookingId = dbBooking.BookingId,
+                            Amount = dbBooking.TotalAmount,
+                            PaymentMethod = PaymentMethod.BankTransfer,
+                            TransactionId = !string.IsNullOrEmpty(payload.ReferenceCode) ? payload.ReferenceCode : payload.Id.ToString(),
+                            Status = PaymentStatus.Success,
+                            PaidAt = DateTime.UtcNow
+                        };
+                        await _context.Payments.AddAsync(payment);
+                        await _context.SaveChangesAsync();
+
+                        var court = await _context.Courts.FindAsync(dbBooking.CourtId);
+                        var slot = await _context.TimeSlots.FindAsync(dbBooking.SlotId);
+
+                        return new BookingResponseDto
+                        {
+                            BookingId = dbBooking.BookingId,
+                            BookingCode = dbBooking.BookingCode,
+                            UserId = dbBooking.UserId,
+                            CourtId = dbBooking.CourtId,
+                            CourtName = court?.CourtName ?? "Sân đấu",
+                            SlotId = dbBooking.SlotId,
+                            SlotName = slot?.SlotName ?? "Khung giờ",
+                            BookingDate = dbBooking.BookingDate,
+                            StartTime = dbBooking.StartTime,
+                            EndTime = dbBooking.EndTime,
+                            SubTotal = dbBooking.SubTotal,
+                            DiscountAmount = dbBooking.DiscountAmount,
+                            TotalAmount = dbBooking.TotalAmount,
+                            Status = dbBooking.Status.ToString()
+                        };
+                    }
+
                     throw new InvalidOperationException($"Booking found in database but has status: {dbBooking.Status}.");
                 }
-                throw new KeyNotFoundException($"Booking {bookingCode} session has expired or does not exist.");
+                throw new KeyNotFoundException($"Booking {rawCode} session has expired or does not exist.");
             }
 
             // 6. Verify amount

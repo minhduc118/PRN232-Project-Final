@@ -111,7 +111,9 @@ namespace SportCourtManagent_Server.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                if (ex.Message.Contains("already"))
+                if (ex.Message.Contains("already", StringComparison.OrdinalIgnoreCase) ||
+                    ex.Message.Contains("đã được", StringComparison.OrdinalIgnoreCase) ||
+                    ex.Message.Contains("thanh toán trước đó", StringComparison.OrdinalIgnoreCase))
                 {
                     return Ok(new { message = ex.Message });
                 }
@@ -119,7 +121,8 @@ namespace SportCourtManagent_Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An unexpected error occurred.", details = ex.Message });
+                var detailedMsg = ex.InnerException != null ? $"{ex.Message} Inner: {ex.InnerException.Message}" : ex.Message;
+                return StatusCode(500, new { message = "An unexpected error occurred.", details = detailedMsg });
             }
         }
     }

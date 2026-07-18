@@ -327,6 +327,26 @@ namespace SportCourtManagent_Server.Controllers
       return BadRequest(new { message = "Quy định hệ thống: Khách hàng không được phép hủy sân. Vui lòng liên hệ nhân viên hỗ trợ nếu bạn cần đổi sân hoặc khung giờ." });
     }
 
+    /// <summary>Adds services to an existing booking.</summary>
+    [HttpPost("{id:int}/services")]
+    public async Task<IActionResult> AddServices(int id, [FromBody] Dictionary<int, int> serviceQuantities)
+    {
+      try
+      {
+        var result = await _bookingService.AddServicesToBookingAsync(id, serviceQuantities);
+        if (result == null) return NotFound(ApiResults.Fail("Không tìm thấy đơn đặt sân.", 404));
+        return Ok(ApiResults.Ok(result, "Thêm dịch vụ thành công."));
+      }
+      catch (ArgumentException ex)
+      {
+        return BadRequest(ApiResults.Fail(ex.Message, 400));
+      }
+      catch (Exception ex)
+      {
+        return StatusCode(500, ApiResults.Fail(ex.Message, 500));
+      }
+    }
+
     /// <summary>Helper method to retrieve current logged in userId.</summary>
     private bool TryGetUserId(out int userId)
     {

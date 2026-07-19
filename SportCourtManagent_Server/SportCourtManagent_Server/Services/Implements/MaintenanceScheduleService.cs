@@ -270,14 +270,16 @@ namespace SportCourtManagent_Server.Services.Implements
             }
 
             var courts = await _courtRepository.GetCourtsByComplexAsync(complexId);
-            return courts.Select(c => new MaintenanceCourtResponse
-            {
-                CourtId = c.CourtId,
-                CourtName = c.CourtName,
-                CourtCode = c.CourtCode,
-                CourtTypeName = c.CourtType?.TypeName ?? string.Empty,
-                Status = c.Status.ToString()
-            });
+            return courts
+                .Where(c => c.Status == CourtStatus.Available)
+                .Select(c => new MaintenanceCourtResponse
+                {
+                    CourtId = c.CourtId,
+                    CourtName = c.CourtName,
+                    CourtCode = c.CourtCode,
+                    CourtTypeName = c.CourtType?.TypeName ?? string.Empty,
+                    Status = c.Status.ToString()
+                });
         }
 
         private MaintenanceResponse MapToResponse(MaintenanceSchedule schedule, Court? court = null, CourtComplex? complex = null, User? staff = null)

@@ -10,7 +10,12 @@ namespace SportCourtManagent_Server.DTOs.Booking
     public int CourtId { get; set; }
 
     [Required]
+    public DateTime BookingDate { get; set; }
+
+    [Required]
     public List<int> SlotIds { get; set; } = new List<int>();
+
+    public List<ServiceItemRequest>? Services { get; set; }
   }
 
   public class CreateTournamentRequest
@@ -23,12 +28,8 @@ namespace SportCourtManagent_Server.DTOs.Booking
     public string? Description { get; set; }
 
     [Required]
-    public DateTime BookingDate { get; set; }
-
-    [Required]
     public List<CourtSlotSelection> CourtSelections { get; set; } = new List<CourtSlotSelection>();
 
-    public List<ServiceItemRequest>? Services { get; set; }
     public string? PromotionCode { get; set; }
     public string? Note { get; set; }
   }

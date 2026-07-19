@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
+using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.DTOs.Payments;
 using SportCourtManagent_Server.Services.Interfaces;
 
@@ -12,10 +14,45 @@ namespace SportCourtManagent_Server.Controllers
     public class SePayController : ControllerBase
     {
         private readonly ISePayService _sePayService;
+        private readonly IInMemoryBookingRepository _inMemoryBookingRepository;
+        private readonly IBookingRepository _bookingRepository;
 
-        public SePayController(ISePayService sePayService)
+        public SePayController(
+            ISePayService sePayService,
+            IInMemoryBookingRepository inMemoryBookingRepository,
+            IBookingRepository bookingRepository)
         {
             _sePayService = sePayService;
+            _inMemoryBookingRepository = inMemoryBookingRepository;
+            _bookingRepository = bookingRepository;
+        }
+
+        [HttpGet("status/{bookingCode}")]
+        public async Task<IActionResult> GetStatus(string bookingCode)
+        {
+            try
+            {
+                // 1. Try in-memory first (typically pending)
+                var memBooking = await _inMemoryBookingRepository.GetByCodeAsync(bookingCode);
+                if (memBooking != null)
+                {
+                    return Ok(new { bookingCode = bookingCode, status = memBooking.Status });
+                }
+
+                // 2. Try database
+                var dbBooking = (await _bookingRepository.GetAllAsync())
+                    .FirstOrDefault(b => string.Equals(b.BookingCode, bookingCode, StringComparison.OrdinalIgnoreCase));
+                if (dbBooking != null)
+                {
+                    return Ok(new { bookingCode = bookingCode, status = dbBooking.Status.ToString() });
+                }
+
+                return NotFound(new { message = "Booking session has expired or does not exist." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error checking status.", details = ex.Message });
+            }
         }
 
         [HttpGet("qr-code/{bookingCode}")]
@@ -74,7 +111,9 @@ namespace SportCourtManagent_Server.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                if (ex.Message.Contains("already"))
+                if (ex.Message.Contains("already", StringComparison.OrdinalIgnoreCase) ||
+                    ex.Message.Contains("đã được", StringComparison.OrdinalIgnoreCase) ||
+                    ex.Message.Contains("thanh toán trước đó", StringComparison.OrdinalIgnoreCase))
                 {
                     return Ok(new { message = ex.Message });
                 }
@@ -82,7 +121,8 @@ namespace SportCourtManagent_Server.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An unexpected error occurred.", details = ex.Message });
+                var detailedMsg = ex.InnerException != null ? $"{ex.Message} Inner: {ex.InnerException.Message}" : ex.Message;
+                return StatusCode(500, new { message = "An unexpected error occurred.", details = detailedMsg });
             }
         }
     }

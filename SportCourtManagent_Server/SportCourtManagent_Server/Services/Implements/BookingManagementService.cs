@@ -382,7 +382,7 @@ namespace SportCourtManagent_Server.Services.Implements
     private static List<(int CourtId, DateTime Date)> GetUniqueCourtDatePairs(CreateTournamentRequest request)
     {
       return request.CourtSelections
-        .Select(c => (c.CourtId, request.BookingDate.Date))
+        .Select(c => (c.CourtId, c.BookingDate.Date))
         .Distinct()
         .OrderBy(x => x.CourtId).ThenBy(x => x.Date)
         .ToList();
@@ -449,21 +449,33 @@ namespace SportCourtManagent_Server.Services.Implements
     {
       var courtIds = request.CourtSelections.Select(c => c.CourtId).Distinct().ToList();
       var slotIds = request.CourtSelections.SelectMany(c => c.SlotIds ?? new List<int>()).Distinct().ToList();
-      var serviceIds = request.Services?.Select(s => s.ServiceId).Distinct().ToList() ?? new List<int>();
+      var serviceIds = request.CourtSelections.Where(c => c.Services != null).SelectMany(c => c.Services!).Select(s => s.ServiceId).Distinct().ToList();
 
       var slots = await _context.TimeSlots.Where(s => slotIds.Contains(s.SlotId)).ToDictionaryAsync(s => s.SlotId);
       var courts = await _context.Courts.Where(c => courtIds.Contains(c.CourtId)).ToDictionaryAsync(c => c.CourtId);
       var pricings = await _context.CourtPricings.Where(p => courtIds.Contains(p.CourtId) && slotIds.Contains(p.SlotId)).ToListAsync();
-      var services = await _context.Services.Where(s => serviceIds.Contains(s.ServiceId)).ToDictionaryAsync(s => s.ServiceId);
-      var activeBookings = await _context.Bookings.Where(b => courtIds.Contains(b.CourtId) && b.BookingDate.Date == request.BookingDate.Date && b.Status != BookingStatus.Cancelled).ToListAsync();
+      
+      var complexIds = courts.Values.Select(c => c.ComplexId).Distinct().ToList();
+      var courtTypeIds = courts.Values.Select(c => c.CourtTypeId).Distinct().ToList();
+      var complexServices = await _context.ComplexCourtTypeServices
+          .Where(cs => complexIds.Contains(cs.ComplexId) && courtTypeIds.Contains(cs.CourtTypeId) && serviceIds.Contains(cs.ServiceId))
+          .ToListAsync();
+
+      var dates = request.CourtSelections.Select(c => c.BookingDate.Date).Distinct().ToList();
+      var activeBookings = await _context.Bookings.Where(b => courtIds.Contains(b.CourtId) && dates.Contains(b.BookingDate.Date) && b.Status != BookingStatus.Cancelled).ToListAsync();
 
       var createdBookings = new List<Booking>();
       foreach (var sel in request.CourtSelections)
       {
         if (sel.SlotIds == null) continue;
-        foreach (var slotId in sel.SlotIds)
+        for (int i = 0; i < sel.SlotIds.Count; i++)
         {
-          var booking = BuildSingleTournamentBooking(userId, tournamentId, sel.CourtId, slotId, request, slots, courts, pricings, services, activeBookings);
+          var slotId = sel.SlotIds[i];
+          var reqServices = (i == 0) ? sel.Services : null;
+          var booking = BuildSingleTournamentBooking(userId, tournamentId, sel.CourtId, slotId, sel.BookingDate, reqServices, request.Note, slots, courts, pricings, complexServices, activeBookings);
+          
+          // Add to activeBookings to prevent duplicates within the same request
+          activeBookings.Add(booking);
           createdBookings.Add(booking);
         }
       }
@@ -473,39 +485,39 @@ namespace SportCourtManagent_Server.Services.Implements
 
     /// <summary>Builds a single booking entity and checks lazy expiration.</summary>
     private Booking BuildSingleTournamentBooking(
-      int userId, int tournamentId, int courtId, int slotId, CreateTournamentRequest request,
+      int userId, int tournamentId, int courtId, int slotId, DateTime bookingDate, List<ServiceItemRequest>? reqServices, string? note,
       Dictionary<int, TimeSlot> slots, Dictionary<int, Court> courts, List<CourtPricing> pricings,
-      Dictionary<int, Service> services, List<Booking> activeBookings)
+      List<ComplexCourtTypeService> complexServices, List<Booking> activeBookings)
     {
       if (!slots.TryGetValue(slotId, out var slot)) throw new ArgumentException($"Khung giờ {slotId} không hợp lệ.");
-      CheckSlotConflictAndLazyExpire(courtId, slotId, request.BookingDate, slot.SlotName, activeBookings);
+      CheckSlotConflictAndLazyExpire(courtId, slotId, bookingDate, slot.SlotName, activeBookings);
 
-      decimal subTotal = CalculateBatchSubTotal(courtId, slot, request.Services, courts, pricings, services);
+      decimal subTotal = CalculateBatchSubTotal(courtId, slot, reqServices, courts, pricings, complexServices);
       var booking = new Booking
       {
         BookingCode = $"BK{DateTime.UtcNow:yyyyMMddHHmmss}{new Random().Next(100, 999)}",
         UserId = userId,
         CourtId = courtId,
         SlotId = slotId,
-        BookingDate = request.BookingDate,
+        BookingDate = bookingDate,
         StartTime = slot.StartTime,
         EndTime = slot.EndTime,
         SubTotal = subTotal,
         TotalAmount = subTotal,
         Status = BookingStatus.Pending,
         TournamentId = tournamentId,
-        Note = request.Note,
+        Note = note,
         CreatedAt = DateTime.UtcNow,
         ExpiredAt = DateTime.UtcNow.AddMinutes(10)
       };
-      AddBatchBookingServices(booking, request.Services, services);
+      AddBatchBookingServices(booking, reqServices, courts, complexServices);
       return booking;
     }
 
     /// <summary>Checks slot conflict and applies lazy expiration for pending timed-out bookings.</summary>
     private void CheckSlotConflictAndLazyExpire(int courtId, int slotId, DateTime date, string slotName, List<Booking> activeBookings)
     {
-      var conflict = activeBookings.FirstOrDefault(b => b.CourtId == courtId && b.SlotId == slotId);
+      var conflict = activeBookings.FirstOrDefault(b => b.CourtId == courtId && b.SlotId == slotId && b.BookingDate.Date == date.Date);
       if (conflict != null)
       {
         if (conflict.Status == BookingStatus.Pending && conflict.ExpiredAt.HasValue && conflict.ExpiredAt.Value < DateTime.UtcNow)
@@ -522,29 +534,31 @@ namespace SportCourtManagent_Server.Services.Implements
     }
 
     /// <summary>Calculates subtotal using batch loaded dictionaries.</summary>
-    private static decimal CalculateBatchSubTotal(int courtId, TimeSlot slot, List<ServiceItemRequest>? reqServices, Dictionary<int, Court> courts, List<CourtPricing> pricings, Dictionary<int, Service> services)
+    private static decimal CalculateBatchSubTotal(int courtId, TimeSlot slot, List<ServiceItemRequest>? reqServices, Dictionary<int, Court> courts, List<CourtPricing> pricings, List<ComplexCourtTypeService> complexServices)
     {
       var pricing = pricings.FirstOrDefault(p => p.CourtId == courtId && p.SlotId == slot.SlotId);
       decimal subTotal = pricing != null ? pricing.Price : (courts.TryGetValue(courtId, out var c) ? c.PricePerHour * (decimal)(slot.EndTime - slot.StartTime).TotalHours : 0);
       if (subTotal == 0 && courts.TryGetValue(courtId, out var court)) subTotal = court.PricePerHour;
 
-      if (reqServices != null)
+      if (reqServices != null && courts.TryGetValue(courtId, out var crt))
       {
         foreach (var item in reqServices.Where(x => x.Quantity > 0))
         {
-          if (services.TryGetValue(item.ServiceId, out var s)) subTotal += s.Price * item.Quantity;
+          var s = complexServices.FirstOrDefault(cs => cs.ComplexId == crt.ComplexId && cs.CourtTypeId == crt.CourtTypeId && cs.ServiceId == item.ServiceId);
+          if (s != null) subTotal += s.Price * item.Quantity;
         }
       }
       return subTotal;
     }
 
     /// <summary>Adds booking services from batch dictionary.</summary>
-    private static void AddBatchBookingServices(Booking booking, List<ServiceItemRequest>? reqServices, Dictionary<int, Service> services)
+    private static void AddBatchBookingServices(Booking booking, List<ServiceItemRequest>? reqServices, Dictionary<int, Court> courts, List<ComplexCourtTypeService> complexServices)
     {
-      if (reqServices == null) return;
+      if (reqServices == null || !courts.TryGetValue(booking.CourtId, out var crt)) return;
       foreach (var item in reqServices.Where(x => x.Quantity > 0))
       {
-        if (services.TryGetValue(item.ServiceId, out var s))
+        var s = complexServices.FirstOrDefault(cs => cs.ComplexId == crt.ComplexId && cs.CourtTypeId == crt.CourtTypeId && cs.ServiceId == item.ServiceId);
+        if (s != null)
         {
           booking.BookingServices.Add(new BookingService { ServiceId = item.ServiceId, Quantity = item.Quantity, TotalPrice = s.Price * item.Quantity });
         }
@@ -613,27 +627,34 @@ namespace SportCourtManagent_Server.Services.Implements
         throw new ArgumentException("Chỉ được chỉnh sửa trong vòng 24 giờ kể từ khi tạo giải đấu.");
     }
 
-    /// <summary>Applies smart diffing: cancels removed slots and adds newly selected slots.</summary>
+    /// <summary>Applies smart diffing for tournament bookings. Assumes transaction is active.</summary>
     private async Task ApplyTournamentDiffingAsync(Tournament tournament, int userId, UpdateTournamentInfoRequest request)
     {
-      var requestedPairs = new HashSet<(int CourtId, int SlotId)>();
+      var requestedPairs = new HashSet<(int CourtId, int SlotId, DateTime Date)>();
+      var courtSlotServices = new Dictionary<(int, int, DateTime), List<ServiceItemRequest>?>();
+      
       foreach (var sel in request.CourtSelections)
       {
         if (sel.SlotIds == null) continue;
-        foreach (var slotId in sel.SlotIds) requestedPairs.Add((sel.CourtId, slotId));
+        for (int i = 0; i < sel.SlotIds.Count; i++)
+        {
+           var slotId = sel.SlotIds[i];
+           requestedPairs.Add((sel.CourtId, slotId, sel.BookingDate.Date));
+           courtSlotServices[(sel.CourtId, slotId, sel.BookingDate.Date)] = (i == 0) ? sel.Services : null;
+        }
       }
 
       foreach (var existing in tournament.Bookings)
       {
-        if (!requestedPairs.Contains((existing.CourtId, existing.SlotId)) && existing.Status != BookingStatus.Cancelled)
+        if (!requestedPairs.Contains((existing.CourtId, existing.SlotId, existing.BookingDate.Date)) && existing.Status != BookingStatus.Cancelled)
         {
           existing.Status = BookingStatus.Cancelled;
           existing.CancelReason = "Bỏ ca khi sửa giải đấu";
         }
       }
 
-      var existingActivePairs = new HashSet<(int CourtId, int SlotId)>(
-        tournament.Bookings.Where(b => b.Status != BookingStatus.Cancelled).Select(b => (b.CourtId, b.SlotId)));
+      var existingActivePairs = new HashSet<(int CourtId, int SlotId, DateTime Date)>(
+        tournament.Bookings.Where(b => b.Status != BookingStatus.Cancelled).Select(b => (b.CourtId, b.SlotId, b.BookingDate.Date)));
 
       var newBookings = new List<Booking>();
       foreach (var pair in requestedPairs)
@@ -643,7 +664,7 @@ namespace SportCourtManagent_Server.Services.Implements
           var existingConflicts = await _context.Bookings.Where(b =>
             b.CourtId == pair.CourtId
             && b.SlotId == pair.SlotId
-            && b.BookingDate.Date == request.BookingDate.Date
+            && b.BookingDate.Date == pair.Date
             && b.Status != BookingStatus.Cancelled).ToListAsync();
 
           var now = DateTime.UtcNow;
@@ -657,21 +678,22 @@ namespace SportCourtManagent_Server.Services.Implements
             }
             else
             {
-              throw new ArgumentException($"Sân {pair.CourtId} vào khung giờ {pair.SlotId} ngày {request.BookingDate:dd/MM/yyyy} đã có người đặt.");
+              throw new ArgumentException($"Sân {pair.CourtId} vào khung giờ {pair.SlotId} ngày {pair.Date:dd/MM/yyyy} đã có người đặt.");
             }
           }
 
           var slot = await _context.TimeSlots.FindAsync(pair.SlotId) ?? throw new ArgumentException($"Khung giờ {pair.SlotId} không hợp lệ.");
-          decimal subTotal = await CalculateSubTotalAsync(pair.CourtId, slot, request.Services);
+          var reqServices = courtSlotServices.TryGetValue(pair, out var srv) ? srv : null;
+          decimal subTotal = await CalculateSubTotalAsync(pair.CourtId, slot, reqServices);
           var booking = new Booking
           {
             BookingCode = $"TBK{DateTime.UtcNow:yyyyMMddHHmmss}{new Random().Next(100, 999)}",
-            UserId = userId, CourtId = pair.CourtId, SlotId = pair.SlotId, BookingDate = request.BookingDate,
+            UserId = userId, CourtId = pair.CourtId, SlotId = pair.SlotId, BookingDate = pair.Date,
             StartTime = slot.StartTime, EndTime = slot.EndTime, SubTotal = subTotal, TotalAmount = subTotal,
             Status = BookingStatus.Pending, TournamentId = tournament.TournamentId, Note = request.Note,
             CreatedAt = DateTime.UtcNow, ExpiredAt = DateTime.UtcNow.AddMinutes(10)
           };
-          await AddBookingServicesAsync(booking, request.Services);
+          await AddBookingServicesAsync(booking, reqServices);
           newBookings.Add(booking);
         }
       }
@@ -686,19 +708,22 @@ namespace SportCourtManagent_Server.Services.Implements
     {
       var pricing = await _context.CourtPricings.FirstOrDefaultAsync(p => p.CourtId == courtId && p.SlotId == slot.SlotId);
       decimal subTotal = pricing != null ? pricing.Price : 0;
+      var court = await _context.Courts.FindAsync(courtId);
       if (subTotal == 0)
       {
-        var court = await _context.Courts.FindAsync(courtId);
         decimal hours = (decimal)(slot.EndTime - slot.StartTime).TotalHours;
         subTotal = (court?.PricePerHour ?? 0) * (hours > 0 ? hours : 1);
       }
-      if (services != null && services.Any())
+      if (services != null && services.Any() && court != null)
       {
         var serviceIds = services.Select(s => s.ServiceId).ToList();
-        var dbServices = await _context.Services.Where(s => serviceIds.Contains(s.ServiceId)).ToListAsync();
+        var complexServices = await _context.ComplexCourtTypeServices
+            .Where(cs => cs.ComplexId == court.ComplexId && cs.CourtTypeId == court.CourtTypeId && serviceIds.Contains(cs.ServiceId))
+            .ToListAsync();
+            
         foreach (var item in services.Where(x => x.Quantity > 0))
         {
-          var s = dbServices.FirstOrDefault(x => x.ServiceId == item.ServiceId);
+          var s = complexServices.FirstOrDefault(x => x.ServiceId == item.ServiceId);
           if (s != null) subTotal += s.Price * item.Quantity;
         }
       }
@@ -730,11 +755,15 @@ namespace SportCourtManagent_Server.Services.Implements
     private async Task AddBookingServicesAsync(Booking booking, List<ServiceItemRequest>? services)
     {
       if (services == null || !services.Any()) return;
+      var court = await _context.Courts.FindAsync(booking.CourtId);
+      if (court == null) return;
       var serviceIds = services.Select(s => s.ServiceId).ToList();
-      var dbServices = await _context.Services.Where(s => serviceIds.Contains(s.ServiceId)).ToListAsync();
+      var complexServices = await _context.ComplexCourtTypeServices
+            .Where(cs => cs.ComplexId == court.ComplexId && cs.CourtTypeId == court.CourtTypeId && serviceIds.Contains(cs.ServiceId))
+            .ToListAsync();
       foreach (var item in services.Where(x => x.Quantity > 0))
       {
-        var s = dbServices.FirstOrDefault(x => x.ServiceId == item.ServiceId);
+        var s = complexServices.FirstOrDefault(x => x.ServiceId == item.ServiceId);
         if (s != null)
         {
           booking.BookingServices.Add(new BookingService { ServiceId = item.ServiceId, Quantity = item.Quantity, TotalPrice = s.Price * item.Quantity });
@@ -868,7 +897,7 @@ namespace SportCourtManagent_Server.Services.Implements
       {
         TournamentId = t.TournamentId, TournamentName = t.TournamentName, Description = t.Description,
         UserId = t.UserId, CustomerName = t.User?.FullName ?? $"User #{t.UserId}", TotalAmount = t.TotalAmount,
-        Status = t.Status, CreatedAt = t.CreatedAt, Bookings = t.Bookings?.Select(MapToDto).ToList() ?? new List<BookingDto>()
+        Status = t.Status, CreatedAt = t.CreatedAt, ExpiredAt = t.ExpiredAt, Bookings = t.Bookings?.Select(MapToDto).ToList() ?? new List<BookingDto>()
       };
     }
 
@@ -879,7 +908,7 @@ namespace SportCourtManagent_Server.Services.Implements
       {
         TournamentId = t.TournamentId, TournamentName = t.TournamentName, Description = t.Description,
         UserId = t.UserId, CustomerName = customerName, TotalAmount = t.TotalAmount,
-        Status = t.Status, CreatedAt = t.CreatedAt, Bookings = bookings.Select(MapToDto).ToList()
+        Status = t.Status, CreatedAt = t.CreatedAt, ExpiredAt = t.ExpiredAt, Bookings = bookings.Select(MapToDto).ToList()
       };
     }
 
@@ -893,14 +922,18 @@ namespace SportCourtManagent_Server.Services.Implements
     /// <summary>Gets paged customer bookings with database filtering.</summary>
     public async Task<PagedResult<BookingDto>> GetPagedCustomerBookingsAsync(int userId, BookingFilterParams filter)
     {
-      var query = _context.Bookings.Include(b => b.User).Include(b => b.Court).Include(b => b.TimeSlot).Include(b => b.Promotion).Include(b => b.Payment).Where(b => b.UserId == userId).AsQueryable();
+      var query = _context.Bookings.Include(b => b.User).Include(b => b.Court).Include(b => b.TimeSlot).Include(b => b.Promotion).Include(b => b.Payment).Include(b => b.BookingServices).ThenInclude(bs => bs.Service).Where(b => b.UserId == userId).AsQueryable();
+      if (!string.IsNullOrWhiteSpace(filter.Status) && Enum.TryParse<BookingStatus>(filter.Status, true, out var st))
+      {
+          query = query.Where(b => b.Status == st);
+      }
       return await FilterAndPageBookingsQueryAsync(query, filter);
     }
 
     /// <summary>Gets paged admin bookings with database filtering.</summary>
     public async Task<PagedResult<BookingDto>> GetPagedAdminBookingsAsync(BookingFilterParams filter)
     {
-      var query = _context.Bookings.Include(b => b.User).Include(b => b.Court).Include(b => b.TimeSlot).Include(b => b.Promotion).Include(b => b.Payment).AsQueryable();
+      var query = _context.Bookings.Include(b => b.User).Include(b => b.Court).Include(b => b.TimeSlot).Include(b => b.Promotion).Include(b => b.Payment).Include(b => b.BookingServices).ThenInclude(bs => bs.Service).AsQueryable();
       if (filter.CourtTypeId.HasValue) query = query.Where(b => b.Court != null && b.Court.CourtTypeId == filter.CourtTypeId.Value);
       if (!string.IsNullOrWhiteSpace(filter.Status) && Enum.TryParse<BookingStatus>(filter.Status, true, out var st)) query = query.Where(b => b.Status == st);
       return await FilterAndPageBookingsQueryAsync(query, filter);
@@ -983,6 +1016,62 @@ namespace SportCourtManagent_Server.Services.Implements
         OrganizerName = t.User?.FullName ?? "Ẩn danh", Status = t.Status, CreatedAt = t.CreatedAt,
         Courts = t.Bookings?.Select(b => new CourtSlotPublicDto { CourtId = b.CourtId, CourtName = b.Court?.CourtName ?? $"Sân #{b.CourtId}", SlotId = b.SlotId, SlotName = b.TimeSlot?.SlotName ?? $"{b.StartTime:hh\\:mm}-{b.EndTime:hh\\:mm}", StartTime = b.StartTime.ToString("hh\\:mm"), EndTime = b.EndTime.ToString("hh\\:mm"), BookingDate = b.BookingDate, Status = b.Status }).ToList() ?? new List<CourtSlotPublicDto>()
       };
+    }
+
+    /// <summary>Adds services to an existing booking.</summary>
+    public async Task<BookingDto?> AddServicesToBookingAsync(int bookingId, Dictionary<int, int> serviceQuantities)
+    {
+      var booking = await _bookingRepo.GetDetailAsync(bookingId);
+      if (booking == null) return null;
+
+      decimal additionalAmount = 0;
+      foreach (var kvp in serviceQuantities.Where(q => q.Value > 0))
+      {
+        var service = await _context.Services.FindAsync(kvp.Key);
+        if (service == null) throw new ArgumentException($"Dịch vụ #{kvp.Key} không tồn tại.");
+
+        if (service.StockQty < kvp.Value)
+          throw new InvalidOperationException($"Số lượng hàng tồn kho không đủ cho dịch vụ '{service.ServiceName}'. Còn lại: {service.StockQty}, Yêu cầu: {kvp.Value}");
+
+        // Deduct stock
+        service.StockQty -= kvp.Value;
+        _context.Services.Update(service);
+
+        // Check if service already exists in booking
+        var existingService = booking.BookingServices.FirstOrDefault(bs => bs.ServiceId == kvp.Key);
+        if (existingService != null)
+        {
+          existingService.Quantity += kvp.Value;
+          existingService.TotalPrice += service.Price * kvp.Value;
+        }
+        else
+        {
+          var bookingService = new BookingService
+          {
+            BookingId = bookingId,
+            ServiceId = kvp.Key,
+            Quantity = kvp.Value,
+            TotalPrice = service.Price * kvp.Value
+          };
+          booking.BookingServices.Add(bookingService);
+        }
+
+        additionalAmount += service.Price * kvp.Value;
+      }
+
+      booking.TotalAmount += additionalAmount;
+      booking.SubTotal += additionalAmount;
+
+      var addedServicesText = string.Join(", ", serviceQuantities.Where(q => q.Value > 0).Select(q => {
+          var s = _context.Services.Find(q.Key);
+          return $"{s?.ServiceName ?? "Dịch vụ"} x{q.Value}";
+      }));
+      booking.Note = string.IsNullOrEmpty(booking.Note)
+          ? $"Đặt thêm: {addedServicesText}"
+          : $"{booking.Note} | Đặt thêm: {addedServicesText}";
+
+      await _bookingRepo.UpdateAsync(booking);
+      return MapToDto(booking);
     }
   }
 }

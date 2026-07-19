@@ -15,12 +15,8 @@ namespace SportCourtManagent_Server.DTOs.Booking
     public string? Description { get; set; }
 
     [Required]
-    public DateTime BookingDate { get; set; }
-
-    [Required]
     public List<CourtSlotSelection> CourtSelections { get; set; } = new List<CourtSlotSelection>();
 
-    public List<ServiceItemRequest>? Services { get; set; }
     public string? PromotionCode { get; set; }
     public string? Note { get; set; }
   }

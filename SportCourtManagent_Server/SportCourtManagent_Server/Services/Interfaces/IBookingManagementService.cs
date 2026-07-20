@@ -40,5 +40,8 @@ namespace SportCourtManagent_Server.Services.Interfaces
 
     /// <summary>Adds services to an existing booking.</summary>
     Task<BookingDto?> AddServicesToBookingAsync(int bookingId, Dictionary<int, int> serviceQuantities);
+
+    /// <summary>Joins FIFO Waitlist queue for a booked slot.</summary>
+    Task<WaitlistResponseDto> JoinWaitlistAsync(int userId, CreateWaitlistRequest request);
   }
 }

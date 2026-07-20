@@ -79,9 +79,12 @@ namespace SportCourtManagent_Server.Services.Implements
 
         public async Task<(AuthResponseDto? Data, string? Error)> LoginAsync(LoginRequest request)
         {
-            var user = await _userRepo.GetByEmailWithDetailsAsync(request.Email);
+            var cleanEmail = request.Email?.Trim() ?? string.Empty;
+            var cleanPassword = request.Password?.Trim() ?? string.Empty;
 
-            if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+            var user = await _userRepo.GetByEmailWithDetailsAsync(cleanEmail);
+
+            if (user == null || !BCrypt.Net.BCrypt.Verify(cleanPassword, user.PasswordHash))
                 return (null, "Email hoặc mật khẩu không chính xác.");
 
             if (!user.IsActive)

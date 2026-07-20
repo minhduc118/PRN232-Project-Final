@@ -234,5 +234,91 @@ namespace SportCourtManagent_Server.Controllers
                 return StatusCode(500, new { success = false, message = "Lỗi khi khởi tạo dữ liệu mẫu.", error = ex.Message });
             }
         }
+
+        /// <summary>Seed 50+ services với đúng enum Category cho test paging</summary>
+        [HttpPost("seed-services")]
+        public async Task<IActionResult> SeedServices()
+        {
+            try
+            {
+                var services = new List<Service>
+                {
+                    // ── Equipment (Dụng cụ) ──────────────────────────
+                    new() { ServiceName = "Thuê vợt cầu lông Yonex Astrox",   Category = "Equipment", Price = 50_000,  Unit = "Ca",   StockQty = 30,  IsActive = true,  Description = "Vợt carbon cao cấp, phù hợp tấn công" },
+                    new() { ServiceName = "Thuê vợt cầu lông Victor TK-HMR",  Category = "Equipment", Price = 45_000,  Unit = "Ca",   StockQty = 25,  IsActive = true,  Description = "Vợt đa năng, thích hợp người mới" },
+                    new() { ServiceName = "Ống cầu Thành Công RS-9 (12 quả)", Category = "Equipment", Price = 240_000, Unit = "Ống",  StockQty = 100, IsActive = true,  Description = "Cầu lông tiêu chuẩn thi đấu quốc nội" },
+                    new() { ServiceName = "Thuê vợt tennis Wilson Pro Staff",  Category = "Equipment", Price = 100_000, Unit = "Ca",   StockQty = 15,  IsActive = true,  Description = "Wilson Pro Staff 97 RF - phiên bản Federer" },
+                    new() { ServiceName = "Hộp bóng tennis Dunlop ATP (4q)",  Category = "Equipment", Price = 180_000, Unit = "Hộp",  StockQty = 50,  IsActive = true,  Description = "Bóng áp lực cao dùng cho sân cứng" },
+                    new() { ServiceName = "Thuê vợt Pickleball Joola Carbon",  Category = "Equipment", Price = 70_000,  Unit = "Ca",   StockQty = 25,  IsActive = true,  Description = "Vợt graphite nhẹ, kiểm soát tốt" },
+                    new() { ServiceName = "Hộp bóng Pickleball Franklin (6q)", Category = "Equipment", Price = 150_000, Unit = "Hộp",  StockQty = 40,  IsActive = true,  Description = "Bóng nhựa dùng ngoài trời chuẩn USAPA" },
+                    new() { ServiceName = "Thuê bóng đá Động Lực FIFA",       Category = "Equipment", Price = 60_000,  Unit = "Ca",   StockQty = 20,  IsActive = true,  Description = "Kích thước 5, tiêu chuẩn FIFA Quality" },
+                    new() { ServiceName = "Bộ áo bíp phân đội (10 áo)",       Category = "Equipment", Price = 50_000,  Unit = "Bộ",   StockQty = 30,  IsActive = true,  Description = "Áo phân đội màu huỳnh quang dễ nhận biết" },
+                    new() { ServiceName = "Thuê bóng rổ Spalding NBA",         Category = "Equipment", Price = 80_000,  Unit = "Ca",   StockQty = 20,  IsActive = true,  Description = "Size 7 composite leather" },
+                    new() { ServiceName = "Bộ dụng cụ bảo vệ cổ tay/đầu gối", Category = "Equipment", Price = 30_000,  Unit = "Bộ",   StockQty = 50,  IsActive = true,  Description = "Bảo vệ khớp khi vận động mạnh" },
+                    new() { ServiceName = "Lưới cầu lông di động",             Category = "Equipment", Price = 40_000,  Unit = "Ca",   StockQty = 10,  IsActive = true,  Description = "Lưới tiêu chuẩn BWF, dễ lắp ráp" },
+                    new() { ServiceName = "Thuê giày cầu lông Victor (số 40-45)", Category = "Equipment", Price = 35_000, Unit = "Ca", StockQty = 30,  IsActive = true,  Description = "Nhiều size, đế non-marking" },
+                    new() { ServiceName = "Bộ phao bơi người lớn",             Category = "Equipment", Price = 20_000,  Unit = "Cái",  StockQty = 40,  IsActive = true,  Description = "An toàn theo tiêu chuẩn CE" },
+                    new() { ServiceName = "Đồng hồ bấm giờ thi đấu",          Category = "Equipment", Price = 25_000,  Unit = "Ca",   StockQty = 15,  IsActive = true,  Description = "Đồng hồ điện tử hiển thị to" },
+
+                    // ── Drink (Đồ uống) ──────────────────────────────
+                    new() { ServiceName = "Nước khoáng Lavie 500ml",           Category = "Drink",     Price = 10_000,  Unit = "Chai",  StockQty = 200, IsActive = true,  Description = "Nước tinh khiết thiên nhiên" },
+                    new() { ServiceName = "Pocari Sweat 500ml",                Category = "Drink",     Price = 18_000,  Unit = "Chai",  StockQty = 150, IsActive = true,  Description = "Bù điện giải sau vận động" },
+                    new() { ServiceName = "Nước tăng lực Redbull 250ml",       Category = "Drink",     Price = 22_000,  Unit = "Lon",   StockQty = 100, IsActive = true,  Description = "Tăng năng lượng tức thì" },
+                    new() { ServiceName = "Nước dừa tươi đóng hộp 330ml",      Category = "Drink",     Price = 25_000,  Unit = "Hộp",   StockQty = 80,  IsActive = true,  Description = "Bù khoáng chất tự nhiên" },
+                    new() { ServiceName = "Nước ép cam tươi 300ml",            Category = "Drink",     Price = 30_000,  Unit = "Ly",    StockQty = 60,  IsActive = true,  Description = "Vitamin C tự nhiên giúp hồi phục" },
+                    new() { ServiceName = "Sữa chua uống Vinamilk 180ml",      Category = "Drink",     Price = 15_000,  Unit = "Hộp",   StockQty = 120, IsActive = true,  Description = "Protein và canxi sau tập luyện" },
+                    new() { ServiceName = "Cà phê lon Highlands 250ml",        Category = "Drink",     Price = 25_000,  Unit = "Lon",   StockQty = 80,  IsActive = true,  Description = "Tỉnh táo trước trận" },
+                    new() { ServiceName = "Thùng nước Pocari Sweat (24 chai)", Category = "Drink",     Price = 380_000, Unit = "Thùng", StockQty = 20,  IsActive = true,  Description = "Cho sự kiện/giải đấu nhóm" },
+                    new() { ServiceName = "Protein shake vani 300ml",          Category = "Drink",     Price = 45_000,  Unit = "Ly",    StockQty = 40,  IsActive = true,  Description = "25g protein sau workout" },
+                    new() { ServiceName = "Nước chanh muối đá",                Category = "Drink",     Price = 20_000,  Unit = "Ly",    StockQty = 50,  IsActive = true,  Description = "Bù điện giải dân gian hiệu quả" },
+
+                    // ── Coach (Huấn luyện viên) ──────────────────────
+                    new() { ServiceName = "HLV Cầu lông cơ bản (1 buổi)",     Category = "Coach",     Price = 200_000, Unit = "Buổi", StockQty = 10,  IsActive = true,  Description = "Lý thuyết + thực hành 90 phút cho người mới" },
+                    new() { ServiceName = "HLV Cầu lông nâng cao (1 buổi)",   Category = "Coach",     Price = 350_000, Unit = "Buổi", StockQty = 8,   IsActive = true,  Description = "Kỹ thuật smash, drop shot, footwork" },
+                    new() { ServiceName = "HLV Tennis cơ bản (1 buổi)",       Category = "Coach",     Price = 300_000, Unit = "Buổi", StockQty = 6,   IsActive = true,  Description = "Forehand, backhand, serve cơ bản" },
+                    new() { ServiceName = "HLV Tennis chuyên sâu (1 buổi)",   Category = "Coach",     Price = 500_000, Unit = "Buổi", StockQty = 4,   IsActive = true,  Description = "Kỹ thuật slice, volley, topspin nâng cao" },
+                    new() { ServiceName = "HLV Bóng rổ cơ bản (1 buổi)",      Category = "Coach",     Price = 250_000, Unit = "Buổi", StockQty = 8,   IsActive = true,  Description = "Dribble, pass, lay-up cho người mới" },
+                    new() { ServiceName = "HLV Pickleball (1 buổi)",          Category = "Coach",     Price = 220_000, Unit = "Buổi", StockQty = 10,  IsActive = true,  Description = "Kỹ thuật dink, drive, lob" },
+                    new() { ServiceName = "HLV Bóng đá (1 buổi)",             Category = "Coach",     Price = 280_000, Unit = "Buổi", StockQty = 6,   IsActive = true,  Description = "Kỹ thuật dẫn bóng, sút cầu môn" },
+                    new() { ServiceName = "Gói HLV Cầu lông 10 buổi",         Category = "Coach",     Price = 1_800_000, Unit = "Gói", StockQty = 5, IsActive = true,  Description = "Tiết kiệm 10% so với đặt lẻ" },
+                    new() { ServiceName = "Gói HLV Tennis 10 buổi",           Category = "Coach",     Price = 2_800_000, Unit = "Gói", StockQty = 3, IsActive = true,  Description = "Tiết kiệm 12% so với đặt lẻ" },
+                    new() { ServiceName = "Trọng tài trận đấu (per trận)",    Category = "Coach",     Price = 500_000, Unit = "Trận", StockQty = 10,  IsActive = true,  Description = "Trọng tài có chứng chỉ quốc gia" },
+
+                    // ── Event (Sự kiện) ──────────────────────────────
+                    new() { ServiceName = "Tổ chức giải đấu nội bộ (< 32 người)", Category = "Event", Price = 2_000_000, Unit = "Giải", StockQty = 5, IsActive = true, Description = "Bao gồm điều phối, bảng đấu, giám sát" },
+                    new() { ServiceName = "Tổ chức giải đấu mở rộng (< 64 người)", Category = "Event", Price = 4_000_000, Unit = "Giải", StockQty = 3, IsActive = true, Description = "Cờ hiệu, bảng điểm điện tử, camera stream" },
+                    new() { ServiceName = "Thuê sảnh VIP sinh nhật / công ty",Category = "Event",     Price = 3_000_000, Unit = "Buổi", StockQty = 2, IsActive = true, Description = "Sảnh 100m², máy chiếu, âm thanh" },
+                    new() { ServiceName = "Gói chụp ảnh thể thao chuyên nghiệp", Category = "Event", Price = 1_500_000, Unit = "Buổi", StockQty = 4, IsActive = true, Description = "RAW + JPEG, giao file trong 48h" },
+                    new() { ServiceName = "Livestream trận đấu HD",            Category = "Event",     Price = 800_000, Unit = "Trận",  StockQty = 5,  IsActive = true,  Description = "2 camera góc độc, kỹ thuật viên chuyên nghiệp" },
+                    new() { ServiceName = "Cúp vàng + Huy chương bộ 3",        Category = "Event",     Price = 800_000, Unit = "Bộ",   StockQty = 15,  IsActive = true,  Description = "Cúp pha lê + huy chương mạ vàng" },
+                    new() { ServiceName = "In banner dọc khổ lớn (90x200cm)", Category = "Event",     Price = 250_000, Unit = "Cái",   StockQty = 20,  IsActive = true,  Description = "In UV, sắc nét, giao trong 24h" },
+                    new() { ServiceName = "Thuê máy phát điện dự phòng 5kW",  Category = "Event",     Price = 500_000, Unit = "Ngày",  StockQty = 3,   IsActive = true,  Description = "Đảm bảo điện liên tục cho sự kiện lớn" },
+                    new() { ServiceName = "Dịch vụ ăn nhẹ buffet (per người)",Category = "Event",     Price = 150_000, Unit = "Người", StockQty = 100, IsActive = true,  Description = "Trái cây, bánh ngọt, nước uống" },
+                    new() { ServiceName = "Đặt phòng họp chiến thuật (2h)",   Category = "Event",     Price = 400_000, Unit = "Ca",    StockQty = 5,   IsActive = true,  Description = "Phòng 20 người, bảng trắng, máy chiếu" },
+                    new() { ServiceName = "Gói team building thể thao (1 ngày)", Category = "Event",  Price = 15_000_000, Unit = "Gói", StockQty = 2, IsActive = true, Description = "Tổ chức trọn gói cho 20-50 người" },
+                    new() { ServiceName = "Bảo vệ an ninh sự kiện (4h)",      Category = "Event",     Price = 600_000, Unit = "Ca",    StockQty = 8,   IsActive = true,  Description = "2 nhân viên bảo vệ có kinh nghiệm" },
+                };
+
+                int added = 0;
+                foreach (var svc in services)
+                {
+                    bool exists = await _context.Services.AnyAsync(s => s.ServiceName == svc.ServiceName);
+                    if (!exists)
+                    {
+                        _context.Services.Add(svc);
+                        added++;
+                    }
+                }
+                await _context.SaveChangesAsync();
+
+                int total = await _context.Services.CountAsync();
+                return Ok(new { success = true, message = $"Seed hoàn tất! Thêm mới: {added}, Tổng dịch vụ trong DB: {total}" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Lỗi seed dịch vụ.", error = ex.Message });
+            }
+        }
     }
 }
+

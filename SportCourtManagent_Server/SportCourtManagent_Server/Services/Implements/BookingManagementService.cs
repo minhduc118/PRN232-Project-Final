@@ -110,7 +110,7 @@ namespace SportCourtManagent_Server.Services.Implements
 
       var booking = new Booking
       {
-        BookingCode = $"BK{DateTime.UtcNow:yyyyMMddHHmmss}{new Random().Next(100, 999)}",
+        BookingCode = $"BK{DateTime.UtcNow:yyMMddHHmmss}{Guid.NewGuid().ToString("N")[..5].ToUpper()}",
         UserId = userId,
         CourtId = request.CourtId,
         SlotId = request.SlotId,
@@ -141,6 +141,8 @@ namespace SportCourtManagent_Server.Services.Implements
     public async Task<RecurringBookingResponseDto> CreateRecurringBookingAsync(int userId, CreateRecurringBookingRequest request)
     {
       if (request == null) throw new ArgumentNullException(nameof(request));
+      if (request.StartDate.Date < DateTime.Today)
+        throw new ArgumentException("Ngày bắt đầu đặt sân không được ở trong quá khứ.");
       if (request.DaysOfWeek == null || !request.DaysOfWeek.Any())
         throw new ArgumentException("Phải chọn ít nhất một ngày trong tuần.");
       if (request.EndDate <= request.StartDate)
@@ -213,117 +215,117 @@ namespace SportCourtManagent_Server.Services.Implements
         try
         {
           // Create RecurringBooking parent record
-        var daysStr = string.Join(",", request.DaysOfWeek.OrderBy(d => d));
-        var recurring = new RecurringBooking
-        {
-          UserId = userId,
-          CourtId = request.CourtId,
-          SlotId = request.SlotId,
-          StartDate = request.StartDate,
-          EndDate = request.EndDate,
-          DaysOfWeek = daysStr,
-          Status = RecurringBookingStatus.Active
-        };
-        await _context.RecurringBookings.AddAsync(recurring);
-        await _context.SaveChangesAsync();
-
-        // Create individual bookings for each available date
-        decimal totalAmount = 0;
-        var createdBookings = new List<Booking>();
-
-        foreach (var date in availableDates)
-        {
-          decimal subTotal = await CalculateSubTotalAsync(request.CourtId, slot, null);
-
-          var booking = new Booking
+          var daysStr = string.Join(",", request.DaysOfWeek.OrderBy(d => d));
+          var recurring = new RecurringBooking
           {
-            BookingCode = $"RBK{DateTime.UtcNow:yyyyMMddHHmmss}{new Random().Next(100, 999)}",
             UserId = userId,
             CourtId = request.CourtId,
             SlotId = request.SlotId,
-            BookingDate = date,
-            StartTime = slot.StartTime,
-            EndTime = slot.EndTime,
-            SubTotal = subTotal,
-            DiscountAmount = 0,
-            TotalAmount = subTotal,
-            Status = BookingStatus.Pending,
-            Note = request.Note,
-            CreatedAt = DateTime.UtcNow
+            StartDate = request.StartDate,
+            EndDate = request.EndDate,
+            DaysOfWeek = daysStr,
+            Status = RecurringBookingStatus.Active
           };
+          await _context.RecurringBookings.AddAsync(recurring);
+          await _context.SaveChangesAsync();
 
-          totalAmount += subTotal;
-          await _context.Bookings.AddAsync(booking);
-          createdBookings.Add(booking);
-        }
+          // Create individual bookings for each available date
+          decimal totalAmount = 0;
+          var createdBookings = new List<Booking>();
 
-        // Apply promotion if provided
-        decimal discountAmount = 0;
-        int? promoId = null;
-        if (!string.IsNullOrWhiteSpace(request.PromotionCode))
-        {
-          var promoResult = await ProcessPromotionAsync(request.PromotionCode, totalAmount);
-          promoId = promoResult.promoId;
-          discountAmount = promoResult.discount;
-
-          if (promoId.HasValue && createdBookings.Any())
+          foreach (var date in availableDates)
           {
-            decimal perBookingDiscount = discountAmount / createdBookings.Count;
-            foreach (var b in createdBookings)
+            decimal subTotal = await CalculateSubTotalAsync(request.CourtId, slot, null);
+
+            var booking = new Booking
             {
-              b.PromotionId = promoId;
-              b.DiscountAmount = perBookingDiscount;
-              b.TotalAmount = Math.Max(0, b.SubTotal - perBookingDiscount);
+              BookingCode = $"RBK{DateTime.UtcNow:yyMMddHHmmss}{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
+              UserId = userId,
+              CourtId = request.CourtId,
+              SlotId = request.SlotId,
+              BookingDate = date,
+              StartTime = slot.StartTime,
+              EndTime = slot.EndTime,
+              SubTotal = subTotal,
+              DiscountAmount = 0,
+              TotalAmount = subTotal,
+              Status = BookingStatus.Pending,
+              Note = request.Note,
+              CreatedAt = DateTime.UtcNow
+            };
+
+            totalAmount += subTotal;
+            await _context.Bookings.AddAsync(booking);
+            createdBookings.Add(booking);
+          }
+
+          // Apply promotion if provided
+          decimal discountAmount = 0;
+          int? promoId = null;
+          if (!string.IsNullOrWhiteSpace(request.PromotionCode))
+          {
+            var promoResult = await ProcessPromotionAsync(request.PromotionCode, totalAmount);
+            promoId = promoResult.promoId;
+            discountAmount = promoResult.discount;
+
+            if (promoId.HasValue && createdBookings.Any())
+            {
+              decimal perBookingDiscount = discountAmount / createdBookings.Count;
+              foreach (var b in createdBookings)
+              {
+                b.PromotionId = promoId;
+                b.DiscountAmount = perBookingDiscount;
+                b.TotalAmount = Math.Max(0, b.SubTotal - perBookingDiscount);
+              }
             }
           }
+
+          await _context.SaveChangesAsync();
+          await transaction.CommitAsync();
+
+          // Push SignalR updates for all booked slots
+          foreach (var date in availableDates)
+          {
+            await _hubContext.Clients.Group($"court-{request.CourtId}")
+              .SendAsync("SlotStatusChanged", request.CourtId, request.SlotId, date.ToString("yyyy-MM-dd"), "Booked");
+          }
+
+          // Map day numbers to Vietnamese day names
+          string daysDisplay = string.Join(", ", request.DaysOfWeek.OrderBy(d => d).Select(d => d switch
+          {
+            0 => "CN",
+            1 => "T2",
+            2 => "T3",
+            3 => "T4",
+            4 => "T5",
+            5 => "T6",
+            6 => "T7",
+            _ => d.ToString()
+          }));
+
+          return new RecurringBookingResponseDto
+          {
+            RecurringId = recurring.RecurringId,
+            CourtId = court.CourtId,
+            CourtName = court.CourtName,
+            SlotId = slot.SlotId,
+            SlotName = slot.SlotName,
+            StartDate = request.StartDate,
+            EndDate = request.EndDate,
+            DaysOfWeek = daysDisplay,
+            Status = recurring.Status.ToString(),
+            CreatedBookings = createdBookings.Select(MapToDto).ToList(),
+            ConflictDates = conflictDates.Select(d => d.ToString("dd/MM/yyyy")).ToList(),
+            TotalRequestedSessions = allDates.Count,
+            TotalBookedSessions = availableDates.Count,
+            TotalEstimatedAmount = Math.Max(0, totalAmount - discountAmount)
+          };
         }
-
-        await _context.SaveChangesAsync();
-        await transaction.CommitAsync();
-
-        // Push SignalR updates for all booked slots
-        foreach (var date in availableDates)
+        catch (Exception)
         {
-          await _hubContext.Clients.Group($"court-{request.CourtId}")
-            .SendAsync("SlotStatusChanged", request.CourtId, request.SlotId, date.ToString("yyyy-MM-dd"), "Booked");
+          await transaction.RollbackAsync();
+          throw;
         }
-
-        // Map day numbers to Vietnamese day names
-        string daysDisplay = string.Join(", ", request.DaysOfWeek.OrderBy(d => d).Select(d => d switch
-        {
-          0 => "CN",
-          1 => "T2",
-          2 => "T3",
-          3 => "T4",
-          4 => "T5",
-          5 => "T6",
-          6 => "T7",
-          _ => d.ToString()
-        }));
-
-        return new RecurringBookingResponseDto
-        {
-          RecurringId = recurring.RecurringId,
-          CourtId = court.CourtId,
-          CourtName = court.CourtName,
-          SlotId = slot.SlotId,
-          SlotName = slot.SlotName,
-          StartDate = request.StartDate,
-          EndDate = request.EndDate,
-          DaysOfWeek = daysDisplay,
-          Status = recurring.Status.ToString(),
-          CreatedBookings = createdBookings.Select(MapToDto).ToList(),
-          ConflictDates = conflictDates.Select(d => d.ToString("dd/MM/yyyy")).ToList(),
-          TotalRequestedSessions = allDates.Count,
-          TotalBookedSessions = availableDates.Count,
-          TotalEstimatedAmount = Math.Max(0, totalAmount - discountAmount)
-        };
-      }
-      catch (Exception)
-      {
-        await transaction.RollbackAsync();
-        throw;
-      }
       });
     }
 
@@ -421,34 +423,34 @@ namespace SportCourtManagent_Server.Services.Implements
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-        var tournament = new Tournament
+          var tournament = new Tournament
+          {
+            TournamentName = request.TournamentName,
+            Description = request.Description,
+            UserId = userId,
+            Status = TournamentStatus.Pending,
+            CreatedAt = DateTime.UtcNow,
+            ExpiredAt = DateTime.UtcNow.AddMinutes(10)
+          };
+          await _context.Tournaments.AddAsync(tournament);
+          await _context.SaveChangesAsync();
+
+          var createdBookings = await ProcessTournamentBookingsAsync(userId, tournament.TournamentId, request);
+          decimal totalAmount = createdBookings.Sum(b => b.SubTotal);
+          await ApplyTournamentPromotionAsync(tournament, createdBookings, request.PromotionCode, totalAmount);
+
+          await _context.SaveChangesAsync();
+          await transaction.CommitAsync();
+          _cache.Remove(PublicTournamentsCacheKey);
+
+          var user = await _context.Users.FindAsync(userId);
+          return MapToTournamentDtoWithCustomer(tournament, user?.FullName ?? $"User #{userId}", createdBookings);
+        }
+        catch
         {
-          TournamentName = request.TournamentName,
-          Description = request.Description,
-          UserId = userId,
-          Status = TournamentStatus.Pending,
-          CreatedAt = DateTime.UtcNow,
-          ExpiredAt = DateTime.UtcNow.AddMinutes(10)
-        };
-        await _context.Tournaments.AddAsync(tournament);
-        await _context.SaveChangesAsync();
-
-        var createdBookings = await ProcessTournamentBookingsAsync(userId, tournament.TournamentId, request);
-        decimal totalAmount = createdBookings.Sum(b => b.SubTotal);
-        await ApplyTournamentPromotionAsync(tournament, createdBookings, request.PromotionCode, totalAmount);
-
-        await _context.SaveChangesAsync();
-        await transaction.CommitAsync();
-        _cache.Remove(PublicTournamentsCacheKey);
-
-        var user = await _context.Users.FindAsync(userId);
-        return MapToTournamentDtoWithCustomer(tournament, user?.FullName ?? $"User #{userId}", createdBookings);
-      }
-      catch
-      {
-        await transaction.RollbackAsync();
-        throw;
-      }
+          await transaction.RollbackAsync();
+          throw;
+        }
       });
     }
 
@@ -503,7 +505,7 @@ namespace SportCourtManagent_Server.Services.Implements
       decimal subTotal = CalculateBatchSubTotal(courtId, slot, reqServices, courts, pricings, complexServices);
       var booking = new Booking
       {
-        BookingCode = $"BK{DateTime.UtcNow:yyyyMMddHHmmss}{new Random().Next(100, 999)}",
+        BookingCode = $"BK{DateTime.UtcNow:yyMMddHHmmss}{Guid.NewGuid().ToString("N")[..5].ToUpper()}",
         UserId = userId,
         CourtId = courtId,
         SlotId = slotId,
@@ -613,19 +615,19 @@ namespace SportCourtManagent_Server.Services.Implements
         try
         {
           tournament.TournamentName = request.TournamentName;
-        tournament.Description = request.Description;
-        await ApplyTournamentDiffingAsync(tournament, userId, request);
+          tournament.Description = request.Description;
+          await ApplyTournamentDiffingAsync(tournament, userId, request);
 
-        await _context.SaveChangesAsync();
-        await transaction.CommitAsync();
-        _cache.Remove(PublicTournamentsCacheKey);
-        return await GetTournamentDetailAsync(tournamentId, userId, false);
-      }
-      catch
-      {
-        await transaction.RollbackAsync();
-        throw;
-      }
+          await _context.SaveChangesAsync();
+          await transaction.CommitAsync();
+          _cache.Remove(PublicTournamentsCacheKey);
+          return await GetTournamentDetailAsync(tournamentId, userId, false);
+        }
+        catch
+        {
+          await transaction.RollbackAsync();
+          throw;
+        }
       });
     }
 
@@ -699,7 +701,7 @@ namespace SportCourtManagent_Server.Services.Implements
           decimal subTotal = await CalculateSubTotalAsync(pair.CourtId, slot, reqServices);
           var booking = new Booking
           {
-            BookingCode = $"TBK{DateTime.UtcNow:yyyyMMddHHmmss}{new Random().Next(100, 999)}",
+            BookingCode = $"TBK{DateTime.UtcNow:yyMMddHHmmss}{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
             UserId = userId, CourtId = pair.CourtId, SlotId = pair.SlotId, BookingDate = pair.Date,
             StartTime = slot.StartTime, EndTime = slot.EndTime, SubTotal = subTotal, TotalAmount = subTotal,
             Status = BookingStatus.Pending, TournamentId = tournament.TournamentId, Note = request.Note,
@@ -864,21 +866,25 @@ namespace SportCourtManagent_Server.Services.Implements
       var tournament = await GetBaseTournamentQuery().FirstOrDefaultAsync(t => t.TournamentId == tournamentId);
       if (tournament == null) return null;
 
-      using var transaction = await _context.Database.BeginTransactionAsync();
-      try
+      var strategy = _context.Database.CreateExecutionStrategy();
+      return await strategy.ExecuteAsync(async () =>
       {
-        tournament.Status = request.Status;
-        ApplyStatusCascadeToBookings(tournament, request);
-        await _context.SaveChangesAsync();
-        await transaction.CommitAsync();
-        _cache.Remove(PublicTournamentsCacheKey);
-        return MapToTournamentDto(tournament);
-      }
-      catch
-      {
-        await transaction.RollbackAsync();
-        throw;
-      }
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+          tournament.Status = request.Status;
+          ApplyStatusCascadeToBookings(tournament, request);
+          await _context.SaveChangesAsync();
+          await transaction.CommitAsync();
+          _cache.Remove(PublicTournamentsCacheKey);
+          return MapToTournamentDto(tournament);
+        }
+        catch
+        {
+          await transaction.RollbackAsync();
+          throw;
+        }
+      });
     }
 
     /// <summary>Applies cascade status updates to child bookings.</summary>
@@ -1084,6 +1090,67 @@ namespace SportCourtManagent_Server.Services.Implements
 
       await _bookingRepo.UpdateAsync(booking);
       return MapToDto(booking);
+    }
+
+    /// <summary>Joins FIFO Waitlist queue for a booked slot.</summary>
+    public async Task<WaitlistResponseDto> JoinWaitlistAsync(int userId, CreateWaitlistRequest request)
+    {
+      if (request == null) throw new ArgumentNullException(nameof(request));
+      var court = await _context.Courts.FindAsync(request.CourtId) ?? throw new ArgumentException("Sân không tồn tại.");
+      var slot = await _context.TimeSlots.FindAsync(request.SlotId) ?? throw new ArgumentException("Khung giờ không hợp lệ.");
+
+      // Check if user is already in waitlist for this slot/date
+      var existing = await _context.Waitlists.FirstOrDefaultAsync(w =>
+        w.UserId == userId && w.CourtId == request.CourtId && w.SlotId == request.SlotId && w.WaitDate.Date == request.WaitDate.Date && w.Status == WaitlistStatus.Waiting);
+
+      if (existing != null)
+      {
+        return new WaitlistResponseDto
+        {
+          WaitlistId = existing.WaitlistId,
+          UserId = existing.UserId,
+          CourtId = existing.CourtId,
+          CourtName = court.CourtName,
+          SlotId = existing.SlotId,
+          SlotName = slot.SlotName,
+          WaitDate = existing.WaitDate,
+          Position = existing.Position,
+          Status = existing.Status.ToString()
+        };
+      }
+
+      // Compute next FIFO position for this court/slot/date
+      var maxPos = await _context.Waitlists
+        .Where(w => w.CourtId == request.CourtId && w.SlotId == request.SlotId && w.WaitDate.Date == request.WaitDate.Date)
+        .MaxAsync(w => (int?)w.Position) ?? 0;
+
+      int nextPosition = maxPos + 1;
+
+      var waitlist = new Waitlist
+      {
+        UserId = userId,
+        CourtId = request.CourtId,
+        SlotId = request.SlotId,
+        WaitDate = request.WaitDate.Date,
+        Position = nextPosition,
+        Status = WaitlistStatus.Waiting
+      };
+
+      await _context.Waitlists.AddAsync(waitlist);
+      await _context.SaveChangesAsync();
+
+      return new WaitlistResponseDto
+      {
+        WaitlistId = waitlist.WaitlistId,
+        UserId = waitlist.UserId,
+        CourtId = waitlist.CourtId,
+        CourtName = court.CourtName,
+        SlotId = waitlist.SlotId,
+        SlotName = slot.SlotName,
+        WaitDate = waitlist.WaitDate,
+        Position = waitlist.Position,
+        Status = waitlist.Status.ToString()
+      };
     }
   }
 }

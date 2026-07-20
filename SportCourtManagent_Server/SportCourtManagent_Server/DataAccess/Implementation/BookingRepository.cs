@@ -172,6 +172,8 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
                 .Include(b => b.TimeSlot)
                 .Include(b => b.Payment)
                 .Include(b => b.Promotion)
+                .Include(b => b.BookingServices)
+                    .ThenInclude(bs => bs.Service)
                 .Where(b => b.UserId == userId)
                 .OrderByDescending(b => b.BookingDate)
                 .ToListAsync();
@@ -186,6 +188,8 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
                 .Include(b => b.TimeSlot)
                 .Include(b => b.Payment)
                 .Include(b => b.Promotion)
+                .Include(b => b.BookingServices)
+                    .ThenInclude(bs => bs.Service)
                 .AsQueryable();
 
             if (date.HasValue)

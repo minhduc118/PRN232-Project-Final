@@ -112,7 +112,8 @@ namespace SportCourtManagent_Server.Controllers
       }
       catch (Exception ex)
       {
-        return StatusCode(500, ApiResults.Fail(ex.Message, 500));
+        var msg = ex.InnerException != null ? $"{ex.Message} ({ex.InnerException.Message})" : ex.Message;
+        return StatusCode(500, ApiResults.Fail(msg, 500));
       }
     }
 
@@ -336,6 +337,26 @@ namespace SportCourtManagent_Server.Controllers
         var result = await _bookingService.AddServicesToBookingAsync(id, serviceQuantities);
         if (result == null) return NotFound(ApiResults.Fail("Không tìm thấy đơn đặt sân.", 404));
         return Ok(ApiResults.Ok(result, "Thêm dịch vụ thành công."));
+      }
+      catch (ArgumentException ex)
+      {
+        return BadRequest(ApiResults.Fail(ex.Message, 400));
+      }
+      catch (Exception ex)
+      {
+        return StatusCode(500, ApiResults.Fail(ex.Message, 500));
+      }
+    }
+
+    /// <summary>Registers user to FIFO Waitlist queue for a booked slot.</summary>
+    [HttpPost("waitlist")]
+    public async Task<IActionResult> JoinWaitlist([FromBody] CreateWaitlistRequest request)
+    {
+      try
+      {
+        if (!TryGetUserId(out int userId)) return Unauthorized(ApiResults.Fail("Không xác định được người dùng.", 401));
+        var result = await _bookingService.JoinWaitlistAsync(userId, request);
+        return Ok(ApiResults.Ok(result, $"Bạn đã đăng ký Hàng chờ FIFO vị trí #{result.Position} thành công."));
       }
       catch (ArgumentException ex)
       {

@@ -198,11 +198,11 @@ namespace SportCourtManagent_Server.Services.Implements
                 }
             }
 
-            // 4. Extract Booking Code (supports BK-XXXXXXXX and BK2026MMDD...)
-            var match = Regex.Match(payload.Content, @"BK-?[A-Z0-9]{8,20}", RegexOptions.IgnoreCase);
+            // 4. Extract Booking Code (supports BK, RBK, TBK formats)
+            var match = Regex.Match(payload.Content, @"(?:R?BK|TBK)-?[A-Z0-9]{8,20}", RegexOptions.IgnoreCase);
             if (!match.Success)
             {
-                match = Regex.Match(payload.Description, @"BK-?[A-Z0-9]{8,20}", RegexOptions.IgnoreCase);
+                match = Regex.Match(payload.Description, @"(?:R?BK|TBK)-?[A-Z0-9]{8,20}", RegexOptions.IgnoreCase);
             }
 
             if (!match.Success)
@@ -294,13 +294,65 @@ namespace SportCourtManagent_Server.Services.Implements
 
                     if (dbBooking.Status == BookingStatus.Pending)
                     {
-                        // Verify amount
+                        // Check if this is part of a recurring booking batch (RBK prefix)
+                        if (dbBooking.BookingCode.StartsWith("RBK", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var relatedRecurringBookings = await _context.Bookings
+                                .Where(b => b.UserId == dbBooking.UserId &&
+                                            b.BookingCode.StartsWith("RBK") &&
+                                            b.Status == BookingStatus.Pending &&
+                                            Math.Abs(EF.Functions.DateDiffSecond(b.CreatedAt, dbBooking.CreatedAt)) < 60)
+                                .ToListAsync();
+
+                            decimal totalGroupAmount = relatedRecurringBookings.Sum(b => b.TotalAmount);
+                            if (payload.TransferAmount >= totalGroupAmount && relatedRecurringBookings.Any())
+                            {
+                                string transactionRef = !string.IsNullOrEmpty(payload.ReferenceCode) ? payload.ReferenceCode : payload.Id.ToString();
+                                foreach (var rb in relatedRecurringBookings)
+                                {
+                                    rb.Status = BookingStatus.Confirmed;
+                                    await _context.Payments.AddAsync(new Payment
+                                    {
+                                        BookingId = rb.BookingId,
+                                        Amount = rb.TotalAmount,
+                                        PaymentMethod = PaymentMethod.BankTransfer,
+                                        TransactionId = $"{transactionRef}-B{rb.BookingId}",
+                                        Status = PaymentStatus.Success,
+                                        PaidAt = DateTime.UtcNow
+                                    });
+                                }
+                                await _context.SaveChangesAsync();
+
+                                var court = await _context.Courts.FindAsync(dbBooking.CourtId);
+                                var slot = await _context.TimeSlots.FindAsync(dbBooking.SlotId);
+
+                                return new BookingResponseDto
+                                {
+                                    BookingId = dbBooking.BookingId,
+                                    BookingCode = dbBooking.BookingCode,
+                                    UserId = dbBooking.UserId,
+                                    CourtId = dbBooking.CourtId,
+                                    CourtName = court?.CourtName ?? "Sân đấu",
+                                    SlotId = dbBooking.SlotId,
+                                    SlotName = slot?.SlotName ?? "Khung giờ",
+                                    BookingDate = dbBooking.BookingDate,
+                                    StartTime = dbBooking.StartTime,
+                                    EndTime = dbBooking.EndTime,
+                                    SubTotal = dbBooking.SubTotal,
+                                    DiscountAmount = dbBooking.DiscountAmount,
+                                    TotalAmount = totalGroupAmount,
+                                    Status = "Confirmed"
+                                };
+                            }
+                        }
+
+                        // Verify amount for single booking
                         if (payload.TransferAmount < dbBooking.TotalAmount)
                         {
                             throw new ArgumentException($"Transferred amount ({payload.TransferAmount}) is less than booking total ({dbBooking.TotalAmount}).");
                         }
 
-                        // Confirm payment for database booking
+                        // Confirm payment for single database booking
                         dbBooking.Status = BookingStatus.Confirmed;
                         
                         var payment = new Payment
@@ -315,8 +367,8 @@ namespace SportCourtManagent_Server.Services.Implements
                         await _context.Payments.AddAsync(payment);
                         await _context.SaveChangesAsync();
 
-                        var court = await _context.Courts.FindAsync(dbBooking.CourtId);
-                        var slot = await _context.TimeSlots.FindAsync(dbBooking.SlotId);
+                        var courtItem = await _context.Courts.FindAsync(dbBooking.CourtId);
+                        var slotItem = await _context.TimeSlots.FindAsync(dbBooking.SlotId);
 
                         return new BookingResponseDto
                         {
@@ -324,9 +376,9 @@ namespace SportCourtManagent_Server.Services.Implements
                             BookingCode = dbBooking.BookingCode,
                             UserId = dbBooking.UserId,
                             CourtId = dbBooking.CourtId,
-                            CourtName = court?.CourtName ?? "Sân đấu",
+                            CourtName = courtItem?.CourtName ?? "Sân đấu",
                             SlotId = dbBooking.SlotId,
-                            SlotName = slot?.SlotName ?? "Khung giờ",
+                            SlotName = slotItem?.SlotName ?? "Khung giờ",
                             BookingDate = dbBooking.BookingDate,
                             StartTime = dbBooking.StartTime,
                             EndTime = dbBooking.EndTime,

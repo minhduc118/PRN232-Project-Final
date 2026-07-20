@@ -107,5 +107,163 @@ namespace SportCourtManagent_Server.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        [HttpPost("pay-booking")]
+        public async Task<IActionResult> PayBooking([FromBody] PayBookingRequest request)
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claim, out int userId))
+            {
+                return Unauthorized();
+            }
+
+            if (string.IsNullOrEmpty(request.BookingCode))
+            {
+                return BadRequest(new { message = "Mã đặt sân không hợp lệ." });
+            }
+
+            var codes = request.BookingCode.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(c => c.Trim()).ToList();
+            if (codes.Count == 0)
+            {
+                return BadRequest(new { message = "Không tìm thấy mã đặt sân." });
+            }
+
+            var bookings = await _context.Bookings
+                .Where(b => codes.Contains(b.BookingCode))
+                .ToListAsync();
+
+            if (bookings.Count == 0)
+            {
+                return BadRequest(new { message = "Không tìm thấy thông tin đặt sân trong cơ sở dữ liệu." });
+            }
+
+            decimal totalAmount = bookings.Sum(b => b.TotalAmount);
+
+            var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
+            if (wallet == null)
+            {
+                wallet = new Wallet { UserId = userId, Balance = 10000000m };
+                await _context.Wallets.AddAsync(wallet);
+                await _context.SaveChangesAsync();
+            }
+
+            if (wallet.Balance < totalAmount)
+            {
+                return BadRequest(new { message = $"Số dư ví không đủ. Chi phí thanh toán là {totalAmount:N0}đ nhưng số dư ví chỉ còn {wallet.Balance:N0}đ." });
+            }
+
+            // Trừ tiền ví
+            wallet.Balance -= totalAmount;
+            wallet.UpdatedAt = DateTime.UtcNow;
+
+            foreach (var booking in bookings)
+            {
+                booking.Status = BookingStatus.Confirmed;
+
+                // Ghi nhận Payment nếu chưa có
+                var existsPayment = await _context.Payments.AnyAsync(p => p.BookingId == booking.BookingId);
+                if (!existsPayment)
+                {
+                    var payment = new Payment
+                    {
+                        BookingId = booking.BookingId,
+                        Amount = booking.TotalAmount,
+                        PaymentMethod = PaymentMethod.Wallet,
+                        TransactionId = $"WT-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}",
+                        Status = PaymentStatus.Success,
+                        PaidAt = DateTime.UtcNow
+                    };
+                    await _context.Payments.AddAsync(payment);
+                }
+
+                // Ghi nhận WalletTransaction
+                var wt = new WalletTransaction
+                {
+                    WalletId = wallet.WalletId,
+                    Amount = -booking.TotalAmount,
+                    Type = WalletTransactionType.Payment,
+                    BookingId = booking.BookingId,
+                    Description = $"Thanh toán đặt sân {booking.BookingCode}",
+                    CreatedAt = DateTime.UtcNow
+                };
+                await _context.WalletTransactions.AddAsync(wt);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { success = true, message = "Thanh toán bằng ví thành công." });
+        }
+
+        [HttpPost("pay-services")]
+        public async Task<IActionResult> PayServices([FromBody] PayServicesRequest request)
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claim, out int userId))
+            {
+                return Unauthorized();
+            }
+
+            var booking = await _context.Bookings
+                .FirstOrDefaultAsync(b => b.BookingCode == request.BookingCode);
+            if (booking == null)
+            {
+                return BadRequest(new { message = "Không tìm thấy đặt sân." });
+            }
+
+            var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
+            if (wallet == null)
+            {
+                wallet = new Wallet { UserId = userId, Balance = 10000000m };
+                await _context.Wallets.AddAsync(wallet);
+                await _context.SaveChangesAsync();
+            }
+
+            if (wallet.Balance < request.Amount)
+            {
+                return BadRequest(new { message = $"Số dư ví không đủ. Chi phí thanh toán dịch vụ bổ sung là {request.Amount:N0}đ nhưng ví chỉ còn {wallet.Balance:N0}đ." });
+            }
+
+            // Trừ tiền ví
+            wallet.Balance -= request.Amount;
+            wallet.UpdatedAt = DateTime.UtcNow;
+
+            // Ghi nhận Payment cho dịch vụ bổ sung
+            var payment = new Payment
+            {
+                BookingId = booking.BookingId,
+                Amount = request.Amount,
+                PaymentMethod = PaymentMethod.Wallet,
+                TransactionId = $"WT-SRV-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}",
+                Status = PaymentStatus.Success,
+                PaidAt = DateTime.UtcNow
+            };
+            await _context.Payments.AddAsync(payment);
+
+            // Ghi nhận WalletTransaction
+            var wt = new WalletTransaction
+            {
+                WalletId = wallet.WalletId,
+                Amount = -request.Amount,
+                Type = WalletTransactionType.Payment,
+                BookingId = booking.BookingId,
+                Description = $"Thanh toán dịch vụ bổ sung cho đặt sân {booking.BookingCode}",
+                CreatedAt = DateTime.UtcNow
+            };
+            await _context.WalletTransactions.AddAsync(wt);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { success = true, message = "Thanh toán dịch vụ bổ sung thành công." });
+        }
+    }
+
+    public class PayBookingRequest
+    {
+        public string BookingCode { get; set; } = "";
+    }
+
+    public class PayServicesRequest
+    {
+        public string BookingCode { get; set; } = "";
+        public decimal Amount { get; set; }
     }
 }

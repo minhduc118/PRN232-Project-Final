@@ -206,10 +206,13 @@ namespace SportCourtManagent_Server.Services.Implements
       if (!availableDates.Any())
         throw new ArgumentException("Tất cả các ngày trong khoảng thời gian đã chọn đều đã có người đặt.");
 
-      using var transaction = await _context.Database.BeginTransactionAsync();
-      try
+      var strategy = _context.Database.CreateExecutionStrategy();
+      return await strategy.ExecuteAsync(async () =>
       {
-        // Create RecurringBooking parent record
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+          // Create RecurringBooking parent record
         var daysStr = string.Join(",", request.DaysOfWeek.OrderBy(d => d));
         var recurring = new RecurringBooking
         {
@@ -321,6 +324,7 @@ namespace SportCourtManagent_Server.Services.Implements
         await transaction.RollbackAsync();
         throw;
       }
+      });
     }
 
     /// <summary>Updates booking status asynchronous.</summary>
@@ -411,9 +415,12 @@ namespace SportCourtManagent_Server.Services.Implements
     /// <summary>Executes tournament creation inside a database transaction.</summary>
     private async Task<TournamentDto> ExecuteCreateTournamentTransactionAsync(int userId, CreateTournamentRequest request)
     {
-      using var transaction = await _context.Database.BeginTransactionAsync();
-      try
+      var strategy = _context.Database.CreateExecutionStrategy();
+      return await strategy.ExecuteAsync(async () =>
       {
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
         var tournament = new Tournament
         {
           TournamentName = request.TournamentName,
@@ -442,6 +449,7 @@ namespace SportCourtManagent_Server.Services.Implements
         await transaction.RollbackAsync();
         throw;
       }
+      });
     }
 
     /// <summary>Processes batch loading and creates tournament bookings without loop queries.</summary>
@@ -598,10 +606,13 @@ namespace SportCourtManagent_Server.Services.Implements
       if (tournament == null) return null;
       ValidateTournamentEditPermissions(tournament, userId);
 
-      using var transaction = await _context.Database.BeginTransactionAsync();
-      try
+      var strategy = _context.Database.CreateExecutionStrategy();
+      return await strategy.ExecuteAsync(async () =>
       {
-        tournament.TournamentName = request.TournamentName;
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+          tournament.TournamentName = request.TournamentName;
         tournament.Description = request.Description;
         await ApplyTournamentDiffingAsync(tournament, userId, request);
 
@@ -615,6 +626,7 @@ namespace SportCourtManagent_Server.Services.Implements
         await transaction.RollbackAsync();
         throw;
       }
+      });
     }
 
     /// <summary>Validates edit permissions for tournament.</summary>

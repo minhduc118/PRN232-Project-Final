@@ -49,6 +49,37 @@ namespace SportCourtManagent_Server.Services.Implements
             var accountName = _configuration["SePay:AccountName"] ?? "NGUYEN VU KIM PHUOC";
             string encodedAccountName = Uri.EscapeDataString(accountName);
 
+            // Xử lý nạp tiền ví (WL-{userId}-{amount})
+            if (bookingCode.StartsWith("WL-", StringComparison.OrdinalIgnoreCase))
+            {
+                var parts = bookingCode.Split('-');
+                if (parts.Length >= 2 && int.TryParse(parts[1], out int userId))
+                {
+                    var user = await _context.Users.FindAsync(userId);
+                    if (user == null) throw new KeyNotFoundException($"Không tìm thấy người dùng #{userId}.");
+
+                    decimal depositAmount = 50000m; // Mặc định
+                    if (parts.Length >= 3 && decimal.TryParse(parts[2], out decimal parsedAmount))
+                    {
+                        depositAmount = parsedAmount;
+                    }
+
+                    string memo = $"WL{userId}";
+                    string wlQrUrl = $"https://img.vietqr.io/image/{bankBin}-{accountNumber}-compact.png?amount={depositAmount}&addInfo={memo}&accountName={encodedAccountName}";
+
+                    return new SePayQrCodeResponse
+                    {
+                        BookingCode = bookingCode.ToUpper(),
+                        Amount = depositAmount,
+                        BankBin = bankBin,
+                        AccountNumber = accountNumber,
+                        AccountName = accountName,
+                        Description = $"Nạp tiền ví: {user.FullName}",
+                        QrCodeUrl = wlQrUrl
+                    };
+                }
+            }
+
             // Xử lý mã thanh toán giải đấu (TM-{tournamentId})
             if (bookingCode.StartsWith("TM-", StringComparison.OrdinalIgnoreCase))
             {
@@ -142,7 +173,55 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new ArgumentException("Ignored: Not an incoming payment.");
             }
 
-            // 3. Extract Tournament Code (TM-xxx)
+            // 3. Extract Wallet Top-Up Code (WL-{userId} or WL {userId} or WL123)
+            var walletMatch = Regex.Match(payload.Content, @"WL-?[0-9]+", RegexOptions.IgnoreCase);
+            if (!walletMatch.Success) walletMatch = Regex.Match(payload.Description, @"WL-?[0-9]+", RegexOptions.IgnoreCase);
+
+            if (walletMatch.Success)
+            {
+                string rawWallet = walletMatch.Value.ToUpper();
+                string userIdStr = Regex.Replace(rawWallet, @"[^\d]", ""); // trích xuất id
+                if (int.TryParse(userIdStr, out int userId))
+                {
+                    var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
+                    if (wallet == null)
+                    {
+                        wallet = new Wallet
+                        {
+                            UserId = userId,
+                            Balance = 0
+                        };
+                        await _context.Wallets.AddAsync(wallet);
+                        await _context.SaveChangesAsync();
+                    }
+
+                    wallet.Balance += payload.TransferAmount;
+                    wallet.UpdatedAt = DateTime.UtcNow;
+
+                    var transaction = new WalletTransaction
+                    {
+                        WalletId = wallet.WalletId,
+                        Amount = payload.TransferAmount,
+                        Type = WalletTransactionType.Deposit,
+                        Description = $"Nạp tiền vào ví qua cổng SePay. Mã GD ngân hàng: {payload.ReferenceCode}",
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    await _context.WalletTransactions.AddAsync(transaction);
+                    await _context.SaveChangesAsync();
+
+                    return new BookingResponseDto
+                    {
+                        BookingId = wallet.WalletId,
+                        BookingCode = $"WL-{userId}",
+                        CourtName = "Nạp tiền vào ví",
+                        BookingDate = DateTime.UtcNow,
+                        TotalAmount = payload.TransferAmount,
+                        Status = "WalletDeposited"
+                    };
+                }
+            }
+
+            // 4. Extract Tournament Code (TM-xxx)
             var tourMatch = Regex.Match(payload.Content, @"TM-?[0-9]+", RegexOptions.IgnoreCase);
             if (!tourMatch.Success) tourMatch = Regex.Match(payload.Description, @"TM-?[0-9]+", RegexOptions.IgnoreCase);
 

@@ -104,9 +104,27 @@ namespace SportCourtManagent_Server.Services.Implements
       {
         await _context.SaveChangesAsync();
       }
-
       decimal subTotal = await CalculateSubTotalAsync(request.CourtId, slot, request.ServiceIds);
       var (promoId, discountAmount) = await ProcessPromotionAsync(request.PromotionCode, subTotal);
+      decimal totalAmount = Math.Max(0, subTotal - discountAmount);
+
+      // Kiểm tra ví
+      var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
+      if (wallet == null)
+      {
+          wallet = new Wallet { UserId = userId, Balance = 10000000m }; // Cấp 10M test
+          await _context.Wallets.AddAsync(wallet);
+          await _context.SaveChangesAsync();
+      }
+
+      if (wallet.Balance < totalAmount)
+      {
+          throw new InvalidOperationException($"Số dư ví không đủ. Chi phí đặt sân là {totalAmount:N0}đ nhưng ví của bạn chỉ còn {wallet.Balance:N0}đ. Vui lòng nạp thêm tiền.");
+      }
+
+      // Trừ tiền ví
+      wallet.Balance -= totalAmount;
+      wallet.UpdatedAt = DateTime.UtcNow;
 
       var booking = new Booking
       {
@@ -119,16 +137,40 @@ namespace SportCourtManagent_Server.Services.Implements
         EndTime = slot.EndTime,
         SubTotal = subTotal,
         DiscountAmount = discountAmount,
-        TotalAmount = Math.Max(0, subTotal - discountAmount),
-        Status = BookingStatus.Pending,
+        TotalAmount = totalAmount,
+        Status = BookingStatus.Confirmed, // Confirmed immediately
         PromotionId = promoId,
         Note = request.Note,
-        CreatedAt = DateTime.UtcNow,
-        ExpiredAt = DateTime.UtcNow.AddMinutes(10)
+        CreatedAt = DateTime.UtcNow
       };
 
       await AddBookingServicesAsync(booking, request.ServiceIds);
       await _bookingRepo.AddAsync(booking);
+
+      // Ghi nhận Payment
+      var payment = new Payment
+      {
+          BookingId = booking.BookingId,
+          Amount = booking.TotalAmount,
+          PaymentMethod = PaymentMethod.Wallet,
+          TransactionId = $"WT-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}",
+          Status = PaymentStatus.Success,
+          PaidAt = DateTime.UtcNow
+      };
+      _context.Payments.Add(payment);
+
+      // Ghi nhận WalletTransaction
+      var wt = new WalletTransaction
+      {
+          WalletId = wallet.WalletId,
+          Amount = -booking.TotalAmount,
+          Type = WalletTransactionType.Payment,
+          BookingId = booking.BookingId,
+          Description = $"Thanh toán đặt sân {booking.BookingCode}",
+          CreatedAt = DateTime.UtcNow
+      };
+      await _context.WalletTransactions.AddAsync(wt);
+      await _context.SaveChangesAsync();
 
       // Push SignalR slot status update
       await _hubContext.Clients.Group($"court-{request.CourtId}")

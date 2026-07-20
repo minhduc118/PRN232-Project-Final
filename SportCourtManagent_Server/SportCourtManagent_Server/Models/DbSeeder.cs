@@ -75,7 +75,8 @@ namespace SportCourtManagent_Server.Models
                         Gender = Gender.Male,
                         SkillLevel = SkillLevel.Advanced,
                         IsActive = true,
-                        CreatedAt = DateTime.Now
+                        CreatedAt = DateTime.Now,
+                        Wallet = new Wallet { Balance = 10000000m }
                     },
                     new User
                     {
@@ -90,7 +91,8 @@ namespace SportCourtManagent_Server.Models
                         Gender = Gender.Female,
                         SkillLevel = SkillLevel.Intermediate,
                         IsActive = true,
-                        CreatedAt = DateTime.Now
+                        CreatedAt = DateTime.Now,
+                        Wallet = new Wallet { Balance = 10000000m }
                     },
                     new User
                     {
@@ -105,7 +107,8 @@ namespace SportCourtManagent_Server.Models
                         Gender = Gender.Male,
                         SkillLevel = SkillLevel.Beginner,
                         IsActive = true,
-                        CreatedAt = DateTime.Now
+                        CreatedAt = DateTime.Now,
+                        Wallet = new Wallet { Balance = 10000000m }
                     },
                     new User
                     {
@@ -120,7 +123,8 @@ namespace SportCourtManagent_Server.Models
                         Gender = Gender.Male,
                         SkillLevel = SkillLevel.Advanced,
                         IsActive = true,
-                        CreatedAt = DateTime.Now
+                        CreatedAt = DateTime.Now,
+                        Wallet = new Wallet { Balance = 10000000m }
                     }
                 };
 

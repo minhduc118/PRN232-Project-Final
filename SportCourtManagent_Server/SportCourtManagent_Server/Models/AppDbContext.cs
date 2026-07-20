@@ -7,6 +7,7 @@ namespace SportCourtManagent_Server.Models
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
+            Database.SetCommandTimeout(180);
         }
 
         public DbSet<Role> Roles { get; set; } = null!;
@@ -40,6 +41,8 @@ namespace SportCourtManagent_Server.Models
         public DbSet<PlayerRequest> PlayerRequests { get; set; } = null!;
         public DbSet<PlayerRequestMember> PlayerRequestMembers { get; set; } = null!;
         public DbSet<TaskItem> Tasks { get; set; } = null!;
+        public DbSet<Wallet> Wallets { get; set; } = null!;
+        public DbSet<WalletTransaction> WalletTransactions { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -94,6 +97,26 @@ namespace SportCourtManagent_Server.Models
             modelBuilder.Entity<PlayerRequestMember>()
                 .HasIndex(prm => new { prm.RequestId, prm.UserId })
                 .IsUnique();
+
+            // Wallet 1-1 with User
+            modelBuilder.Entity<Wallet>()
+                .HasOne(w => w.User)
+                .WithOne(u => u.Wallet)
+                .HasForeignKey<Wallet>(w => w.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // WalletTransaction
+            modelBuilder.Entity<WalletTransaction>()
+                .HasOne(wt => wt.Wallet)
+                .WithMany(w => w.WalletTransactions)
+                .HasForeignKey(wt => wt.WalletId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<WalletTransaction>()
+                .HasOne(wt => wt.Booking)
+                .WithMany()
+                .HasForeignKey(wt => wt.BookingId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // --- Relationships and Cascades to avoid Cycles ---
 

@@ -1,5 +1,7 @@
 using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SportCourtManagent_Server.DTOs.Bookings;
@@ -9,6 +11,7 @@ namespace SportCourtManagent_Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class BookingController : ControllerBase
     {
         private readonly ICourtBookingService _courtBookingService;
@@ -21,7 +24,11 @@ namespace SportCourtManagent_Server.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateBooking([FromBody] CreateBookingRequestDto dto)
         {
-            int userId = 1; 
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(claim) || !int.TryParse(claim, out int userId))
+            {
+                return Unauthorized(new { message = "Không xác định được người dùng. Vui lòng đăng nhập lại." });
+            }
 
             if (!ModelState.IsValid)
             {
@@ -37,11 +44,10 @@ namespace SportCourtManagent_Server.Controllers
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, new 
                 { 
-                    message = "An unexpected error occurred while processing your booking.", 
+                    message = ex.Message, 
                     details = ex.Message 
                 });
             }
         }
-        
     }
 }

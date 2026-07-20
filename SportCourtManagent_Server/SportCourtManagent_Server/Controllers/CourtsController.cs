@@ -177,7 +177,58 @@ namespace SportCourtManagent_Server.Controllers
                 return NotFound(new { message = "Không tìm thấy sân." });
 
             return Ok(availability);
+        }
 
+        // GET /api/courts/{id}/services — Get services specific to court type & complex
+        [HttpGet("{id:int}/services")]
+        public async Task<IActionResult> GetCourtServices(int id)
+        {
+            var court = await _context.Courts
+                .FirstOrDefaultAsync(c => c.CourtId == id && !c.IsDeleted);
+
+            if (court == null)
+                return NotFound(new { message = "Không tìm thấy sân." });
+
+            // Find services offered for this court type in this complex
+            var offerings = await _context.ComplexCourtTypeServices
+                .Include(c => c.Service)
+                .Where(c => c.ComplexId == court.ComplexId && c.CourtTypeId == court.CourtTypeId && c.IsActive && c.Service.IsActive)
+                .ToListAsync();
+
+            var result = offerings.Select(o => new
+            {
+                serviceId = o.ServiceId,
+                serviceName = o.Service.ServiceName,
+                category = o.Service.Category,
+                price = o.Price > 0 ? o.Price : o.Service.Price,
+                unit = o.Service.Unit,
+                description = o.Service.Description,
+                stockQty = o.StockQty > 0 ? o.StockQty : o.Service.StockQty,
+                isActive = o.IsActive
+            }).ToList();
+
+            // If no specific offerings found, fall back to active global services
+            if (!result.Any())
+            {
+                var globalServices = await _context.Services
+                    .Where(s => s.IsActive)
+                    .Select(s => new
+                    {
+                        serviceId = s.ServiceId,
+                        serviceName = s.ServiceName,
+                        category = s.Category,
+                        price = s.Price,
+                        unit = s.Unit,
+                        description = s.Description,
+                        stockQty = s.StockQty,
+                        isActive = s.IsActive
+                    })
+                    .ToListAsync();
+
+                return Ok(ApiResults.Ok(globalServices));
+            }
+
+            return Ok(ApiResults.Ok(result));
         }
 
         // GET /odata/courts — OData query

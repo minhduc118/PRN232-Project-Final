@@ -166,7 +166,25 @@ builder.Services.AddSwaggerGen(c =>
     }
 });
 
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestHeadersTotalSize = 128 * 1024; // 128 KB
+    options.Limits.MaxRequestHeaderCount = 200;
+});
+
 var app = builder.Build();
+
+app.Use(async (context, next) =>
+{
+    foreach (var cookieKey in context.Request.Cookies.Keys)
+    {
+        if (cookieKey.StartsWith(".AspNetCore.TempData", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.Cookies.Delete(cookieKey);
+        }
+    }
+    await next();
+});
 
 // Auto-migrate and seed database
 using (var scope = app.Services.CreateScope())

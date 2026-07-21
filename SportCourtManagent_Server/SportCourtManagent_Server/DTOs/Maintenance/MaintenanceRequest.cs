@@ -53,7 +53,11 @@ namespace SportCourtManagent_Server.DTOs.Maintenance
 
         [MaxLength(500, ErrorMessage = "Kết quả ghi chú không được vượt quá 500 ký tự.")]
         public string? Result { get; set; }
+
+        [MaxLength(500, ErrorMessage = "Đường dẫn ảnh minh chứng không được vượt quá 500 ký tự.")]
+        public string? ImageProof { get; set; }
     }
+
 
     public class VerifyMaintenanceRequest
     {

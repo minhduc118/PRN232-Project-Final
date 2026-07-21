@@ -148,6 +148,7 @@ namespace SportCourtManagent_Server.Services.Implements
             schedule.Reason = request.Reason;
             schedule.Status = request.Status.Value;
             schedule.Result = request.Result;
+            schedule.ImageProof = request.ImageProof;
 
             // Cập nhật trạng thái sân tương ứng
             if (schedule.Status == MaintenanceStatus.InProgress)

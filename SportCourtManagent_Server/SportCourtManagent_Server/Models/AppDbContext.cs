@@ -490,7 +490,7 @@ namespace SportCourtManagent_Server.Models
                     FullName = "System Administrator",
                     Email = "admin@sportcourt.com",
                     Phone = "0987654321",
-                    PasswordHash = "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z",
+                    PasswordHash = "$2a$11$dCl.7VPYZf4SDJIoHKhfauRS9u37k0XyFJWiIfqDD61ESgsEMedS2",
                     LoyaltyPoints = 0,
                     MembershipTierId = null,
                     IsActive = true,
@@ -504,7 +504,7 @@ namespace SportCourtManagent_Server.Models
                     FullName = "Complex Manager",
                     Email = "manager@sportcourt.com",
                     Phone = "0987654322",
-                    PasswordHash = "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z",
+                    PasswordHash = "$2a$11$dCl.7VPYZf4SDJIoHKhfauRS9u37k0XyFJWiIfqDD61ESgsEMedS2",
                     LoyaltyPoints = 0,
                     MembershipTierId = null,
                     IsActive = true,
@@ -518,7 +518,7 @@ namespace SportCourtManagent_Server.Models
                     FullName = "Staff Member",
                     Email = "staff@sportcourt.com",
                     Phone = "0987654323",
-                    PasswordHash = "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z",
+                    PasswordHash = "$2a$11$dCl.7VPYZf4SDJIoHKhfauRS9u37k0XyFJWiIfqDD61ESgsEMedS2",
                     LoyaltyPoints = 0,
                     MembershipTierId = null,
                     IsActive = true,
@@ -532,7 +532,7 @@ namespace SportCourtManagent_Server.Models
                     FullName = "John Doe",
                     Email = "customer@sportcourt.com",
                     Phone = "0987654324",
-                    PasswordHash = "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z",
+                    PasswordHash = "$2a$11$dCl.7VPYZf4SDJIoHKhfauRS9u37k0XyFJWiIfqDD61ESgsEMedS2",
                     LoyaltyPoints = 50,
                     MembershipTierId = 1,
                     IsActive = true,
@@ -663,7 +663,77 @@ namespace SportCourtManagent_Server.Models
                 new CourtPricing { PricingId = 15, CourtId = 2, SlotId = 7, Price = 120000.00m, EffectiveFrom = new DateTime(2026, 1, 1) },
                 new CourtPricing { PricingId = 16, CourtId = 2, SlotId = 8, Price = 120000.00m, EffectiveFrom = new DateTime(2026, 1, 1) }
             );
+
+            // 11. MaintenanceSchedules
+            modelBuilder.Entity<MaintenanceSchedule>().HasData(
+                new MaintenanceSchedule
+                {
+                    MaintenanceId = 1,
+                    CourtId = 1,
+                    MaintenanceType = MaintenanceType.Routine,
+                    StartDateTime = new DateTime(2026, 7, 20, 8, 0, 0),
+                    EndDateTime = new DateTime(2026, 7, 20, 10, 0, 0),
+                    AssignedStaffId = 3,
+                    Reason = "Bảo trì định kỳ mặt sân Pickleball P1",
+                    Result = "Đã lau chùi mặt sân và căng lại lưới",
+                    ImageProof = "https://pos.nvncdn.com/3c8244-211061/art/artCT/20240812_0rmC0gAF.jpg",
+                    Status = MaintenanceStatus.Completed
+                },
+                new MaintenanceSchedule
+                {
+                    MaintenanceId = 2,
+                    CourtId = 2,
+                    MaintenanceType = MaintenanceType.Emergency,
+                    StartDateTime = new DateTime(2026, 7, 22, 14, 0, 0),
+                    EndDateTime = new DateTime(2026, 7, 22, 16, 0, 0),
+                    AssignedStaffId = 3,
+                    Reason = "Sửa chữa sự cố hệ thống đèn chiếu sáng tại sân B1",
+                    Result = null,
+                    ImageProof = null,
+                    Status = MaintenanceStatus.Scheduled
+                }
+            );
+
+            // 12. Tasks (TaskItem)
+            modelBuilder.Entity<TaskItem>().HasData(
+                new TaskItem
+                {
+                    TaskId = 1,
+                    Title = "Vệ sinh khu vực thay đồ & nhà vệ sinh",
+                    Description = "Lau dọn sạch sẽ khu vực nhà vệ sinh nam nữ và bổ sung xà phòng",
+                    TaskType = TaskType.Manual,
+                    Category = TaskCategory.Cleanup,
+                    Priority = TaskPriority.High,
+                    Status = TaskItemStatus.Completed,
+                    ComplexId = 1,
+                    AssignedStaffId = 3,
+                    CreatedById = 2,
+                    DueDate = new DateTime(2026, 7, 21, 18, 0, 0),
+                    CreatedAt = new DateTime(2026, 7, 21, 7, 0, 0),
+                    CompletedAt = new DateTime(2026, 7, 21, 10, 30, 0),
+                    ImageProof = "https://pos.nvncdn.com/3c8244-211061/art/artCT/20240812_0rmC0gAF.jpg"
+                },
+                new TaskItem
+                {
+                    TaskId = 2,
+                    Title = "Kiểm tra và nạp bổ sung nước uống Pocari",
+                    Description = "Kiểm tra kho và bổ sung 50 chai Pocari vào tủ mát",
+                    TaskType = TaskType.Manual,
+                    Category = TaskCategory.ServicePrep,
+                    Priority = TaskPriority.Medium,
+
+                    Status = TaskItemStatus.Pending,
+                    ComplexId = 1,
+                    AssignedStaffId = 3,
+                    CreatedById = 2,
+                    DueDate = new DateTime(2026, 7, 22, 12, 0, 0),
+                    CreatedAt = new DateTime(2026, 7, 21, 8, 0, 0),
+                    CompletedAt = null,
+                    ImageProof = null
+                }
+            );
         }
     }
 }
+
 

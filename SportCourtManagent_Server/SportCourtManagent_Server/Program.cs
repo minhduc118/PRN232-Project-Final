@@ -187,12 +187,20 @@ app.Use(async (context, next) =>
 });
 
 // Auto-migrate and seed database
-using (var scope = app.Services.CreateScope())
-{
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await dbContext.Database.MigrateAsync();
-    await DbSeeder.SeedAsync(dbContext);
-}
+//try
+//{
+//    using (var scope = app.Services.CreateScope())
+//    {
+//        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+//        await dbContext.Database.MigrateAsync();
+//        await DbSeeder.SeedAsync(dbContext);
+//    }
+//}
+//catch (Exception ex)
+//{
+//    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+//    logger.LogError(ex, "An error occurred while migrating or seeding the database: {Message}", ex.Message);
+//}
 
 
 // Configure the HTTP request pipeline. Always enable Swagger for checking

@@ -243,8 +243,12 @@ namespace SportCourtManagent_Server.Services.Implements
 
         public async Task<WeeklyScheduleResponse> GetWeeklyScheduleAsync(int complexId, DateOnly weekStart)
         {
+            // Luôn quy đổi weekStart về Thứ Hai của tuần
+            int diffToMonday = (7 + (weekStart.DayOfWeek - DayOfWeek.Monday)) % 7;
+            weekStart = weekStart.AddDays(-diffToMonday);
             var weekEnd = weekStart.AddDays(6);
             var shifts = await _staffShiftRepository.GetShiftsByComplexAndDateRangeAsync(complexId, weekStart, weekEnd);
+
 
             var days = new List<DailyShiftGroupResponse>();
             for (int i = 0; i < 7; i++)

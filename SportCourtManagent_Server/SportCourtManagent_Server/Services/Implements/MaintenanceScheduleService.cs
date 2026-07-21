@@ -58,19 +58,21 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new ArgumentException("Sân được chọn không thuộc cơ sở này.");
             }
 
-            User? staff = null;
-            if (request.AssignedStaffId.HasValue)
+            if (!request.AssignedStaffId.HasValue || request.AssignedStaffId.Value <= 0)
             {
-                staff = await _staffRepository.GetStaffWithRolesAsync(request.AssignedStaffId.Value);
-                if (staff == null)
-                {
-                    throw new KeyNotFoundException($"Không tìm thấy nhân viên với Id {request.AssignedStaffId.Value}");
-                }
-                if (!staff.IsActive)
-                {
-                    throw new InvalidOperationException($"Nhân viên {staff.FullName} đang bị khóa/ngưng hoạt động.");
-                }
+                throw new ArgumentException("Vui lòng chọn nhân viên phụ trách.");
             }
+
+            var staff = await _staffRepository.GetStaffWithRolesAsync(request.AssignedStaffId.Value);
+            if (staff == null)
+            {
+                throw new KeyNotFoundException($"Không tìm thấy nhân viên với Id {request.AssignedStaffId.Value}");
+            }
+            if (!staff.IsActive)
+            {
+                throw new InvalidOperationException($"Nhân viên {staff.FullName} đang bị khóa/ngưng hoạt động.");
+            }
+
 
             var schedule = new MaintenanceSchedule
             {
@@ -123,15 +125,17 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new ArgumentException("Sân được chọn không thuộc cơ sở này.");
             }
 
-            User? staff = null;
-            if (request.AssignedStaffId.HasValue)
+            if (!request.AssignedStaffId.HasValue || request.AssignedStaffId.Value <= 0)
             {
-                staff = await _staffRepository.GetStaffWithRolesAsync(request.AssignedStaffId.Value);
-                if (staff == null)
-                {
-                    throw new KeyNotFoundException($"Không tìm thấy nhân viên với Id {request.AssignedStaffId.Value}");
-                }
+                throw new ArgumentException("Vui lòng chọn nhân viên phụ trách.");
             }
+
+            var staff = await _staffRepository.GetStaffWithRolesAsync(request.AssignedStaffId.Value);
+            if (staff == null)
+            {
+                throw new KeyNotFoundException($"Không tìm thấy nhân viên với Id {request.AssignedStaffId.Value}");
+            }
+
 
             var oldStatus = schedule.Status;
             var oldCourtId = schedule.CourtId;

@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace SportCourtManagent_Server.Controllers.Manager
 {
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = "Admin,Manager,Staff")]
     [Route("api/manager/complexes/{complexId:int}/maintenance")]
     [ApiController]
     public class MaintenanceManagementController : ControllerBase
@@ -22,7 +22,8 @@ namespace SportCourtManagent_Server.Controllers.Manager
             _maintenanceService = maintenanceService;
         }
 
-        // POST /api/manager/complexes/{complexId}/maintenance
+        // POST /api/manager/complexes/{complexId}/maintenance (Chỉ Manager/Admin được tạo)
+        [Authorize(Roles = "Admin,Manager")]
         [HttpPost]
         public async Task<IActionResult> CreateMaintenance([FromRoute] int complexId, [FromBody] CreateMaintenanceRequest request)
         {
@@ -111,7 +112,8 @@ namespace SportCourtManagent_Server.Controllers.Manager
             }
         }
 
-        // DELETE /api/manager/complexes/{complexId}/maintenance/{maintenanceId}
+        // DELETE /api/manager/complexes/{complexId}/maintenance/{maintenanceId} (Chỉ Manager/Admin được xóa)
+        [Authorize(Roles = "Admin,Manager")]
         [HttpDelete("{maintenanceId:int}")]
         public async Task<IActionResult> DeleteMaintenance(int complexId, int maintenanceId)
         {
@@ -130,7 +132,8 @@ namespace SportCourtManagent_Server.Controllers.Manager
             }
         }
 
-        // PUT /api/manager/complexes/{complexId}/maintenance/{maintenanceId}/verify
+        // PUT /api/manager/complexes/{complexId}/maintenance/{maintenanceId}/verify (Chỉ Manager/Admin được nghiệm thu)
+        [Authorize(Roles = "Admin,Manager")]
         [HttpPut("{maintenanceId:int}/verify")]
         public async Task<IActionResult> VerifyMaintenance(
             int complexId,

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SportCourtManagent_Server.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialFreshDB : Migration
+    public partial class InitialCleanDB : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -999,10 +999,10 @@ namespace SportCourtManagent_Server.Migrations
                 columns: new[] { "ServiceId", "Category", "CreatedAt", "Description", "IsActive", "Price", "ServiceName", "StockQty", "Unit" },
                 values: new object[,]
                 {
-                    { 1, "EquipmentRent", new DateTime(2026, 7, 22, 14, 26, 52, 639, DateTimeKind.Utc).AddTicks(3160), null, true, 30000.00m, "Thuê vợt Pickleball", 20, "cái" },
-                    { 2, "EquipmentRent", new DateTime(2026, 7, 22, 14, 26, 52, 639, DateTimeKind.Utc).AddTicks(3167), null, true, 20000.00m, "Thuê vợt cầu lông", 30, "cái" },
-                    { 3, "Drink", new DateTime(2026, 7, 22, 14, 26, 52, 639, DateTimeKind.Utc).AddTicks(3169), null, true, 15000.00m, "Nước uống Pocari", 100, "cái" },
-                    { 4, "Drink", new DateTime(2026, 7, 22, 14, 26, 52, 639, DateTimeKind.Utc).AddTicks(3173), null, true, 10000.00m, "Nước suối Aquafina", 150, "cái" }
+                    { 1, "EquipmentRent", new DateTime(2026, 7, 22, 16, 52, 28, 802, DateTimeKind.Utc).AddTicks(2712), null, true, 30000.00m, "Thuê vợt Pickleball", 20, "cái" },
+                    { 2, "EquipmentRent", new DateTime(2026, 7, 22, 16, 52, 28, 802, DateTimeKind.Utc).AddTicks(2720), null, true, 20000.00m, "Thuê vợt cầu lông", 30, "cái" },
+                    { 3, "Drink", new DateTime(2026, 7, 22, 16, 52, 28, 802, DateTimeKind.Utc).AddTicks(2721), null, true, 15000.00m, "Nước uống Pocari", 100, "cái" },
+                    { 4, "Drink", new DateTime(2026, 7, 22, 16, 52, 28, 802, DateTimeKind.Utc).AddTicks(2723), null, true, 10000.00m, "Nước suối Aquafina", 150, "cái" }
                 });
 
             migrationBuilder.InsertData(
@@ -1110,6 +1110,7 @@ namespace SportCourtManagent_Server.Migrations
                     { 1, 3, 1, new DateTime(2026, 7, 20, 10, 0, 0, 0, DateTimeKind.Unspecified), "https://pos.nvncdn.com/3c8244-211061/art/artCT/20240812_0rmC0gAF.jpg", 0, "Bảo trì định kỳ mặt sân Pickleball P1", "Đã lau chùi mặt sân và căng lại lưới", new DateTime(2026, 7, 20, 8, 0, 0, 0, DateTimeKind.Unspecified), 2 },
                     { 2, 3, 2, new DateTime(2026, 7, 22, 16, 0, 0, 0, DateTimeKind.Unspecified), null, 1, "Sửa chữa sự cố hệ thống đèn chiếu sáng tại sân B1", null, new DateTime(2026, 7, 22, 14, 0, 0, 0, DateTimeKind.Unspecified), 0 }
                 });
+
             migrationBuilder.CreateIndex(
                 name: "IX_AuditLogs_UserId",
                 table: "AuditLogs",

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SportCourtManagent_Server.Migrations
 {
     /// <inheritdoc />
-    public partial class newDB : Migration
+    public partial class TestApplication : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -999,10 +999,10 @@ namespace SportCourtManagent_Server.Migrations
                 columns: new[] { "ServiceId", "Category", "CreatedAt", "Description", "IsActive", "Price", "ServiceName", "StockQty", "Unit" },
                 values: new object[,]
                 {
-                    { 1, "EquipmentRent", new DateTime(2026, 7, 21, 14, 24, 23, 973, DateTimeKind.Utc).AddTicks(7593), null, true, 30000.00m, "Thuê vợt Pickleball", 20, "cái" },
-                    { 2, "EquipmentRent", new DateTime(2026, 7, 21, 14, 24, 23, 973, DateTimeKind.Utc).AddTicks(7599), null, true, 20000.00m, "Thuê vợt cầu lông", 30, "cái" },
-                    { 3, "Drink", new DateTime(2026, 7, 21, 14, 24, 23, 973, DateTimeKind.Utc).AddTicks(7600), null, true, 15000.00m, "Nước uống Pocari", 100, "cái" },
-                    { 4, "Drink", new DateTime(2026, 7, 21, 14, 24, 23, 973, DateTimeKind.Utc).AddTicks(7617), null, true, 10000.00m, "Nước suối Aquafina", 150, "cái" }
+                    { 1, "EquipmentRent", new DateTime(2026, 7, 22, 14, 26, 52, 639, DateTimeKind.Utc).AddTicks(3160), null, true, 30000.00m, "Thuê vợt Pickleball", 20, "cái" },
+                    { 2, "EquipmentRent", new DateTime(2026, 7, 22, 14, 26, 52, 639, DateTimeKind.Utc).AddTicks(3167), null, true, 20000.00m, "Thuê vợt cầu lông", 30, "cái" },
+                    { 3, "Drink", new DateTime(2026, 7, 22, 14, 26, 52, 639, DateTimeKind.Utc).AddTicks(3169), null, true, 15000.00m, "Nước uống Pocari", 100, "cái" },
+                    { 4, "Drink", new DateTime(2026, 7, 22, 14, 26, 52, 639, DateTimeKind.Utc).AddTicks(3173), null, true, 10000.00m, "Nước suối Aquafina", 150, "cái" }
                 });
 
             migrationBuilder.InsertData(
@@ -1025,9 +1025,9 @@ namespace SportCourtManagent_Server.Migrations
                 columns: new[] { "UserId", "AvatarUrl", "CreatedAt", "DateOfBirth", "Email", "FullName", "Gender", "IsActive", "LoyaltyPoints", "MembershipTierId", "PasswordHash", "Phone", "RefreshToken", "SkillLevel" },
                 values: new object[,]
                 {
-                    { 1, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "admin@sportcourt.com", "System Administrator", 2, true, 0, null, "$2a$11$dCl.7VPYZf4SDJIoHKhfauRS9u37k0XyFJWiIfqDD61ESgsEMedS2", "0987654321", null, 2 },
-                    { 2, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "manager@sportcourt.com", "Complex Manager", 0, true, 0, null, "$2a$11$dCl.7VPYZf4SDJIoHKhfauRS9u37k0XyFJWiIfqDD61ESgsEMedS2", "0987654322", null, 1 },
-                    { 3, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "staff@sportcourt.com", "Staff Member", 1, true, 0, null, "$2a$11$dCl.7VPYZf4SDJIoHKhfauRS9u37k0XyFJWiIfqDD61ESgsEMedS2", "0987654323", null, 0 }
+                    { 1, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "admin@sportcourt.com", "System Administrator", 2, true, 0, null, "$2a$11$Sm0spWRJMGSHXKHRwSlM2e8RlEkTEaPXS5DDxynOOPaB03J6rl1A.", "0987654321", null, 2 },
+                    { 2, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "manager@sportcourt.com", "Complex Manager", 0, true, 0, null, "$2a$11$Sm0spWRJMGSHXKHRwSlM2e8RlEkTEaPXS5DDxynOOPaB03J6rl1A.", "0987654322", null, 1 },
+                    { 3, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "staff@sportcourt.com", "Staff Member", 1, true, 0, null, "$2a$11$Sm0spWRJMGSHXKHRwSlM2e8RlEkTEaPXS5DDxynOOPaB03J6rl1A.", "0987654323", null, 0 }
                 });
 
             migrationBuilder.InsertData(
@@ -1048,7 +1048,7 @@ namespace SportCourtManagent_Server.Migrations
             migrationBuilder.InsertData(
                 table: "Users",
                 columns: new[] { "UserId", "AvatarUrl", "CreatedAt", "DateOfBirth", "Email", "FullName", "Gender", "IsActive", "LoyaltyPoints", "MembershipTierId", "PasswordHash", "Phone", "RefreshToken", "SkillLevel" },
-                values: new object[] { 4, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "customer@sportcourt.com", "John Doe", 2, true, 50, 1, "$2a$11$dCl.7VPYZf4SDJIoHKhfauRS9u37k0XyFJWiIfqDD61ESgsEMedS2", "0987654324", null, 0 });
+                values: new object[] { 4, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "customer@sportcourt.com", "John Doe", 2, true, 50, 1, "$2a$11$Sm0spWRJMGSHXKHRwSlM2e8RlEkTEaPXS5DDxynOOPaB03J6rl1A.", "0987654324", null, 0 });
 
             migrationBuilder.InsertData(
                 table: "Courts",
@@ -1070,7 +1070,7 @@ namespace SportCourtManagent_Server.Migrations
                 columns: new[] { "TaskId", "AssignedStaffId", "BookingId", "Category", "CompletedAt", "ComplexId", "CreatedAt", "CreatedById", "Description", "DueDate", "ImageProof", "Priority", "Status", "TaskType", "Title" },
                 values: new object[,]
                 {
-                    { 1, 3, null, 0, new DateTime(2026, 7, 21, 10, 30, 0, 0, DateTimeKind.Unspecified), 1, new DateTime(2026, 7, 21, 7, 0, 0, 0, DateTimeKind.Unspecified), 2, "Lau dọn sạch sẽ khu vực nhà vệ sinh nam nữ và bổ sung xà phòng", new DateTime(2026, 7, 21, 18, 0, 0, 0, DateTimeKind.Unspecified), "https://res.cloudinary.com/duj6gygvr/image/upload/v1720000000/sportcourt/task_sample1.jpg", 1, 2, 0, "Vệ sinh khu vực thay đồ & nhà vệ sinh" },
+                    { 1, 3, null, 0, new DateTime(2026, 7, 21, 10, 30, 0, 0, DateTimeKind.Unspecified), 1, new DateTime(2026, 7, 21, 7, 0, 0, 0, DateTimeKind.Unspecified), 2, "Lau dọn sạch sẽ khu vực nhà vệ sinh nam nữ và bổ sung xà phòng", new DateTime(2026, 7, 21, 18, 0, 0, 0, DateTimeKind.Unspecified), "https://pos.nvncdn.com/3c8244-211061/art/artCT/20240812_0rmC0gAF.jpg", 1, 2, 0, "Vệ sinh khu vực thay đồ & nhà vệ sinh" },
                     { 2, 3, null, 1, null, 1, new DateTime(2026, 7, 21, 8, 0, 0, 0, DateTimeKind.Unspecified), 2, "Kiểm tra kho và bổ sung 50 chai Pocari vào tủ mát", new DateTime(2026, 7, 22, 12, 0, 0, 0, DateTimeKind.Unspecified), null, 2, 0, 0, "Kiểm tra và nạp bổ sung nước uống Pocari" }
                 });
 
@@ -1107,7 +1107,7 @@ namespace SportCourtManagent_Server.Migrations
                 columns: new[] { "MaintenanceId", "AssignedStaffId", "CourtId", "EndDateTime", "ImageProof", "MaintenanceType", "Reason", "Result", "StartDateTime", "Status" },
                 values: new object[,]
                 {
-                    { 1, 3, 1, new DateTime(2026, 7, 20, 10, 0, 0, 0, DateTimeKind.Unspecified), "https://res.cloudinary.com/duj6gygvr/image/upload/v1720000000/sportcourt/maintenance_sample1.jpg", 0, "Bảo trì định kỳ mặt sân Pickleball P1", "Đã lau chùi mặt sân và căng lại lưới", new DateTime(2026, 7, 20, 8, 0, 0, 0, DateTimeKind.Unspecified), 2 },
+                    { 1, 3, 1, new DateTime(2026, 7, 20, 10, 0, 0, 0, DateTimeKind.Unspecified), "https://pos.nvncdn.com/3c8244-211061/art/artCT/20240812_0rmC0gAF.jpg", 0, "Bảo trì định kỳ mặt sân Pickleball P1", "Đã lau chùi mặt sân và căng lại lưới", new DateTime(2026, 7, 20, 8, 0, 0, 0, DateTimeKind.Unspecified), 2 },
                     { 2, 3, 2, new DateTime(2026, 7, 22, 16, 0, 0, 0, DateTimeKind.Unspecified), null, 1, "Sửa chữa sự cố hệ thống đèn chiếu sáng tại sân B1", null, new DateTime(2026, 7, 22, 14, 0, 0, 0, DateTimeKind.Unspecified), 0 }
                 });
 

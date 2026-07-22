@@ -307,6 +307,7 @@ namespace SportCourtManagent_Server.Services.Implements
                 AssignedStaffName = staffEntity?.FullName,
                 Reason = schedule.Reason,
                 Result = schedule.Result,
+                ImageProof = schedule.ImageProof,
                 Status = schedule.Status.ToString(),
                 CreatedAt = DateTime.Now
             };

@@ -191,8 +191,23 @@ app.Use(async (context, next) =>
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await dbContext.Database.MigrateAsync();
-    await DbSeeder.SeedAsync(dbContext);
+    try
+    {
+        await dbContext.Database.MigrateAsync();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Migrate Notice] {ex.Message}");
+    }
+
+    try
+    {
+        await DbSeeder.SeedAsync(dbContext);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Seed Notice] {ex.Message}");
+    }
 }
 
 

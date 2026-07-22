@@ -276,6 +276,42 @@ namespace SportCourtManagent_Server.Services.Implements
             };
         }
 
+        public async Task<WeeklyScheduleResponse> GetWeeklyScheduleByStaffAsync(int complexId, int staffId, DateOnly weekStart)
+        {
+            int diffToMonday = (7 + (weekStart.DayOfWeek - DayOfWeek.Monday)) % 7;
+            weekStart = weekStart.AddDays(-diffToMonday);
+            var weekEnd = weekStart.AddDays(6);
+            var shifts = await _staffShiftRepository.GetShiftsByStaffAndDateRangeAsync(staffId, weekStart, weekEnd);
+
+            // Chỉ lấy ca của staff tại cơ sở được chọn
+            shifts = shifts.Where(s => s.ComplexId == complexId).ToList();
+
+            var days = new List<DailyShiftGroupResponse>();
+            for (int i = 0; i < 7; i++)
+            {
+                var date = weekStart.AddDays(i);
+                var dailyShifts = shifts
+                    .Where(s => s.ShiftDate == date)
+                    .OrderBy(s => s.StartTime)
+                    .Select(s => MapToResponse(s))
+                    .ToList();
+
+                days.Add(new DailyShiftGroupResponse
+                {
+                    Date = date.ToString("yyyy-MM-dd"),
+                    DayName = GetVietnameseDayName(date.DayOfWeek),
+                    Shifts = dailyShifts
+                });
+            }
+
+            return new WeeklyScheduleResponse
+            {
+                WeekStart = weekStart.ToString("yyyy-MM-dd"),
+                WeekEnd = weekEnd.ToString("yyyy-MM-dd"),
+                Days = days
+            };
+        }
+
         public async Task<StaffShiftResponse> UpdateShiftAsync(int complexId, int shiftId, UpdateShiftRequest request)
         {
             if (!request.ShiftType.HasValue)

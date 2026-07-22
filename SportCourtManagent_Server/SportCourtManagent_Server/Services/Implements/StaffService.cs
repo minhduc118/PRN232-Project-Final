@@ -238,6 +238,21 @@ namespace SportCourtManagent_Server.Services.Implements
             if (complex == null)
                 throw new KeyNotFoundException($"Không tìm thấy cơ sở với Id {complexId}.");
 
+            // Xóa các ca trực sắp tới (chưa check-in) của nhân viên này tại cơ sở này khi bị gỡ khỏi cơ sở
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var shifts = await _staffShiftRepository.GetShiftsByStaffAndDateRangeAsync(staffId, today, DateOnly.MaxValue);
+            var complexFutureShifts = shifts
+                .Where(s => s.ComplexId == complexId && !s.CheckInTime.HasValue)
+                .ToList();
+
+            if (complexFutureShifts.Any())
+            {
+                foreach (var shift in complexFutureShifts)
+                {
+                    await _staffShiftRepository.DeleteAsync(shift);
+                }
+            }
+
             await _staffRepository.RemoveStaffFromComplexAsync(staffId, complexId);
         }
 

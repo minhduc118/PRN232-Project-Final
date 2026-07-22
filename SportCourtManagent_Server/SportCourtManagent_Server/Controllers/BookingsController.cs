@@ -44,7 +44,7 @@ namespace SportCourtManagent_Server.Controllers
 
     /// <summary>Gets all bookings for Admin and Staff.</summary>
     [HttpGet("admin")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Manager,Staff")]
     public async Task<IActionResult> GetAdminBookings([FromQuery] BookingFilterParams? filter)
     {
       try
@@ -119,7 +119,7 @@ namespace SportCourtManagent_Server.Controllers
 
     /// <summary>Creates a booking from admin dashboard.</summary>
     [HttpPost("admin")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Manager,Staff")]
     public async Task<IActionResult> CreateFromAdmin([FromBody] CreateBookingRequest request)
     {
       try
@@ -181,7 +181,7 @@ namespace SportCourtManagent_Server.Controllers
 
     /// <summary>Gets all tournaments with optional filters for Admin and Staff.</summary>
     [HttpGet("tournament/admin")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Manager,Staff")]
     public async Task<IActionResult> GetAdminTournaments([FromQuery] TournamentFilterParams? filter)
     {
       try
@@ -252,7 +252,7 @@ namespace SportCourtManagent_Server.Controllers
 
     /// <summary>Updates tournament status (Admin/Staff only). Cancelling cascades to all child bookings.</summary>
     [HttpPut("tournament/{id:int}/status")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Manager,Staff")]
     public async Task<IActionResult> UpdateTournamentStatus(int id, [FromBody] UpdateTournamentStatusRequest request)
     {
       try
@@ -302,7 +302,7 @@ namespace SportCourtManagent_Server.Controllers
 
     /// <summary>Updates booking status from Admin or Staff.</summary>
     [HttpPut("{id:int}/status")]
-    [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Manager,Staff")]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateBookingStatusRequest request)
     {
       try

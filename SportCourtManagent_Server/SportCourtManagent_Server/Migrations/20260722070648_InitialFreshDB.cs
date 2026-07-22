@@ -3,10 +3,12 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
+#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
+
 namespace SportCourtManagent_Server.Migrations
 {
     /// <inheritdoc />
-    public partial class InitDB : Migration
+    public partial class InitialFreshDB : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -48,10 +50,17 @@ namespace SportCourtManagent_Server.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     PromoCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     PromoName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     DiscountType = table.Column<int>(type: "int", nullable: false),
                     DiscountValue = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    MinOrderAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    MaxDiscount = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    UsageLimit = table.Column<int>(type: "int", nullable: true),
+                    UsedCount = table.Column<int>(type: "int", nullable: false),
                     StartDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -81,7 +90,11 @@ namespace SportCourtManagent_Server.Migrations
                     ServiceName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Category = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    StockQty = table.Column<int>(type: "int", nullable: false)
+                    Unit = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
+                    StockQty = table.Column<int>(type: "int", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -115,6 +128,7 @@ namespace SportCourtManagent_Server.Migrations
                     Phone = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: true),
                     PasswordHash = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
                     AvatarUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    DateOfBirth = table.Column<DateOnly>(type: "date", nullable: true),
                     LoyaltyPoints = table.Column<int>(type: "int", nullable: false),
                     MembershipTierId = table.Column<int>(type: "int", nullable: true),
                     RefreshToken = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
@@ -230,25 +244,25 @@ namespace SportCourtManagent_Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "StaffShifts",
+                name: "Tournaments",
                 columns: table => new
                 {
-                    ShiftId = table.Column<int>(type: "int", nullable: false)
+                    TournamentId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    StaffId = table.Column<int>(type: "int", nullable: false),
-                    ShiftDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ShiftType = table.Column<int>(type: "int", nullable: false),
-                    StartTime = table.Column<TimeSpan>(type: "time", nullable: false),
-                    EndTime = table.Column<TimeSpan>(type: "time", nullable: false),
-                    CheckInTime = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CheckOutTime = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    TournamentName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ExpiredAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_StaffShifts", x => x.ShiftId);
+                    table.PrimaryKey("PK_Tournaments", x => x.TournamentId);
                     table.ForeignKey(
-                        name: "FK_StaffShifts_Users_StaffId",
-                        column: x => x.StaffId,
+                        name: "FK_Tournaments_Users_UserId",
+                        column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "UserId",
                         onDelete: ReferentialAction.Cascade);
@@ -278,6 +292,66 @@ namespace SportCourtManagent_Server.Migrations
                         principalTable: "Users",
                         principalColumn: "UserId",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Wallets",
+                columns: table => new
+                {
+                    WalletId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    Balance = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Wallets", x => x.WalletId);
+                    table.ForeignKey(
+                        name: "FK_Wallets_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "UserId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ComplexCourtTypeServices",
+                columns: table => new
+                {
+                    OfferingId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ComplexId = table.Column<int>(type: "int", nullable: false),
+                    CourtTypeId = table.Column<int>(type: "int", nullable: false),
+                    ServiceId = table.Column<int>(type: "int", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    StockQty = table.Column<int>(type: "int", nullable: false),
+                    ServiceMode = table.Column<int>(type: "int", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ComplexCourtTypeServices", x => x.OfferingId);
+                    table.ForeignKey(
+                        name: "FK_ComplexCourtTypeServices_CourtComplexes_ComplexId",
+                        column: x => x.ComplexId,
+                        principalTable: "CourtComplexes",
+                        principalColumn: "ComplexId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ComplexCourtTypeServices_CourtTypes_CourtTypeId",
+                        column: x => x.CourtTypeId,
+                        principalTable: "CourtTypes",
+                        principalColumn: "CourtTypeId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ComplexCourtTypeServices_Services_ServiceId",
+                        column: x => x.ServiceId,
+                        principalTable: "Services",
+                        principalColumn: "ServiceId",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -315,6 +389,66 @@ namespace SportCourtManagent_Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "StaffComplexes",
+                columns: table => new
+                {
+                    StaffComplexId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StaffId = table.Column<int>(type: "int", nullable: false),
+                    ComplexId = table.Column<int>(type: "int", nullable: false),
+                    AssignedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StaffComplexes", x => x.StaffComplexId);
+                    table.ForeignKey(
+                        name: "FK_StaffComplexes_CourtComplexes_ComplexId",
+                        column: x => x.ComplexId,
+                        principalTable: "CourtComplexes",
+                        principalColumn: "ComplexId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_StaffComplexes_Users_StaffId",
+                        column: x => x.StaffId,
+                        principalTable: "Users",
+                        principalColumn: "UserId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StaffShifts",
+                columns: table => new
+                {
+                    ShiftId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StaffId = table.Column<int>(type: "int", nullable: false),
+                    ComplexId = table.Column<int>(type: "int", nullable: false),
+                    ShiftDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    ShiftType = table.Column<int>(type: "int", nullable: false),
+                    StartTime = table.Column<TimeOnly>(type: "time", nullable: false),
+                    EndTime = table.Column<TimeOnly>(type: "time", nullable: false),
+                    CheckInTime = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CheckOutTime = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Note = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StaffShifts", x => x.ShiftId);
+                    table.ForeignKey(
+                        name: "FK_StaffShifts_CourtComplexes_ComplexId",
+                        column: x => x.ComplexId,
+                        principalTable: "CourtComplexes",
+                        principalColumn: "ComplexId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StaffShifts_Users_StaffId",
+                        column: x => x.StaffId,
+                        principalTable: "Users",
+                        principalColumn: "UserId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Bookings",
                 columns: table => new
                 {
@@ -331,7 +465,12 @@ namespace SportCourtManagent_Server.Migrations
                     DiscountAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
-                    PromotionId = table.Column<int>(type: "int", nullable: true)
+                    PromotionId = table.Column<int>(type: "int", nullable: true),
+                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    CancelReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    TournamentId = table.Column<int>(type: "int", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ExpiredAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -354,6 +493,12 @@ namespace SportCourtManagent_Server.Migrations
                         principalTable: "TimeSlots",
                         principalColumn: "SlotId",
                         onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Bookings_Tournaments_TournamentId",
+                        column: x => x.TournamentId,
+                        principalTable: "Tournaments",
+                        principalColumn: "TournamentId",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Bookings_Users_UserId",
                         column: x => x.UserId,
@@ -724,6 +869,36 @@ namespace SportCourtManagent_Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "WalletTransactions",
+                columns: table => new
+                {
+                    TransactionId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    WalletId = table.Column<int>(type: "int", nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Type = table.Column<int>(type: "int", nullable: false),
+                    BookingId = table.Column<int>(type: "int", nullable: true),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WalletTransactions", x => x.TransactionId);
+                    table.ForeignKey(
+                        name: "FK_WalletTransactions_Bookings_BookingId",
+                        column: x => x.BookingId,
+                        principalTable: "Bookings",
+                        principalColumn: "BookingId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_WalletTransactions_Wallets_WalletId",
+                        column: x => x.WalletId,
+                        principalTable: "Wallets",
+                        principalColumn: "WalletId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Invoices",
                 columns: table => new
                 {
@@ -786,21 +961,153 @@ namespace SportCourtManagent_Server.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
+            migrationBuilder.InsertData(
+                table: "CourtTypes",
+                columns: new[] { "CourtTypeId", "IsActive", "TypeName" },
+                values: new object[,]
+                {
+                    { 1, true, "Pickleball" },
+                    { 2, true, "Badminton" },
+                    { 3, true, "Football" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "MembershipTiers",
+                columns: new[] { "TierId", "DiscountPercent", "MinPoints", "TierName" },
+                values: new object[,]
+                {
+                    { 1, 0.00m, 0, "Bronze" },
+                    { 2, 5.00m, 100, "Silver" },
+                    { 3, 10.00m, 500, "Gold" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Roles",
+                columns: new[] { "RoleId", "Description", "RoleName" },
+                values: new object[,]
+                {
+                    { 1, "System Administrator", "Admin" },
+                    { 2, "Complex Manager", "Manager" },
+                    { 3, "Staff member", "Staff" },
+                    { 4, "End Customer", "Customer" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Services",
+                columns: new[] { "ServiceId", "Category", "CreatedAt", "Description", "IsActive", "Price", "ServiceName", "StockQty", "Unit" },
+                values: new object[,]
+                {
+                    { 1, "EquipmentRent", new DateTime(2026, 7, 22, 7, 6, 47, 722, DateTimeKind.Utc).AddTicks(7656), null, true, 30000.00m, "Thuê vợt Pickleball", 20, "cái" },
+                    { 2, "EquipmentRent", new DateTime(2026, 7, 22, 7, 6, 47, 722, DateTimeKind.Utc).AddTicks(7663), null, true, 20000.00m, "Thuê vợt cầu lông", 30, "cái" },
+                    { 3, "Drink", new DateTime(2026, 7, 22, 7, 6, 47, 722, DateTimeKind.Utc).AddTicks(7665), null, true, 15000.00m, "Nước uống Pocari", 100, "cái" },
+                    { 4, "Drink", new DateTime(2026, 7, 22, 7, 6, 47, 722, DateTimeKind.Utc).AddTicks(7666), null, true, 10000.00m, "Nước suối Aquafina", 150, "cái" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "TimeSlots",
+                columns: new[] { "SlotId", "DayType", "EndTime", "SlotName", "StartTime" },
+                values: new object[,]
+                {
+                    { 1, 0, new TimeSpan(0, 7, 30, 0, 0), "Slot 1 (06:00 - 07:30)", new TimeSpan(0, 6, 0, 0, 0) },
+                    { 2, 0, new TimeSpan(0, 9, 0, 0, 0), "Slot 2 (07:30 - 09:00)", new TimeSpan(0, 7, 30, 0, 0) },
+                    { 3, 0, new TimeSpan(0, 10, 30, 0, 0), "Slot 3 (09:00 - 10:30)", new TimeSpan(0, 9, 0, 0, 0) },
+                    { 4, 0, new TimeSpan(0, 16, 30, 0, 0), "Slot 4 (15:00 - 16:30)", new TimeSpan(0, 15, 0, 0, 0) },
+                    { 5, 0, new TimeSpan(0, 18, 0, 0, 0), "Slot 5 (16:30 - 18:00)", new TimeSpan(0, 16, 30, 0, 0) },
+                    { 6, 0, new TimeSpan(0, 19, 30, 0, 0), "Slot 6 (18:00 - 19:30)", new TimeSpan(0, 18, 0, 0, 0) },
+                    { 7, 0, new TimeSpan(0, 21, 0, 0, 0), "Slot 7 (19:30 - 21:00)", new TimeSpan(0, 19, 30, 0, 0) },
+                    { 8, 0, new TimeSpan(0, 22, 30, 0, 0), "Slot 8 (21:00 - 22:30)", new TimeSpan(0, 21, 0, 0, 0) }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Users",
+                columns: new[] { "UserId", "AvatarUrl", "CreatedAt", "DateOfBirth", "Email", "FullName", "Gender", "IsActive", "LoyaltyPoints", "MembershipTierId", "PasswordHash", "Phone", "RefreshToken", "SkillLevel" },
+                values: new object[,]
+                {
+                    { 1, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "admin@sportcourt.com", "System Administrator", 2, true, 0, null, "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z", "0987654321", null, 2 },
+                    { 2, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "manager@sportcourt.com", "Complex Manager", 0, true, 0, null, "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z", "0987654322", null, 1 },
+                    { 3, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "staff@sportcourt.com", "Staff Member", 1, true, 0, null, "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z", "0987654323", null, 0 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "CourtComplexes",
+                columns: new[] { "ComplexId", "Address", "ComplexName", "CreatedAt", "Description", "ImageUrl", "IsDeleted", "ManagerId" },
+                values: new object[] { 1, "Dịch Vọng, Cầu Giấy, Hà Nội", "Tổ hợp thể thao Cầu Giấy", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Tổ hợp thể thao hiện đại bậc nhất khu vực Cầu Giấy với nhiều loại sân khác nhau.", "https://example.com/complex1.jpg", false, 2 });
+
+            migrationBuilder.InsertData(
+                table: "UserRoles",
+                columns: new[] { "UserRoleId", "RoleId", "UserId" },
+                values: new object[,]
+                {
+                    { 1, 1, 1 },
+                    { 2, 2, 2 },
+                    { 3, 3, 3 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Users",
+                columns: new[] { "UserId", "AvatarUrl", "CreatedAt", "DateOfBirth", "Email", "FullName", "Gender", "IsActive", "LoyaltyPoints", "MembershipTierId", "PasswordHash", "Phone", "RefreshToken", "SkillLevel" },
+                values: new object[] { 4, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "customer@sportcourt.com", "John Doe", 2, true, 50, 1, "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z", "0987654324", null, 0 });
+
+            migrationBuilder.InsertData(
+                table: "Courts",
+                columns: new[] { "CourtId", "CloseTime", "ComplexId", "CourtCode", "CourtName", "CourtSize", "CourtTypeId", "IsDeleted", "OpenTime", "PricePerHour", "Status" },
+                values: new object[,]
+                {
+                    { 1, new TimeSpan(0, 22, 0, 0, 0), 1, "PB-P1", "Sân Pickleball P1", "20x44 feet", 1, false, new TimeSpan(0, 6, 0, 0, 0), 150000.00m, 0 },
+                    { 2, new TimeSpan(0, 22, 0, 0, 0), 1, "BM-B1", "Sân Cầu Lông B1", "6.1x13.4 meters", 2, false, new TimeSpan(0, 6, 0, 0, 0), 100000.00m, 0 },
+                    { 3, new TimeSpan(0, 22, 0, 0, 0), 1, "FB-F1", "Sân Bóng Đá F1", "5-a-side", 3, false, new TimeSpan(0, 6, 0, 0, 0), 300000.00m, 0 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "StaffComplexes",
+                columns: new[] { "StaffComplexId", "AssignedAt", "ComplexId", "StaffId" },
+                values: new object[] { 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, 3 });
+
+            migrationBuilder.InsertData(
+                table: "UserRoles",
+                columns: new[] { "UserRoleId", "RoleId", "UserId" },
+                values: new object[] { 4, 4, 4 });
+
+            migrationBuilder.InsertData(
+                table: "CourtPricing",
+                columns: new[] { "PricingId", "CourtId", "EffectiveFrom", "Price", "SlotId" },
+                values: new object[,]
+                {
+                    { 1, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 120000.00m, 1 },
+                    { 2, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 120000.00m, 2 },
+                    { 3, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 120000.00m, 3 },
+                    { 4, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 150000.00m, 4 },
+                    { 5, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 150000.00m, 5 },
+                    { 6, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 180000.00m, 6 },
+                    { 7, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 180000.00m, 7 },
+                    { 8, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 180000.00m, 8 },
+                    { 9, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 80000.00m, 1 },
+                    { 10, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 80000.00m, 2 },
+                    { 11, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 80000.00m, 3 },
+                    { 12, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 100000.00m, 4 },
+                    { 13, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 100000.00m, 5 },
+                    { 14, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 120000.00m, 6 },
+                    { 15, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 120000.00m, 7 },
+                    { 16, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 120000.00m, 8 }
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_AuditLogs_UserId",
                 table: "AuditLogs",
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Booking_Court_Slot_Date",
+                table: "Bookings",
+                columns: new[] { "CourtId", "SlotId", "BookingDate" },
+                unique: true,
+                filter: "[Status] != 2");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Bookings_BookingCode",
                 table: "Bookings",
                 column: "BookingCode",
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Bookings_CourtId",
-                table: "Bookings",
-                column: "CourtId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Bookings_PromotionId",
@@ -811,6 +1118,11 @@ namespace SportCourtManagent_Server.Migrations
                 name: "IX_Bookings_SlotId",
                 table: "Bookings",
                 column: "SlotId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Bookings_TournamentId",
+                table: "Bookings",
+                column: "TournamentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Bookings_UserId",
@@ -841,6 +1153,22 @@ namespace SportCourtManagent_Server.Migrations
                 name: "IX_CoachSchedules_SlotId",
                 table: "CoachSchedules",
                 column: "SlotId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ComplexCourtTypeServices_ComplexId_CourtTypeId_ServiceId",
+                table: "ComplexCourtTypeServices",
+                columns: new[] { "ComplexId", "CourtTypeId", "ServiceId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ComplexCourtTypeServices_CourtTypeId",
+                table: "ComplexCourtTypeServices",
+                column: "CourtTypeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ComplexCourtTypeServices_ServiceId",
+                table: "ComplexCourtTypeServices",
+                column: "ServiceId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CourtComplexes_ManagerId",
@@ -1004,9 +1332,26 @@ namespace SportCourtManagent_Server.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_StaffShifts_StaffId",
+                name: "IX_StaffComplexes_ComplexId",
+                table: "StaffComplexes",
+                column: "ComplexId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StaffComplexes_StaffId_ComplexId",
+                table: "StaffComplexes",
+                columns: new[] { "StaffId", "ComplexId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StaffShifts_ComplexId_ShiftDate",
                 table: "StaffShifts",
-                column: "StaffId");
+                columns: new[] { "ComplexId", "ShiftDate" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StaffShifts_StaffId_ShiftDate_ShiftType",
+                table: "StaffShifts",
+                columns: new[] { "StaffId", "ShiftDate", "ShiftType" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Tasks_AssignedStaffId",
@@ -1027,6 +1372,11 @@ namespace SportCourtManagent_Server.Migrations
                 name: "IX_Tasks_CreatedById",
                 table: "Tasks",
                 column: "CreatedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Tournaments_UserId",
+                table: "Tournaments",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserRoles_RoleId",
@@ -1063,6 +1413,22 @@ namespace SportCourtManagent_Server.Migrations
                 name: "IX_Waitlists_UserId",
                 table: "Waitlists",
                 column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Wallets_UserId",
+                table: "Wallets",
+                column: "UserId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WalletTransactions_BookingId",
+                table: "WalletTransactions",
+                column: "BookingId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WalletTransactions_WalletId",
+                table: "WalletTransactions",
+                column: "WalletId");
         }
 
         /// <inheritdoc />
@@ -1076,6 +1442,9 @@ namespace SportCourtManagent_Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "CoachSchedules");
+
+            migrationBuilder.DropTable(
+                name: "ComplexCourtTypeServices");
 
             migrationBuilder.DropTable(
                 name: "CourtImages");
@@ -1105,6 +1474,9 @@ namespace SportCourtManagent_Server.Migrations
                 name: "Reviews");
 
             migrationBuilder.DropTable(
+                name: "StaffComplexes");
+
+            migrationBuilder.DropTable(
                 name: "StaffShifts");
 
             migrationBuilder.DropTable(
@@ -1115,6 +1487,9 @@ namespace SportCourtManagent_Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "Waitlists");
+
+            migrationBuilder.DropTable(
+                name: "WalletTransactions");
 
             migrationBuilder.DropTable(
                 name: "Services");
@@ -1129,6 +1504,9 @@ namespace SportCourtManagent_Server.Migrations
                 name: "Roles");
 
             migrationBuilder.DropTable(
+                name: "Wallets");
+
+            migrationBuilder.DropTable(
                 name: "Bookings");
 
             migrationBuilder.DropTable(
@@ -1139,6 +1517,9 @@ namespace SportCourtManagent_Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "TimeSlots");
+
+            migrationBuilder.DropTable(
+                name: "Tournaments");
 
             migrationBuilder.DropTable(
                 name: "CourtComplexes");

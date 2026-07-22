@@ -1198,7 +1198,7 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 1,
                             Category = "EquipmentRent",
-                            CreatedAt = new DateTime(2026, 7, 20, 15, 53, 20, 610, DateTimeKind.Utc).AddTicks(2037),
+                            CreatedAt = new DateTime(2026, 7, 22, 7, 6, 47, 722, DateTimeKind.Utc).AddTicks(7656),
                             IsActive = true,
                             Price = 30000.00m,
                             ServiceName = "Thuê vợt Pickleball",
@@ -1209,7 +1209,7 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 2,
                             Category = "EquipmentRent",
-                            CreatedAt = new DateTime(2026, 7, 20, 15, 53, 20, 610, DateTimeKind.Utc).AddTicks(2049),
+                            CreatedAt = new DateTime(2026, 7, 22, 7, 6, 47, 722, DateTimeKind.Utc).AddTicks(7663),
                             IsActive = true,
                             Price = 20000.00m,
                             ServiceName = "Thuê vợt cầu lông",
@@ -1220,7 +1220,7 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 3,
                             Category = "Drink",
-                            CreatedAt = new DateTime(2026, 7, 20, 15, 53, 20, 610, DateTimeKind.Utc).AddTicks(2050),
+                            CreatedAt = new DateTime(2026, 7, 22, 7, 6, 47, 722, DateTimeKind.Utc).AddTicks(7665),
                             IsActive = true,
                             Price = 15000.00m,
                             ServiceName = "Nước uống Pocari",
@@ -1231,7 +1231,7 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 4,
                             Category = "Drink",
-                            CreatedAt = new DateTime(2026, 7, 20, 15, 53, 20, 610, DateTimeKind.Utc).AddTicks(2052),
+                            CreatedAt = new DateTime(2026, 7, 22, 7, 6, 47, 722, DateTimeKind.Utc).AddTicks(7666),
                             IsActive = true,
                             Price = 10000.00m,
                             ServiceName = "Nước suối Aquafina",

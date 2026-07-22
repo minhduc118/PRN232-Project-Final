@@ -62,6 +62,7 @@ namespace SportCourtManagent_Server.Services.Implements
                 Price = request.Price,
                 Unit = string.IsNullOrWhiteSpace(request.Unit) ? "cái" : request.Unit.Trim(),
                 Description = request.Description?.Trim(),
+                StockQty = request.StockQty,
                 IsActive = request.IsActive
             };
 
@@ -83,6 +84,7 @@ namespace SportCourtManagent_Server.Services.Implements
             service.Price = request.Price;
             service.Unit = string.IsNullOrWhiteSpace(request.Unit) ? "cái" : request.Unit.Trim();
             service.Description = request.Description?.Trim();
+            service.StockQty = request.StockQty;
             service.IsActive = request.IsActive;
 
             await _serviceRepo.UpdateAsync(service);
@@ -111,6 +113,7 @@ namespace SportCourtManagent_Server.Services.Implements
             Price = s.Price,
             Unit = s.Unit,
             Description = s.Description,
+            StockQty = s.StockQty,
             IsActive = s.IsActive
         };
     }

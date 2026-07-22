@@ -14,7 +14,6 @@ namespace SportCourtManagent_Server.DTOs.Role
         public bool Admin { get; set; }
         public bool Manager { get; set; }
         public bool Staff { get; set; }
-        public bool Coach { get; set; }
         public bool Customer { get; set; }
     }
 

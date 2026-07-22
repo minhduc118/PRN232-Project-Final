@@ -5,7 +5,7 @@ using SportCourtManagent_Server.Services.Interfaces;
 
 namespace SportCourtManagent_Server.Controllers.Manager
 {
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize]
     [Route("api/manager/complexes/{complexId:int}/staff")]
     [ApiController]
     public class StaffManagementController : ControllerBase
@@ -21,6 +21,7 @@ namespace SportCourtManagent_Server.Controllers.Manager
 
         // GET /api/manager/complexes/{complexId}/staff
         [HttpGet]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> GetStaffList(
             int complexId,
             [FromQuery] string? search = null,
@@ -45,6 +46,7 @@ namespace SportCourtManagent_Server.Controllers.Manager
 
         // POST /api/manager/complexes/{complexId}/staff/{staffId}/assign
         [HttpPost("{staffId:int}/assign")]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> AssignStaffToComplex([FromRoute] int complexId, [FromRoute] int staffId)
         {
             try
@@ -72,6 +74,7 @@ namespace SportCourtManagent_Server.Controllers.Manager
 
         // DELETE /api/manager/complexes/{complexId}/staff/{staffId}/unassign
         [HttpDelete("{staffId:int}/unassign")]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> RemoveStaffFromComplex([FromRoute] int complexId, [FromRoute] int staffId)
         {
             try
@@ -93,6 +96,7 @@ namespace SportCourtManagent_Server.Controllers.Manager
 
         // GET /api/manager/complexes/{complexId}/staff/shifts/weekly?weekStart=2026-06-02
         [HttpGet("shifts/weekly")]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> GetWeeklySchedule(
             [FromRoute] int complexId,
             [FromQuery] string? weekStart = null)
@@ -116,8 +120,41 @@ namespace SportCourtManagent_Server.Controllers.Manager
             }
         }
 
+        // GET /api/manager/complexes/{complexId}/staff/shifts/my?weekStart=2026-06-02
+        [HttpGet("shifts/my")]
+        [Authorize(Roles = "Staff")]
+        public async Task<IActionResult> GetMyWeeklySchedule(
+            [FromRoute] int complexId,
+            [FromQuery] string? weekStart = null)
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int staffId))
+            {
+                return Unauthorized(new { Message = "Không tìm thấy thông tin đăng nhập nhân viên." });
+            }
+
+            var date = weekStart != null && DateOnly.TryParse(weekStart, out var parsed)
+              ? parsed
+              : DateOnly.FromDateTime(DateTime.Today);
+
+            try
+            {
+                var schedule = await _staffService.GetWeeklyScheduleByStaffAsync(complexId, staffId, date);
+                return Ok(schedule);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = $"Lỗi hệ thống: {ex.Message}" });
+            }
+        }
+
         // GET /api/manager/complexes/{complexId}/staff/shifts/{shiftId}
         [HttpGet("shifts/{shiftId:int}")]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> GetShiftById([FromRoute] int complexId, [FromRoute] int shiftId)
         {
             try
@@ -137,6 +174,7 @@ namespace SportCourtManagent_Server.Controllers.Manager
 
         // POST /api/manager/complexes/{complexId}/staff/shifts
         [HttpPost("shifts")]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> CreateShift(
             [FromRoute] int complexId,
             [FromBody] CreateShiftRequest request)
@@ -171,6 +209,7 @@ namespace SportCourtManagent_Server.Controllers.Manager
 
         // PUT /api/manager/complexes/{complexId}/staff/shifts/{shiftId}
         [HttpPut("shifts/{shiftId:int}")]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> UpdateShift(
             [FromRoute] int complexId,
             [FromRoute] int shiftId,
@@ -204,6 +243,7 @@ namespace SportCourtManagent_Server.Controllers.Manager
 
         // DELETE /api/manager/complexes/{complexId}/staff/shifts/{shiftId}
         [HttpDelete("shifts/{shiftId:int}")]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> DeleteShift([FromRoute] int complexId, [FromRoute] int shiftId)
         {
             try
@@ -227,6 +267,7 @@ namespace SportCourtManagent_Server.Controllers.Manager
 
         // GET /api/manager/complexes/{complexId}/staff/attendance
         [HttpGet("attendance")]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> GetAttendanceReport(
             int complexId,
             [FromQuery] string? dateFrom = null,
@@ -262,6 +303,7 @@ namespace SportCourtManagent_Server.Controllers.Manager
 
         // POST /api/manager/complexes/{complexId}/staff/shifts/{shiftId}/check-in
         [HttpPost("shifts/{shiftId:int}/check-in")]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> ManagerCheckIn([FromRoute] int complexId, [FromRoute] int shiftId)
         {
             try
@@ -295,6 +337,7 @@ namespace SportCourtManagent_Server.Controllers.Manager
 
         // POST /api/manager/complexes/{complexId}/staff/shifts/{shiftId}/check-out
         [HttpPost("shifts/{shiftId:int}/check-out")]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> ManagerCheckOut([FromRoute] int complexId, [FromRoute] int shiftId)
         {
             try

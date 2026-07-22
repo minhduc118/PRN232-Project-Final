@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.DataAccess.Interfaces;
 using SportCourtManagent_Server.DTOs.Bookings;
 using SportCourtManagent_Server.Enums;
@@ -22,6 +23,7 @@ namespace SportCourtManagent_Server.Services.Implements
         private readonly IServiceRepository _serviceRepository;
         private readonly IPaymentRepository _paymentRepository;
         private readonly IInMemoryBookingRepository _inMemoryBookingRepository;
+        private readonly AppDbContext _context;
 
         public CourtBookingService(
             IBookingRepository bookingRepository,
@@ -31,7 +33,8 @@ namespace SportCourtManagent_Server.Services.Implements
             IPromotionRepository promotionRepository,
             IServiceRepository serviceRepository,
             IPaymentRepository paymentRepository,
-            IInMemoryBookingRepository inMemoryBookingRepository)
+            IInMemoryBookingRepository inMemoryBookingRepository,
+            AppDbContext context)
         {
             _bookingRepository = bookingRepository;
             _courtRepository = courtRepository;
@@ -41,6 +44,7 @@ namespace SportCourtManagent_Server.Services.Implements
             _serviceRepository = serviceRepository;
             _paymentRepository = paymentRepository;
             _inMemoryBookingRepository = inMemoryBookingRepository;
+            _context = context;
         }
 
         public async Task<BookingResponseDto> CreateBookingAsync(CreateBookingRequestDto dto, int userId)
@@ -69,16 +73,32 @@ namespace SportCourtManagent_Server.Services.Implements
 
             var isAlreadyBookedInDb = await _bookingRepository.HasConflictingBookingAsync(dto.CourtId, dto.SlotId, dto.BookingDate);
 
-            var isAlreadyBookedInCache = await _inMemoryBookingRepository.HasConflictingBookingAsync(dto.CourtId, dto.SlotId, dto.BookingDate);
-
-            if (isAlreadyBookedInDb || isAlreadyBookedInCache)
+            if (isAlreadyBookedInDb)
             {
-                throw new InvalidOperationException("This court is already booked or reserved for the selected slot and date.");
+                throw new InvalidOperationException("Sân đấu này đã được đặt trong khung giờ đã chọn.");
             }
 
             decimal courtPrice = await _courtRepository.GetCourtPriceAsync(dto.CourtId, dto.SlotId, dto.BookingDate);
 
             var billingResult = await _bookingRepository.ProcessBookingBillingAsync(dto, courtPrice);
+
+            // Kiểm tra ví
+            var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
+            if (wallet == null)
+            {
+                wallet = new Wallet { UserId = userId, Balance = 10000000m };
+                await _context.Wallets.AddAsync(wallet);
+                await _context.SaveChangesAsync();
+            }
+
+            if (wallet.Balance < billingResult.TotalAmount)
+            {
+                throw new InvalidOperationException($"Số dư ví không đủ. Chi phí đặt sân là {billingResult.TotalAmount:N0}đ nhưng ví của bạn chỉ còn {wallet.Balance:N0}đ. Vui lòng nạp thêm tiền.");
+            }
+
+            // Trừ tiền ví
+            wallet.Balance -= billingResult.TotalAmount;
+            wallet.UpdatedAt = DateTime.UtcNow;
 
             string bookingCode = $"BK-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}";
 
@@ -94,16 +114,41 @@ namespace SportCourtManagent_Server.Services.Implements
                 SubTotal = billingResult.SubTotal,
                 DiscountAmount = billingResult.DiscountAmount,
                 TotalAmount = billingResult.TotalAmount,
-                Status = BookingStatus.Pending,
+                Status = BookingStatus.Confirmed, // Confirmed immediately
                 PromotionId = billingResult.AppliedPromotion?.PromotionId,
                 BookingServices = billingResult.BookingServices
             };
 
-            await _inMemoryBookingRepository.SaveAsync(booking, TimeSpan.FromMinutes(5));
+            await _bookingRepository.AddAsync(booking);
+
+            // Ghi nhận Payment
+            var payment = new Payment
+            {
+                BookingId = booking.BookingId,
+                Amount = booking.TotalAmount,
+                PaymentMethod = PaymentMethod.Wallet,
+                TransactionId = $"WT-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}",
+                Status = PaymentStatus.Success,
+                PaidAt = DateTime.UtcNow
+            };
+            await _paymentRepository.AddAsync(payment);
+
+            // Ghi nhận WalletTransaction
+            var wt = new WalletTransaction
+            {
+                WalletId = wallet.WalletId,
+                Amount = -booking.TotalAmount,
+                Type = WalletTransactionType.Payment,
+                BookingId = booking.BookingId,
+                Description = $"Thanh toán đặt sân {booking.BookingCode}",
+                CreatedAt = DateTime.UtcNow
+            };
+            await _context.WalletTransactions.AddAsync(wt);
+            await _context.SaveChangesAsync();
 
             return new BookingResponseDto
             {
-                BookingId = 0,
+                BookingId = booking.BookingId,
                 BookingCode = booking.BookingCode,
                 UserId = booking.UserId,
                 CourtId = booking.CourtId,

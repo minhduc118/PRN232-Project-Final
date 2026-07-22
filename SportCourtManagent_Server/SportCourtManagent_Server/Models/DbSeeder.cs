@@ -75,7 +75,8 @@ namespace SportCourtManagent_Server.Models
                         Gender = Gender.Male,
                         SkillLevel = SkillLevel.Advanced,
                         IsActive = true,
-                        CreatedAt = DateTime.Now
+                        CreatedAt = DateTime.Now,
+                        Wallet = new Wallet { Balance = 10000000m }
                     },
                     new User
                     {
@@ -90,7 +91,8 @@ namespace SportCourtManagent_Server.Models
                         Gender = Gender.Female,
                         SkillLevel = SkillLevel.Intermediate,
                         IsActive = true,
-                        CreatedAt = DateTime.Now
+                        CreatedAt = DateTime.Now,
+                        Wallet = new Wallet { Balance = 10000000m }
                     },
                     new User
                     {
@@ -105,7 +107,8 @@ namespace SportCourtManagent_Server.Models
                         Gender = Gender.Male,
                         SkillLevel = SkillLevel.Beginner,
                         IsActive = true,
-                        CreatedAt = DateTime.Now
+                        CreatedAt = DateTime.Now,
+                        Wallet = new Wallet { Balance = 10000000m }
                     },
                     new User
                     {
@@ -120,7 +123,8 @@ namespace SportCourtManagent_Server.Models
                         Gender = Gender.Male,
                         SkillLevel = SkillLevel.Advanced,
                         IsActive = true,
-                        CreatedAt = DateTime.Now
+                        CreatedAt = DateTime.Now,
+                        Wallet = new Wallet { Balance = 10000000m }
                     }
                 };
 
@@ -285,16 +289,19 @@ namespace SportCourtManagent_Server.Models
                 }
             }
 
-            // 9. Seed TimeSlots
+            // 9. Seed TimeSlots matching standard 8 slots
             if (!await context.TimeSlots.AnyAsync())
             {
                 var timeSlots = new[]
                 {
-                    new TimeSlot { SlotName = "Ca 1 (07:00-09:00)", StartTime = new TimeSpan(7, 0, 0), EndTime = new TimeSpan(9, 0, 0), DayType = DayType.Weekday },
-                    new TimeSlot { SlotName = "Ca 2 (09:00-11:00)", StartTime = new TimeSpan(9, 0, 0), EndTime = new TimeSpan(11, 0, 0), DayType = DayType.Weekday },
-                    new TimeSlot { SlotName = "Ca 3 (14:00-16:00)", StartTime = new TimeSpan(14, 0, 0), EndTime = new TimeSpan(16, 0, 0), DayType = DayType.Weekday },
-                    new TimeSlot { SlotName = "Ca 4 (16:00-18:00)", StartTime = new TimeSpan(16, 0, 0), EndTime = new TimeSpan(18, 0, 0), DayType = DayType.Weekday },
-                    new TimeSlot { SlotName = "Ca Vàng (18:00-20:00)", StartTime = new TimeSpan(18, 0, 0), EndTime = new TimeSpan(20, 0, 0), DayType = DayType.Weekday }
+                    new TimeSlot { SlotName = "Slot 1 (06:00 - 07:30)", StartTime = new TimeSpan(6, 0, 0), EndTime = new TimeSpan(7, 30, 0), DayType = DayType.Weekday },
+                    new TimeSlot { SlotName = "Slot 2 (07:30 - 09:00)", StartTime = new TimeSpan(7, 30, 0), EndTime = new TimeSpan(9, 0, 0), DayType = DayType.Weekday },
+                    new TimeSlot { SlotName = "Slot 3 (09:00 - 10:30)", StartTime = new TimeSpan(9, 0, 0), EndTime = new TimeSpan(10, 30, 0), DayType = DayType.Weekday },
+                    new TimeSlot { SlotName = "Slot 4 (15:00 - 16:30)", StartTime = new TimeSpan(15, 0, 0), EndTime = new TimeSpan(16, 30, 0), DayType = DayType.Weekday },
+                    new TimeSlot { SlotName = "Slot 5 (16:30 - 18:00)", StartTime = new TimeSpan(16, 30, 0), EndTime = new TimeSpan(18, 0, 0), DayType = DayType.Weekday },
+                    new TimeSlot { SlotName = "Slot 6 (18:00 - 19:30)", StartTime = new TimeSpan(18, 0, 0), EndTime = new TimeSpan(19, 30, 0), DayType = DayType.Weekday },
+                    new TimeSlot { SlotName = "Slot 7 (19:30 - 21:00)", StartTime = new TimeSpan(19, 30, 0), EndTime = new TimeSpan(21, 0, 0), DayType = DayType.Weekday },
+                    new TimeSlot { SlotName = "Slot 8 (21:00 - 22:30)", StartTime = new TimeSpan(21, 0, 0), EndTime = new TimeSpan(22, 30, 0), DayType = DayType.Weekday }
                 };
                 await context.TimeSlots.AddRangeAsync(timeSlots);
                 await context.SaveChangesAsync();

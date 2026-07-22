@@ -53,6 +53,8 @@ namespace SportCourtManagent_Server.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
+        public Wallet? Wallet { get; set; }
+
         public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
         public ICollection<Review> Reviews { get; set; } = new List<Review>();

@@ -14,7 +14,9 @@ namespace SportCourtManagent_Server.DTOs.Maintenance
         public string? AssignedStaffName { get; set; }
         public string? Reason { get; set; }
         public string? Result { get; set; }
+        public string? ImageProof { get; set; }
         public string Status { get; set; } = string.Empty;
+
         public DateTime CreatedAt { get; set; }
     }
 

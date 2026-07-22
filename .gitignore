@@ -15,6 +15,7 @@
 !**/packages/build/
 
 # User secrets & local config (contains sensitive data like passwords)
+**/appsettings.json
 **/appsettings.Development.json
 **/appsettings.Local.json
 **/secrets.json

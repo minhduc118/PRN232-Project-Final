@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using SportCourtManagent_Server.Models;
 using SportCourtManagent_Server.DTOs.StaffDashboard;
 using SportCourtManagent_Server.Enums;
+using SportCourtManagent_Server.Helpers;
 
 namespace SportCourtManagent_Server.Controllers
 {
@@ -86,13 +87,24 @@ namespace SportCourtManagent_Server.Controllers
             var coachRoleId    = (await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Coach"))?.RoleId ?? 0;
 
             // ── Revenue KPIs ──
-            decimal todayRevenue = await _context.Bookings
+            decimal paidPaymentsToday = await _context.Payments
+                .Where(p => p.Status == PaymentStatus.Success && p.PaidAt.HasValue && p.PaidAt.Value.Date == today)
+                .SumAsync(p => (decimal?)p.Amount) ?? 0;
+
+            decimal paidPaymentsMonth = await _context.Payments
+                .Where(p => p.Status == PaymentStatus.Success && p.PaidAt.HasValue && p.PaidAt.Value >= startOfMonth)
+                .SumAsync(p => (decimal?)p.Amount) ?? 0;
+
+            decimal bookingsToday = await _context.Bookings
                 .Where(b => b.BookingDate.Date == today && b.Status != BookingStatus.Cancelled)
                 .SumAsync(b => (decimal?)b.TotalAmount) ?? 0;
 
-            decimal monthRevenue = await _context.Bookings
-                .Where(b => b.BookingDate >= startOfMonth && b.Status != BookingStatus.Cancelled)
+            decimal bookingsTotal = await _context.Bookings
+                .Where(b => b.Status != BookingStatus.Cancelled)
                 .SumAsync(b => (decimal?)b.TotalAmount) ?? 0;
+
+            decimal todayRevenue = Math.Max(paidPaymentsToday, bookingsToday);
+            decimal monthRevenue = Math.Max(paidPaymentsMonth, bookingsTotal);
 
             // ── Booking KPIs ──
             int todayBookings   = await _context.Bookings.CountAsync(b => b.BookingDate.Date == today);
@@ -199,7 +211,7 @@ namespace SportCourtManagent_Server.Controllers
                 .Take(5)
                 .ToListAsync();
 
-            return Ok(new
+            return Ok(ApiResults.Ok(new
             {
                 kpis = new
                 {
@@ -215,7 +227,7 @@ namespace SportCourtManagent_Server.Controllers
                 courtGrid,
                 alerts,
                 topCustomers
-            });
+            }));
         }
     }
 }

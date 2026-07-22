@@ -59,7 +59,8 @@ namespace SportCourtManagent_Server.Services.Implements
                 MembershipTierId = defaultTier?.TierId,
                 Gender = Gender.Other,
                 SkillLevel = SkillLevel.Beginner,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.Now,
+                Wallet = new Wallet { Balance = 0 }
             };
 
             await _userRepo.AddAsync(user);
@@ -198,7 +199,8 @@ namespace SportCourtManagent_Server.Services.Implements
                     Gender = Gender.Other,
                     SkillLevel = SkillLevel.Beginner,
                     AvatarUrl = avatarUrl,
-                    CreatedAt = DateTime.Now
+                    CreatedAt = DateTime.Now,
+                    Wallet = new Wallet { Balance = 0 }
                 };
 
                 await _userRepo.AddAsync(newUser);

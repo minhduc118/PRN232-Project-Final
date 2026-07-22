@@ -95,7 +95,10 @@ namespace SportCourtManagent_Server.Controllers
         private bool TryGetUserId(out int userId)
         {
             userId = 0;
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                        ?? User.FindFirst("sub")?.Value
+                        ?? User.FindFirst("nameid")?.Value
+                        ?? User.FindFirst("UserId")?.Value;
             return !string.IsNullOrEmpty(claim) && int.TryParse(claim, out userId);
         }
     }

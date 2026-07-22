@@ -12,8 +12,8 @@ using SportCourtManagent_Server.Models;
 namespace SportCourtManagent_Server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260705145432_MergeManagerStaffCore")]
-    partial class MergeManagerStaffCore
+    [Migration("20260722172126_InitialCleanDB")]
+    partial class InitialCleanDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -90,6 +90,9 @@ namespace SportCourtManagent_Server.Migrations
                     b.Property<TimeSpan>("EndTime")
                         .HasColumnType("time");
 
+                    b.Property<DateTime?>("ExpiredAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Note")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -123,8 +126,6 @@ namespace SportCourtManagent_Server.Migrations
                     b.HasIndex("BookingCode")
                         .IsUnique();
 
-                    b.HasIndex("CourtId");
-
                     b.HasIndex("PromotionId");
 
                     b.HasIndex("SlotId");
@@ -132,6 +133,10 @@ namespace SportCourtManagent_Server.Migrations
                     b.HasIndex("TournamentId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex(new[] { "CourtId", "SlotId", "BookingDate" }, "IX_Booking_Court_Slot_Date")
+                        .IsUnique()
+                        .HasFilter("[Status] != 2");
 
                     b.ToTable("Bookings");
                 });
@@ -741,6 +746,10 @@ namespace SportCourtManagent_Server.Migrations
                     b.Property<DateTime>("EndDateTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ImageProof")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<int>("MaintenanceType")
                         .HasColumnType("int");
 
@@ -765,6 +774,32 @@ namespace SportCourtManagent_Server.Migrations
                     b.HasIndex("CourtId");
 
                     b.ToTable("MaintenanceSchedules");
+
+                    b.HasData(
+                        new
+                        {
+                            MaintenanceId = 1,
+                            AssignedStaffId = 3,
+                            CourtId = 1,
+                            EndDateTime = new DateTime(2026, 7, 20, 10, 0, 0, 0, DateTimeKind.Unspecified),
+                            ImageProof = "https://pos.nvncdn.com/3c8244-211061/art/artCT/20240812_0rmC0gAF.jpg",
+                            MaintenanceType = 0,
+                            Reason = "Bảo trì định kỳ mặt sân Pickleball P1",
+                            Result = "Đã lau chùi mặt sân và căng lại lưới",
+                            StartDateTime = new DateTime(2026, 7, 20, 8, 0, 0, 0, DateTimeKind.Unspecified),
+                            Status = 2
+                        },
+                        new
+                        {
+                            MaintenanceId = 2,
+                            AssignedStaffId = 3,
+                            CourtId = 2,
+                            EndDateTime = new DateTime(2026, 7, 22, 16, 0, 0, 0, DateTimeKind.Unspecified),
+                            MaintenanceType = 1,
+                            Reason = "Sửa chữa sự cố hệ thống đèn chiếu sáng tại sân B1",
+                            StartDateTime = new DateTime(2026, 7, 22, 14, 0, 0, 0, DateTimeKind.Unspecified),
+                            Status = 0
+                        });
                 });
 
             modelBuilder.Entity("SportCourtManagent_Server.Models.MembershipTier", b =>
@@ -889,6 +924,42 @@ namespace SportCourtManagent_Server.Migrations
                         .IsUnique();
 
                     b.ToTable("Payments");
+                });
+
+            modelBuilder.Entity("SportCourtManagent_Server.Models.PermissionMatrixEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Admin")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("Customer")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Feature")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("Manager")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("Staff")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Feature")
+                        .IsUnique();
+
+                    b.ToTable("PermissionMatrix");
                 });
 
             modelBuilder.Entity("SportCourtManagent_Server.Models.PlayerRequest", b =>
@@ -1196,7 +1267,7 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 1,
                             Category = "EquipmentRent",
-                            CreatedAt = new DateTime(2026, 7, 5, 14, 54, 31, 110, DateTimeKind.Utc).AddTicks(7482),
+                            CreatedAt = new DateTime(2026, 7, 22, 17, 21, 26, 48, DateTimeKind.Utc).AddTicks(5822),
                             IsActive = true,
                             Price = 30000.00m,
                             ServiceName = "Thuê vợt Pickleball",
@@ -1207,7 +1278,7 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 2,
                             Category = "EquipmentRent",
-                            CreatedAt = new DateTime(2026, 7, 5, 14, 54, 31, 110, DateTimeKind.Utc).AddTicks(7489),
+                            CreatedAt = new DateTime(2026, 7, 22, 17, 21, 26, 48, DateTimeKind.Utc).AddTicks(5831),
                             IsActive = true,
                             Price = 20000.00m,
                             ServiceName = "Thuê vợt cầu lông",
@@ -1218,7 +1289,7 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 3,
                             Category = "Drink",
-                            CreatedAt = new DateTime(2026, 7, 5, 14, 54, 31, 110, DateTimeKind.Utc).AddTicks(7491),
+                            CreatedAt = new DateTime(2026, 7, 22, 17, 21, 26, 48, DateTimeKind.Utc).AddTicks(5833),
                             IsActive = true,
                             Price = 15000.00m,
                             ServiceName = "Nước uống Pocari",
@@ -1229,7 +1300,7 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 4,
                             Category = "Drink",
-                            CreatedAt = new DateTime(2026, 7, 5, 14, 54, 31, 110, DateTimeKind.Utc).AddTicks(7493),
+                            CreatedAt = new DateTime(2026, 7, 22, 17, 21, 26, 48, DateTimeKind.Utc).AddTicks(5835),
                             IsActive = true,
                             Price = 10000.00m,
                             ServiceName = "Nước suối Aquafina",
@@ -1356,6 +1427,10 @@ namespace SportCourtManagent_Server.Migrations
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ImageProof")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<int>("Priority")
                         .HasColumnType("int");
 
@@ -1381,6 +1456,40 @@ namespace SportCourtManagent_Server.Migrations
                     b.HasIndex("CreatedById");
 
                     b.ToTable("Tasks");
+
+                    b.HasData(
+                        new
+                        {
+                            TaskId = 1,
+                            AssignedStaffId = 3,
+                            Category = 0,
+                            CompletedAt = new DateTime(2026, 7, 21, 10, 30, 0, 0, DateTimeKind.Unspecified),
+                            ComplexId = 1,
+                            CreatedAt = new DateTime(2026, 7, 21, 7, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedById = 2,
+                            Description = "Lau dọn sạch sẽ khu vực nhà vệ sinh nam nữ và bổ sung xà phòng",
+                            DueDate = new DateTime(2026, 7, 21, 18, 0, 0, 0, DateTimeKind.Unspecified),
+                            ImageProof = "https://pos.nvncdn.com/3c8244-211061/art/artCT/20240812_0rmC0gAF.jpg",
+                            Priority = 1,
+                            Status = 2,
+                            TaskType = 0,
+                            Title = "Vệ sinh khu vực thay đồ & nhà vệ sinh"
+                        },
+                        new
+                        {
+                            TaskId = 2,
+                            AssignedStaffId = 3,
+                            Category = 1,
+                            ComplexId = 1,
+                            CreatedAt = new DateTime(2026, 7, 21, 8, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedById = 2,
+                            Description = "Kiểm tra kho và bổ sung 50 chai Pocari vào tủ mát",
+                            DueDate = new DateTime(2026, 7, 22, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            Priority = 2,
+                            Status = 0,
+                            TaskType = 0,
+                            Title = "Kiểm tra và nạp bổ sung nước uống Pocari"
+                        });
                 });
 
             modelBuilder.Entity("SportCourtManagent_Server.Models.TimeSlot", b =>
@@ -1491,6 +1600,9 @@ namespace SportCourtManagent_Server.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<DateTime?>("ExpiredAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -1587,7 +1699,7 @@ namespace SportCourtManagent_Server.Migrations
                             Gender = 2,
                             IsActive = true,
                             LoyaltyPoints = 0,
-                            PasswordHash = "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z",
+                            PasswordHash = "$2a$11$Sm0spWRJMGSHXKHRwSlM2e8RlEkTEaPXS5DDxynOOPaB03J6rl1A.",
                             Phone = "0987654321",
                             SkillLevel = 2
                         },
@@ -1600,7 +1712,7 @@ namespace SportCourtManagent_Server.Migrations
                             Gender = 0,
                             IsActive = true,
                             LoyaltyPoints = 0,
-                            PasswordHash = "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z",
+                            PasswordHash = "$2a$11$Sm0spWRJMGSHXKHRwSlM2e8RlEkTEaPXS5DDxynOOPaB03J6rl1A.",
                             Phone = "0987654322",
                             SkillLevel = 1
                         },
@@ -1613,7 +1725,7 @@ namespace SportCourtManagent_Server.Migrations
                             Gender = 1,
                             IsActive = true,
                             LoyaltyPoints = 0,
-                            PasswordHash = "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z",
+                            PasswordHash = "$2a$11$Sm0spWRJMGSHXKHRwSlM2e8RlEkTEaPXS5DDxynOOPaB03J6rl1A.",
                             Phone = "0987654323",
                             SkillLevel = 0
                         },
@@ -1627,7 +1739,7 @@ namespace SportCourtManagent_Server.Migrations
                             IsActive = true,
                             LoyaltyPoints = 50,
                             MembershipTierId = 1,
-                            PasswordHash = "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z",
+                            PasswordHash = "$2a$11$Sm0spWRJMGSHXKHRwSlM2e8RlEkTEaPXS5DDxynOOPaB03J6rl1A.",
                             Phone = "0987654324",
                             SkillLevel = 0
                         });
@@ -1723,6 +1835,71 @@ namespace SportCourtManagent_Server.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Waitlists");
+                });
+
+            modelBuilder.Entity("SportCourtManagent_Server.Models.Wallet", b =>
+                {
+                    b.Property<int>("WalletId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WalletId"));
+
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("WalletId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("Wallets");
+                });
+
+            modelBuilder.Entity("SportCourtManagent_Server.Models.WalletTransaction", b =>
+                {
+                    b.Property<int>("TransactionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TransactionId"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("BookingId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WalletId")
+                        .HasColumnType("int");
+
+                    b.HasKey("TransactionId");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("WalletId");
+
+                    b.ToTable("WalletTransactions");
                 });
 
             modelBuilder.Entity("SportCourtManagent_Server.Models.AuditLog", b =>
@@ -2208,6 +2385,35 @@ namespace SportCourtManagent_Server.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("SportCourtManagent_Server.Models.Wallet", b =>
+                {
+                    b.HasOne("SportCourtManagent_Server.Models.User", "User")
+                        .WithOne("Wallet")
+                        .HasForeignKey("SportCourtManagent_Server.Models.Wallet", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SportCourtManagent_Server.Models.WalletTransaction", b =>
+                {
+                    b.HasOne("SportCourtManagent_Server.Models.Booking", "Booking")
+                        .WithMany()
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SportCourtManagent_Server.Models.Wallet", "Wallet")
+                        .WithMany("WalletTransactions")
+                        .HasForeignKey("WalletId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+
+                    b.Navigation("Wallet");
+                });
+
             modelBuilder.Entity("SportCourtManagent_Server.Models.Booking", b =>
                 {
                     b.Navigation("BookingServices");
@@ -2335,6 +2541,13 @@ namespace SportCourtManagent_Server.Migrations
                     b.Navigation("UserRoles");
 
                     b.Navigation("Waitlists");
+
+                    b.Navigation("Wallet");
+                });
+
+            modelBuilder.Entity("SportCourtManagent_Server.Models.Wallet", b =>
+                {
+                    b.Navigation("WalletTransactions");
                 });
 #pragma warning restore 612, 618
         }

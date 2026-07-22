@@ -10,6 +10,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.OData;
 
+// Disable inotify FileSystemWatcher to prevent IOException on Linux/Render containers (inotify limit 128)
+Environment.SetEnvironmentVariable("DOTNET_USE_POLLING_FILE_WATCHER", "true");
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -22,6 +25,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Repository DI registration
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<IPermissionMatrixRepository, PermissionMatrixRepository>();
 builder.Services.AddScoped<IMembershipTierRepository, MembershipTierRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
@@ -174,6 +178,34 @@ builder.WebHost.ConfigureKestrel(options =>
 
 var app = builder.Build();
 
+if (args.Contains("--reset-db"))
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
+    {
+        dbContext.Database.ExecuteSqlRaw(@"
+            DECLARE @sql NVARCHAR(MAX) = N'';
+            SELECT @sql += 'ALTER TABLE ' + QUOTENAME(s.name) + '.' + QUOTENAME(t.name) + ' DROP CONSTRAINT ' + QUOTENAME(f.name) + ';' + CHAR(13)
+            FROM sys.foreign_keys f
+            INNER JOIN sys.tables t ON f.parent_object_id = t.object_id
+            INNER JOIN sys.schemas s ON t.schema_id = s.schema_id;
+
+            SELECT @sql += 'DROP TABLE ' + QUOTENAME(s.name) + '.' + QUOTENAME(t.name) + ';' + CHAR(13)
+            FROM sys.tables t
+            INNER JOIN sys.schemas s ON t.schema_id = s.schema_id;
+
+            EXEC sp_executesql @sql;
+        ");
+        Console.WriteLine("[DB Reset] All tables dropped successfully from db60780.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[DB Reset Error] {ex.Message}");
+    }
+    return;
+}
+
 app.Use(async (context, next) =>
 {
     foreach (var cookieKey in context.Request.Cookies.Keys)
@@ -190,8 +222,25 @@ app.Use(async (context, next) =>
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await dbContext.Database.MigrateAsync();
-    await DbSeeder.SeedAsync(dbContext);
+    try
+    {
+        await dbContext.Database.MigrateAsync();
+        Console.WriteLine("[DB Migrate] Migration completed successfully.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Migrate Error] {ex.Message}");
+    }
+
+    try
+    {
+        await DbSeeder.SeedAsync(dbContext);
+        Console.WriteLine("[DB Seed] Seeding completed successfully.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Seed Error] {ex.Message}");
+    }
 }
 
 

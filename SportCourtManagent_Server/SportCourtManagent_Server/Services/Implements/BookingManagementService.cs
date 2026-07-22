@@ -24,6 +24,7 @@ namespace SportCourtManagent_Server.Services.Implements
     private readonly ITournamentLockManager _lockManager;
     private const string PublicTournamentsCacheKey = "PublicTournamentsList";
     private readonly IHubContext<SlotStatusHub> _hubContext;
+    private readonly ILogger<BookingManagementService> _logger;
 
     public BookingManagementService(
       IBookingRepository bookingRepo,
@@ -31,7 +32,8 @@ namespace SportCourtManagent_Server.Services.Implements
       AppDbContext context,
       IMemoryCache cache,
       ITournamentLockManager lockManager,
-      IHubContext<SlotStatusHub> hubContext)
+      IHubContext<SlotStatusHub> hubContext,
+      ILogger<BookingManagementService> logger)
 
     {
       _bookingRepo = bookingRepo ?? throw new ArgumentNullException(nameof(bookingRepo));
@@ -40,6 +42,7 @@ namespace SportCourtManagent_Server.Services.Implements
       _cache = cache ?? throw new ArgumentNullException(nameof(cache));
       _lockManager = lockManager ?? throw new ArgumentNullException(nameof(lockManager));
       _hubContext = hubContext ?? throw new ArgumentNullException(nameof(hubContext));
+      _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     }
 
@@ -104,9 +107,27 @@ namespace SportCourtManagent_Server.Services.Implements
       {
         await _context.SaveChangesAsync();
       }
-
       decimal subTotal = await CalculateSubTotalAsync(request.CourtId, slot, request.ServiceIds);
       var (promoId, discountAmount) = await ProcessPromotionAsync(request.PromotionCode, subTotal);
+      decimal totalAmount = Math.Max(0, subTotal - discountAmount);
+
+      // Kiểm tra ví
+      var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
+      if (wallet == null)
+      {
+          wallet = new Wallet { UserId = userId, Balance = 10000000m }; // Cấp 10M test
+          await _context.Wallets.AddAsync(wallet);
+          await _context.SaveChangesAsync();
+      }
+
+      if (wallet.Balance < totalAmount)
+      {
+          throw new InvalidOperationException($"Số dư ví không đủ. Chi phí đặt sân là {totalAmount:N0}đ nhưng ví của bạn chỉ còn {wallet.Balance:N0}đ. Vui lòng nạp thêm tiền.");
+      }
+
+      // Trừ tiền ví
+      wallet.Balance -= totalAmount;
+      wallet.UpdatedAt = DateTime.UtcNow;
 
       var booking = new Booking
       {
@@ -119,16 +140,40 @@ namespace SportCourtManagent_Server.Services.Implements
         EndTime = slot.EndTime,
         SubTotal = subTotal,
         DiscountAmount = discountAmount,
-        TotalAmount = Math.Max(0, subTotal - discountAmount),
-        Status = BookingStatus.Pending,
+        TotalAmount = totalAmount,
+        Status = BookingStatus.Confirmed, // Confirmed immediately
         PromotionId = promoId,
         Note = request.Note,
-        CreatedAt = DateTime.UtcNow,
-        ExpiredAt = DateTime.UtcNow.AddMinutes(10)
+        CreatedAt = DateTime.UtcNow
       };
 
       await AddBookingServicesAsync(booking, request.ServiceIds);
       await _bookingRepo.AddAsync(booking);
+
+      // Ghi nhận Payment
+      var payment = new Payment
+      {
+          BookingId = booking.BookingId,
+          Amount = booking.TotalAmount,
+          PaymentMethod = PaymentMethod.Wallet,
+          TransactionId = $"WT-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}",
+          Status = PaymentStatus.Success,
+          PaidAt = DateTime.UtcNow
+      };
+      _context.Payments.Add(payment);
+
+      // Ghi nhận WalletTransaction
+      var wt = new WalletTransaction
+      {
+          WalletId = wallet.WalletId,
+          Amount = -booking.TotalAmount,
+          Type = WalletTransactionType.Payment,
+          BookingId = booking.BookingId,
+          Description = $"Thanh toán đặt sân {booking.BookingCode}",
+          CreatedAt = DateTime.UtcNow
+      };
+      await _context.WalletTransactions.AddAsync(wt);
+      await _context.SaveChangesAsync();
 
       // Push SignalR slot status update
       await _hubContext.Clients.Group($"court-{request.CourtId}")
@@ -251,7 +296,8 @@ namespace SportCourtManagent_Server.Services.Implements
               TotalAmount = subTotal,
               Status = BookingStatus.Pending,
               Note = request.Note,
-              CreatedAt = DateTime.UtcNow
+              CreatedAt = DateTime.UtcNow,
+              ExpiredAt = DateTime.UtcNow.AddMinutes(10)
             };
 
             totalAmount += subTotal;
@@ -368,7 +414,9 @@ namespace SportCourtManagent_Server.Services.Implements
       try
       {
         await AcquireTournamentLocksAsync(lockPairs, acquiredPairs);
-        return await ExecuteCreateTournamentTransactionAsync(userId, request);
+        var tournament = await ExecuteCreateTournamentTransactionAsync(userId, request);
+        await BroadcastTournamentSlotStatusesAsync(tournament.Bookings, "Held");
+        return tournament;
       }
       finally
       {
@@ -414,6 +462,23 @@ namespace SportCourtManagent_Server.Services.Implements
       }
     }
 
+    /// <summary>Broadcasts tournament slot changes without allowing a transient hub failure to fail a committed booking.</summary>
+    private async Task BroadcastTournamentSlotStatusesAsync(IEnumerable<BookingDto> bookings, string status)
+    {
+      try
+      {
+        foreach (var booking in bookings)
+        {
+          await _hubContext.Clients.Group($"court-{booking.CourtId}")
+            .SendAsync("SlotStatusChanged", booking.CourtId, booking.SlotId, booking.BookingDate.ToString("yyyy-MM-dd"), status);
+        }
+      }
+      catch (Exception ex)
+      {
+        _logger.LogWarning(ex, "Could not broadcast tournament slot status {Status}.", status);
+      }
+    }
+
     /// <summary>Executes tournament creation inside a database transaction.</summary>
     private async Task<TournamentDto> ExecuteCreateTournamentTransactionAsync(int userId, CreateTournamentRequest request)
     {
@@ -452,6 +517,7 @@ namespace SportCourtManagent_Server.Services.Implements
           throw;
         }
       });
+
     }
 
     /// <summary>Processes batch loading and creates tournament bookings without loop queries.</summary>
@@ -629,6 +695,7 @@ namespace SportCourtManagent_Server.Services.Implements
           throw;
         }
       });
+
     }
 
     /// <summary>Validates edit permissions for tournament.</summary>
@@ -867,7 +934,7 @@ namespace SportCourtManagent_Server.Services.Implements
       if (tournament == null) return null;
 
       var strategy = _context.Database.CreateExecutionStrategy();
-      return await strategy.ExecuteAsync(async () =>
+      var result = await strategy.ExecuteAsync(async () =>
       {
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
@@ -885,6 +952,14 @@ namespace SportCourtManagent_Server.Services.Implements
           throw;
         }
       });
+
+      if (request.Status is TournamentStatus.Cancelled or TournamentStatus.Paid or TournamentStatus.Confirmed)
+      {
+        var slotStatus = request.Status == TournamentStatus.Cancelled ? "Available" : "Booked";
+        await BroadcastTournamentSlotStatusesAsync(result.Bookings, slotStatus);
+      }
+
+      return result;
     }
 
     /// <summary>Applies cascade status updates to child bookings.</summary>
@@ -1010,8 +1085,33 @@ namespace SportCourtManagent_Server.Services.Implements
     {
       if (!_cache.TryGetValue(PublicTournamentsCacheKey, out List<TournamentPublicDto>? allPublic) || allPublic == null)
       {
-        var dbTournaments = await GetBaseTournamentQuery().Where(t => t.Status == TournamentStatus.Paid || t.Status == TournamentStatus.Confirmed).OrderByDescending(t => t.CreatedAt).ToListAsync();
-        allPublic = dbTournaments.Select(MapToPublicDto).ToList();
+        var dbTournaments = await GetBaseTournamentQuery()
+          .Where(t => t.Status == TournamentStatus.Paid || t.Status == TournamentStatus.Confirmed)
+          .ToListAsync();
+        var today = DateTime.UtcNow.Date;
+        allPublic = dbTournaments
+          .Select(MapToPublicDto)
+          .Select(t =>
+          {
+            t.Courts = t.Courts
+              .Where(c => c.Status != BookingStatus.Cancelled)
+              .OrderBy(c => c.BookingDate)
+              .ThenBy(c => c.StartTime)
+              .ToList();
+            return t;
+          })
+          .OrderBy(t => t.Courts
+            .Where(c => c.Status != BookingStatus.Cancelled && c.BookingDate.Date >= today)
+            .Select(c => c.BookingDate.Date)
+            .DefaultIfEmpty(DateTime.MaxValue)
+            .Min())
+          .ThenByDescending(t => t.Courts
+            .Where(c => c.Status != BookingStatus.Cancelled)
+            .Select(c => c.BookingDate.Date)
+            .DefaultIfEmpty(DateTime.MinValue)
+            .Max())
+          .ThenByDescending(t => t.CreatedAt)
+          .ToList();
         _cache.Set(PublicTournamentsCacheKey, allPublic, TimeSpan.FromMinutes(10));
       }
       var query = allPublic.AsEnumerable();
@@ -1088,7 +1188,7 @@ namespace SportCourtManagent_Server.Services.Implements
           ? $"Đặt thêm: {addedServicesText}"
           : $"{booking.Note} | Đặt thêm: {addedServicesText}";
 
-      await _bookingRepo.UpdateAsync(booking);
+      await _context.SaveChangesAsync();
       return MapToDto(booking);
     }
 

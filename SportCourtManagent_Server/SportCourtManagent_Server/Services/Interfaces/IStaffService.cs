@@ -17,6 +17,7 @@ namespace SportCourtManagent_Server.Services.Interfaces
         // ─── FR-ST-02: Xếp ca làm việc ──────────────────────────────
 
         Task<WeeklyScheduleResponse> GetWeeklyScheduleAsync(int complexId, DateOnly weekStart);
+        Task<WeeklyScheduleResponse> GetWeeklyScheduleByStaffAsync(int complexId, int staffId, DateOnly weekStart);
 
         Task<StaffShiftResponse> CreateShiftAsync(int complexId, CreateShiftRequest request);
 

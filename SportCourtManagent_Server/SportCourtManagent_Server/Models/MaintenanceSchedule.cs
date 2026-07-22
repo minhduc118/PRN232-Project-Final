@@ -38,8 +38,12 @@ namespace SportCourtManagent_Server.Models
         [MaxLength(500)]
         public string? Result { get; set; }
 
+        [MaxLength(500)]
+        public string? ImageProof { get; set; }
+
         [Required]
         public MaintenanceStatus Status { get; set; } = MaintenanceStatus.Scheduled;
     }
 }
+
 

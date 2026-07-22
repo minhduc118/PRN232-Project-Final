@@ -58,19 +58,21 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new ArgumentException("Sân được chọn không thuộc cơ sở này.");
             }
 
-            User? staff = null;
-            if (request.AssignedStaffId.HasValue)
+            if (!request.AssignedStaffId.HasValue || request.AssignedStaffId.Value <= 0)
             {
-                staff = await _staffRepository.GetStaffWithRolesAsync(request.AssignedStaffId.Value);
-                if (staff == null)
-                {
-                    throw new KeyNotFoundException($"Không tìm thấy nhân viên với Id {request.AssignedStaffId.Value}");
-                }
-                if (!staff.IsActive)
-                {
-                    throw new InvalidOperationException($"Nhân viên {staff.FullName} đang bị khóa/ngưng hoạt động.");
-                }
+                throw new ArgumentException("Vui lòng chọn nhân viên phụ trách.");
             }
+
+            var staff = await _staffRepository.GetStaffWithRolesAsync(request.AssignedStaffId.Value);
+            if (staff == null)
+            {
+                throw new KeyNotFoundException($"Không tìm thấy nhân viên với Id {request.AssignedStaffId.Value}");
+            }
+            if (!staff.IsActive)
+            {
+                throw new InvalidOperationException($"Nhân viên {staff.FullName} đang bị khóa/ngưng hoạt động.");
+            }
+
 
             var schedule = new MaintenanceSchedule
             {
@@ -112,6 +114,11 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new KeyNotFoundException($"Không tìm thấy lịch bảo trì với Id {maintenanceId} tại cơ sở này.");
             }
 
+            if (schedule.Status == MaintenanceStatus.Completed)
+            {
+                throw new ArgumentException("Lịch bảo trì đã hoàn thành, không thể chỉnh sửa.");
+            }
+
             var court = _courtRepository.GetById(request.CourtId.Value);
             if (court == null)
             {
@@ -123,15 +130,17 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new ArgumentException("Sân được chọn không thuộc cơ sở này.");
             }
 
-            User? staff = null;
-            if (request.AssignedStaffId.HasValue)
+            if (!request.AssignedStaffId.HasValue || request.AssignedStaffId.Value <= 0)
             {
-                staff = await _staffRepository.GetStaffWithRolesAsync(request.AssignedStaffId.Value);
-                if (staff == null)
-                {
-                    throw new KeyNotFoundException($"Không tìm thấy nhân viên với Id {request.AssignedStaffId.Value}");
-                }
+                throw new ArgumentException("Vui lòng chọn nhân viên phụ trách.");
             }
+
+            var staff = await _staffRepository.GetStaffWithRolesAsync(request.AssignedStaffId.Value);
+            if (staff == null)
+            {
+                throw new KeyNotFoundException($"Không tìm thấy nhân viên với Id {request.AssignedStaffId.Value}");
+            }
+
 
             var oldStatus = schedule.Status;
             var oldCourtId = schedule.CourtId;
@@ -144,6 +153,7 @@ namespace SportCourtManagent_Server.Services.Implements
             schedule.Reason = request.Reason;
             schedule.Status = request.Status.Value;
             schedule.Result = request.Result;
+            schedule.ImageProof = request.ImageProof;
 
             // Cập nhật trạng thái sân tương ứng
             if (schedule.Status == MaintenanceStatus.InProgress)
@@ -248,6 +258,11 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new KeyNotFoundException($"Không tìm thấy lịch bảo trì với Id {maintenanceId} tại cơ sở này.");
             }
 
+            if (schedule.Status == MaintenanceStatus.Completed)
+            {
+                throw new ArgumentException("Lịch bảo trì đã hoàn thành, không thể xóa.");
+            }
+
             if (schedule.Status == MaintenanceStatus.InProgress)
             {
                 var court = _courtRepository.GetById(schedule.CourtId);
@@ -302,6 +317,7 @@ namespace SportCourtManagent_Server.Services.Implements
                 AssignedStaffName = staffEntity?.FullName,
                 Reason = schedule.Reason,
                 Result = schedule.Result,
+                ImageProof = schedule.ImageProof,
                 Status = schedule.Status.ToString(),
                 CreatedAt = DateTime.Now
             };

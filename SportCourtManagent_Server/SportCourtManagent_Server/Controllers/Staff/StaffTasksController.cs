@@ -75,8 +75,11 @@ namespace SportCourtManagent_Server.Controllers
 
         // PUT /api/staff/tasks/{taskId}/complete
         [HttpPut("{taskId:int}/complete")]
-        public async Task<IActionResult> CompleteTask([FromRoute] int taskId)
+        public async Task<IActionResult> CompleteTask([FromRoute] int taskId, [FromBody] CompleteTaskRequest request)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             if (!TryGetUserId(out int staffId))
             {
                 return Unauthorized(new { Message = "Không xác định được người dùng." });
@@ -84,12 +87,16 @@ namespace SportCourtManagent_Server.Controllers
 
             try
             {
-                var result = await _taskService.CompleteTaskAsync(staffId, taskId);
+                var result = await _taskService.CompleteTaskAsync(staffId, taskId, request);
                 return Ok(result);
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { Message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
@@ -100,6 +107,7 @@ namespace SportCourtManagent_Server.Controllers
                 return StatusCode(500, new { Message = $"Lỗi hệ thống: {ex.Message}" });
             }
         }
+
 
         private bool TryGetUserId(out int userId)
         {

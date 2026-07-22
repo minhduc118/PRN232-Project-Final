@@ -317,8 +317,14 @@ namespace SportCourtManagent_Server.Services.Implements
             return MapToResponse(loadedTask);
         }
 
-        public async Task<TaskResponse> CompleteTaskAsync(int staffId, int taskId)
+        public async Task<TaskResponse> CompleteTaskAsync(int staffId, int taskId, CompleteTaskRequest request)
         {
+            if (request == null || string.IsNullOrWhiteSpace(request.ResultNote))
+            {
+                throw new ArgumentException("Vui lòng nhập mô tả kết quả để hoàn thành công việc.");
+            }
+
+
             var task = await _taskRepository.GetByIdAsync(taskId);
             if (task == null || task.AssignedStaffId != staffId)
             {
@@ -331,10 +337,16 @@ namespace SportCourtManagent_Server.Services.Implements
             }
 
             task.Status = TaskItemStatus.Completed;
+            task.ImageProof = request.ProofImageUrl;
+            task.Description = string.IsNullOrWhiteSpace(task.Description)
+                ? $"[Mô tả kết quả]: {request.ResultNote}"
+                : $"{task.Description}\n\n[Mô tả kết quả hoàn thành]: {request.ResultNote}";
+
             var updated = await _taskRepository.UpdateAsync(task);
             var loadedTask = await _taskRepository.GetByIdAsync(updated.TaskId) ?? updated;
             return MapToResponse(loadedTask);
         }
+
 
         private TaskResponse MapToResponse(TaskItem item)
         {
@@ -355,8 +367,10 @@ namespace SportCourtManagent_Server.Services.Implements
                 BookingId = item.BookingId,
                 DueDate = item.DueDate,
                 CreatedAt = item.CreatedAt,
-                CompletedAt = item.CompletedAt
+                CompletedAt = item.CompletedAt,
+                ImageProof = item.ImageProof
             };
         }
+
     }
 }

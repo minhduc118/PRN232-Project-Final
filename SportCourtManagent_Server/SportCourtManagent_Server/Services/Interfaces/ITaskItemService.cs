@@ -26,6 +26,7 @@ namespace SportCourtManagent_Server.Services.Interfaces
             int pageSize);
 
         Task<TaskResponse> StartTaskAsync(int staffId, int taskId);
-        Task<TaskResponse> CompleteTaskAsync(int staffId, int taskId);
+        Task<TaskResponse> CompleteTaskAsync(int staffId, int taskId, CompleteTaskRequest request);
+
     }
 }

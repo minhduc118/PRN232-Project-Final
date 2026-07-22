@@ -743,6 +743,10 @@ namespace SportCourtManagent_Server.Migrations
                     b.Property<DateTime>("EndDateTime")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ImageProof")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<int>("MaintenanceType")
                         .HasColumnType("int");
 
@@ -767,6 +771,32 @@ namespace SportCourtManagent_Server.Migrations
                     b.HasIndex("CourtId");
 
                     b.ToTable("MaintenanceSchedules");
+
+                    b.HasData(
+                        new
+                        {
+                            MaintenanceId = 1,
+                            AssignedStaffId = 3,
+                            CourtId = 1,
+                            EndDateTime = new DateTime(2026, 7, 20, 10, 0, 0, 0, DateTimeKind.Unspecified),
+                            ImageProof = "https://pos.nvncdn.com/3c8244-211061/art/artCT/20240812_0rmC0gAF.jpg",
+                            MaintenanceType = 0,
+                            Reason = "Bảo trì định kỳ mặt sân Pickleball P1",
+                            Result = "Đã lau chùi mặt sân và căng lại lưới",
+                            StartDateTime = new DateTime(2026, 7, 20, 8, 0, 0, 0, DateTimeKind.Unspecified),
+                            Status = 2
+                        },
+                        new
+                        {
+                            MaintenanceId = 2,
+                            AssignedStaffId = 3,
+                            CourtId = 2,
+                            EndDateTime = new DateTime(2026, 7, 22, 16, 0, 0, 0, DateTimeKind.Unspecified),
+                            MaintenanceType = 1,
+                            Reason = "Sửa chữa sự cố hệ thống đèn chiếu sáng tại sân B1",
+                            StartDateTime = new DateTime(2026, 7, 22, 14, 0, 0, 0, DateTimeKind.Unspecified),
+                            Status = 0
+                        });
                 });
 
             modelBuilder.Entity("SportCourtManagent_Server.Models.MembershipTier", b =>
@@ -1198,7 +1228,11 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 1,
                             Category = "EquipmentRent",
+<<<<<<< HEAD
                             CreatedAt = new DateTime(2026, 7, 22, 7, 6, 47, 722, DateTimeKind.Utc).AddTicks(7656),
+=======
+                            CreatedAt = new DateTime(2026, 7, 22, 14, 26, 52, 639, DateTimeKind.Utc).AddTicks(3160),
+>>>>>>> feature/manager/staff-core-p5
                             IsActive = true,
                             Price = 30000.00m,
                             ServiceName = "Thuê vợt Pickleball",
@@ -1209,7 +1243,11 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 2,
                             Category = "EquipmentRent",
+<<<<<<< HEAD
                             CreatedAt = new DateTime(2026, 7, 22, 7, 6, 47, 722, DateTimeKind.Utc).AddTicks(7663),
+=======
+                            CreatedAt = new DateTime(2026, 7, 22, 14, 26, 52, 639, DateTimeKind.Utc).AddTicks(3167),
+>>>>>>> feature/manager/staff-core-p5
                             IsActive = true,
                             Price = 20000.00m,
                             ServiceName = "Thuê vợt cầu lông",
@@ -1220,7 +1258,11 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 3,
                             Category = "Drink",
+<<<<<<< HEAD
                             CreatedAt = new DateTime(2026, 7, 22, 7, 6, 47, 722, DateTimeKind.Utc).AddTicks(7665),
+=======
+                            CreatedAt = new DateTime(2026, 7, 22, 14, 26, 52, 639, DateTimeKind.Utc).AddTicks(3169),
+>>>>>>> feature/manager/staff-core-p5
                             IsActive = true,
                             Price = 15000.00m,
                             ServiceName = "Nước uống Pocari",
@@ -1231,7 +1273,11 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 4,
                             Category = "Drink",
+<<<<<<< HEAD
                             CreatedAt = new DateTime(2026, 7, 22, 7, 6, 47, 722, DateTimeKind.Utc).AddTicks(7666),
+=======
+                            CreatedAt = new DateTime(2026, 7, 22, 14, 26, 52, 639, DateTimeKind.Utc).AddTicks(3173),
+>>>>>>> feature/manager/staff-core-p5
                             IsActive = true,
                             Price = 10000.00m,
                             ServiceName = "Nước suối Aquafina",
@@ -1358,6 +1404,10 @@ namespace SportCourtManagent_Server.Migrations
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ImageProof")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<int>("Priority")
                         .HasColumnType("int");
 
@@ -1383,6 +1433,40 @@ namespace SportCourtManagent_Server.Migrations
                     b.HasIndex("CreatedById");
 
                     b.ToTable("Tasks");
+
+                    b.HasData(
+                        new
+                        {
+                            TaskId = 1,
+                            AssignedStaffId = 3,
+                            Category = 0,
+                            CompletedAt = new DateTime(2026, 7, 21, 10, 30, 0, 0, DateTimeKind.Unspecified),
+                            ComplexId = 1,
+                            CreatedAt = new DateTime(2026, 7, 21, 7, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedById = 2,
+                            Description = "Lau dọn sạch sẽ khu vực nhà vệ sinh nam nữ và bổ sung xà phòng",
+                            DueDate = new DateTime(2026, 7, 21, 18, 0, 0, 0, DateTimeKind.Unspecified),
+                            ImageProof = "https://pos.nvncdn.com/3c8244-211061/art/artCT/20240812_0rmC0gAF.jpg",
+                            Priority = 1,
+                            Status = 2,
+                            TaskType = 0,
+                            Title = "Vệ sinh khu vực thay đồ & nhà vệ sinh"
+                        },
+                        new
+                        {
+                            TaskId = 2,
+                            AssignedStaffId = 3,
+                            Category = 1,
+                            ComplexId = 1,
+                            CreatedAt = new DateTime(2026, 7, 21, 8, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedById = 2,
+                            Description = "Kiểm tra kho và bổ sung 50 chai Pocari vào tủ mát",
+                            DueDate = new DateTime(2026, 7, 22, 12, 0, 0, 0, DateTimeKind.Unspecified),
+                            Priority = 2,
+                            Status = 0,
+                            TaskType = 0,
+                            Title = "Kiểm tra và nạp bổ sung nước uống Pocari"
+                        });
                 });
 
             modelBuilder.Entity("SportCourtManagent_Server.Models.TimeSlot", b =>
@@ -1592,7 +1676,7 @@ namespace SportCourtManagent_Server.Migrations
                             Gender = 2,
                             IsActive = true,
                             LoyaltyPoints = 0,
-                            PasswordHash = "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z",
+                            PasswordHash = "$2a$11$Sm0spWRJMGSHXKHRwSlM2e8RlEkTEaPXS5DDxynOOPaB03J6rl1A.",
                             Phone = "0987654321",
                             SkillLevel = 2
                         },
@@ -1605,7 +1689,7 @@ namespace SportCourtManagent_Server.Migrations
                             Gender = 0,
                             IsActive = true,
                             LoyaltyPoints = 0,
-                            PasswordHash = "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z",
+                            PasswordHash = "$2a$11$Sm0spWRJMGSHXKHRwSlM2e8RlEkTEaPXS5DDxynOOPaB03J6rl1A.",
                             Phone = "0987654322",
                             SkillLevel = 1
                         },
@@ -1618,7 +1702,7 @@ namespace SportCourtManagent_Server.Migrations
                             Gender = 1,
                             IsActive = true,
                             LoyaltyPoints = 0,
-                            PasswordHash = "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z",
+                            PasswordHash = "$2a$11$Sm0spWRJMGSHXKHRwSlM2e8RlEkTEaPXS5DDxynOOPaB03J6rl1A.",
                             Phone = "0987654323",
                             SkillLevel = 0
                         },
@@ -1632,7 +1716,7 @@ namespace SportCourtManagent_Server.Migrations
                             IsActive = true,
                             LoyaltyPoints = 50,
                             MembershipTierId = 1,
-                            PasswordHash = "$2a$11$qR3gWwH8wF6hKqU6sXn9O.H2QJ1WJ5tQ.z5eJjU5tK8l8tS8z8z8z",
+                            PasswordHash = "$2a$11$Sm0spWRJMGSHXKHRwSlM2e8RlEkTEaPXS5DDxynOOPaB03J6rl1A.",
                             Phone = "0987654324",
                             SkillLevel = 0
                         });

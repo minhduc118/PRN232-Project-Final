@@ -58,6 +58,10 @@ namespace SportCourtManagent_Server.Models
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         public DateTime? CompletedAt { get; set; }
+
+        [MaxLength(500)]
+        public string? ImageProof { get; set; }
     }
 }
+
 

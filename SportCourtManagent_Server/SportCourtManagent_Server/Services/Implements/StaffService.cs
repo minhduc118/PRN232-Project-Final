@@ -238,13 +238,68 @@ namespace SportCourtManagent_Server.Services.Implements
             if (complex == null)
                 throw new KeyNotFoundException($"Không tìm thấy cơ sở với Id {complexId}.");
 
+            // Xóa các ca trực sắp tới (chưa check-in) của nhân viên này tại cơ sở này khi bị gỡ khỏi cơ sở
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var shifts = await _staffShiftRepository.GetShiftsByStaffAndDateRangeAsync(staffId, today, DateOnly.MaxValue);
+            var complexFutureShifts = shifts
+                .Where(s => s.ComplexId == complexId && !s.CheckInTime.HasValue)
+                .ToList();
+
+            if (complexFutureShifts.Any())
+            {
+                foreach (var shift in complexFutureShifts)
+                {
+                    await _staffShiftRepository.DeleteAsync(shift);
+                }
+            }
+
             await _staffRepository.RemoveStaffFromComplexAsync(staffId, complexId);
         }
 
         public async Task<WeeklyScheduleResponse> GetWeeklyScheduleAsync(int complexId, DateOnly weekStart)
         {
+            // Luôn quy đổi weekStart về Thứ Hai của tuần
+            int diffToMonday = (7 + (weekStart.DayOfWeek - DayOfWeek.Monday)) % 7;
+            weekStart = weekStart.AddDays(-diffToMonday);
             var weekEnd = weekStart.AddDays(6);
             var shifts = await _staffShiftRepository.GetShiftsByComplexAndDateRangeAsync(complexId, weekStart, weekEnd);
+
+
+            var days = new List<DailyShiftGroupResponse>();
+            for (int i = 0; i < 7; i++)
+            {
+                var date = weekStart.AddDays(i);
+                var dailyShifts = shifts
+                    .Where(s => s.ShiftDate == date)
+                    .OrderBy(s => s.StartTime)
+                    .Select(s => MapToResponse(s))
+                    .ToList();
+
+                days.Add(new DailyShiftGroupResponse
+                {
+                    Date = date.ToString("yyyy-MM-dd"),
+                    DayName = GetVietnameseDayName(date.DayOfWeek),
+                    Shifts = dailyShifts
+                });
+            }
+
+            return new WeeklyScheduleResponse
+            {
+                WeekStart = weekStart.ToString("yyyy-MM-dd"),
+                WeekEnd = weekEnd.ToString("yyyy-MM-dd"),
+                Days = days
+            };
+        }
+
+        public async Task<WeeklyScheduleResponse> GetWeeklyScheduleByStaffAsync(int complexId, int staffId, DateOnly weekStart)
+        {
+            int diffToMonday = (7 + (weekStart.DayOfWeek - DayOfWeek.Monday)) % 7;
+            weekStart = weekStart.AddDays(-diffToMonday);
+            var weekEnd = weekStart.AddDays(6);
+            var shifts = await _staffShiftRepository.GetShiftsByStaffAndDateRangeAsync(staffId, weekStart, weekEnd);
+
+            // Chỉ lấy ca của staff tại cơ sở được chọn
+            shifts = shifts.Where(s => s.ComplexId == complexId).ToList();
 
             var days = new List<DailyShiftGroupResponse>();
             for (int i = 0; i < 7; i++)

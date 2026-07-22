@@ -8,6 +8,7 @@ namespace SportCourtManagent_Server.DTOs.Service
         public decimal Price { get; set; }
         public string Unit { get; set; } = "cái";
         public string? Description { get; set; }
+        public int StockQty { get; set; }
         public bool IsActive { get; set; }
     }
 }

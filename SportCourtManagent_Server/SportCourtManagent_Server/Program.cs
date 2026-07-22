@@ -22,6 +22,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Repository DI registration
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<IPermissionMatrixRepository, PermissionMatrixRepository>();
 builder.Services.AddScoped<IMembershipTierRepository, MembershipTierRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
@@ -187,20 +188,27 @@ app.Use(async (context, next) =>
 });
 
 // Auto-migrate and seed database
-//try
-//{
-//    using (var scope = app.Services.CreateScope())
-//    {
-//        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-//        await dbContext.Database.MigrateAsync();
-//        await DbSeeder.SeedAsync(dbContext);
-//    }
-//}
-//catch (Exception ex)
-//{
-//    var logger = app.Services.GetRequiredService<ILogger<Program>>();
-//    logger.LogError(ex, "An error occurred while migrating or seeding the database: {Message}", ex.Message);
-//}
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
+    {
+        await dbContext.Database.MigrateAsync();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Migrate Notice] {ex.Message}");
+    }
+
+    try
+    {
+        await DbSeeder.SeedAsync(dbContext);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Seed Notice] {ex.Message}");
+    }
+}
 
 
 // Configure the HTTP request pipeline. Always enable Swagger for checking

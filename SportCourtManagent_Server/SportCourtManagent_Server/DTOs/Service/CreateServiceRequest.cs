@@ -21,6 +21,9 @@ namespace SportCourtManagent_Server.DTOs.Service
         [MaxLength(300)]
         public string? Description { get; set; }
 
+        [Range(0, 100000)]
+        public int StockQty { get; set; } = 0;
+
         public bool IsActive { get; set; } = true;
     }
 }

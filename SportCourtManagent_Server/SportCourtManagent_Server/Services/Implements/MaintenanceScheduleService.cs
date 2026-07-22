@@ -263,14 +263,11 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new ArgumentException("Lịch bảo trì đã hoàn thành, không thể xóa.");
             }
 
-            if (schedule.Status == MaintenanceStatus.InProgress)
+            var court = _courtRepository.GetById(schedule.CourtId);
+            if (court != null && court.Status == CourtStatus.Maintenance)
             {
-                var court = _courtRepository.GetById(schedule.CourtId);
-                if (court != null && court.Status == CourtStatus.Maintenance)
-                {
-                    court.Status = CourtStatus.Available;
-                    _courtRepository.Update(court);
-                }
+                court.Status = CourtStatus.Available;
+                _courtRepository.Update(court);
             }
 
             await _maintenanceRepository.DeleteAsync(schedule);

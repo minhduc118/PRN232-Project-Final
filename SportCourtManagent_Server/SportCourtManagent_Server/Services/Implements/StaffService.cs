@@ -45,9 +45,11 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new ArgumentException("Ca trực này không thuộc về nhân viên.");
             }
 
-            if (shift.ShiftDate != DateOnly.FromDateTime(DateTime.Today))
+            var todayVn = DateOnly.FromDateTime(GetVietnamTime());
+            var tomorrowVn = todayVn.AddDays(1);
+            if (shift.ShiftDate != todayVn && shift.ShiftDate != tomorrowVn)
             {
-                throw new InvalidOperationException("Chỉ được phép chấm công ca trực của ngày hôm nay.");
+                throw new InvalidOperationException("Chỉ được phép chấm công ca trực của ngày hôm nay hoặc ngày mai.");
             }
 
             if (shift.CheckInTime.HasValue)
@@ -55,7 +57,7 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new InvalidOperationException("Ca trực này đã được chấm công.");
             }
 
-            shift.CheckInTime = DateTime.Now;
+            shift.CheckInTime = GetVietnamTime();
             await _staffShiftRepository.UpdateAsync(shift);
             return MapToResponse(shift);
         }
@@ -83,7 +85,7 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new InvalidOperationException("Ca trực này đã được chấm công ra.");
             }
 
-            shift.CheckOutTime = DateTime.Now;
+            shift.CheckOutTime = GetVietnamTime();
             await _staffShiftRepository.UpdateAsync(shift);
             return MapToResponse(shift);
         }
@@ -155,8 +157,9 @@ namespace SportCourtManagent_Server.Services.Implements
 
         public async Task<List<StaffShiftResponse>> GetAttendanceReportAsync(int complexId, DateOnly? dateFrom, DateOnly? dateTo, int? staffId = null)
         {
-            var from = dateFrom ?? new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1);
-            var to = dateTo ?? DateOnly.FromDateTime(DateTime.Today);
+            var todayVn = DateOnly.FromDateTime(GetVietnamTime());
+            var from = dateFrom ?? new DateOnly(todayVn.Year, todayVn.Month, 1);
+            var to = dateTo ?? todayVn;
 
             var shifts = await _staffShiftRepository.GetShiftsByComplexAndDateRangeAsync(complexId, from, to);
             if (staffId.HasValue)
@@ -239,7 +242,7 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new KeyNotFoundException($"Không tìm thấy cơ sở với Id {complexId}.");
 
             // Xóa các ca trực sắp tới (chưa check-in) của nhân viên này tại cơ sở này khi bị gỡ khỏi cơ sở
-            var today = DateOnly.FromDateTime(DateTime.Today);
+            var today = DateOnly.FromDateTime(GetVietnamTime());
             var shifts = await _staffShiftRepository.GetShiftsByStaffAndDateRangeAsync(staffId, today, DateOnly.MaxValue);
             var complexFutureShifts = shifts
                 .Where(s => s.ComplexId == complexId && !s.CheckInTime.HasValue)
@@ -499,6 +502,20 @@ namespace SportCourtManagent_Server.Services.Implements
                 LateMinutes = lateMinutes,
                 EarlyLeaveMinutes = earlyLeaveMinutes
             };
+        }
+        private static DateTime GetVietnamTime()
+        {
+            var utcNow = DateTime.UtcNow;
+            TimeZoneInfo vnZone;
+            try
+            {
+                vnZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                vnZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            }
+            return TimeZoneInfo.ConvertTimeFromUtc(utcNow, vnZone);
         }
     }
 }

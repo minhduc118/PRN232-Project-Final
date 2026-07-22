@@ -320,7 +320,7 @@ namespace SportCourtManagent_Server.Services.Implements
                         if (paymentRecord == null || paymentRecord.Amount < dbBooking.TotalAmount)
                         {
                             decimal remainingBalance = dbBooking.TotalAmount - (paymentRecord?.Amount ?? 0);
-                            if (payload.TransferAmount < remainingBalance)
+                            if (payload.TransferAmount > 0 && payload.TransferAmount < remainingBalance)
                             {
                                 throw new ArgumentException($"Transferred amount ({payload.TransferAmount}) is less than the remaining service balance ({remainingBalance}).");
                             }

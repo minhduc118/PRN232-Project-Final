@@ -120,7 +120,7 @@ namespace SportCourtManagent_Server.Controllers
                 courtName = courtFromDb.CourtName,
                 courtCode = courtFromDb.CourtCode,
                 courtTypeId = courtFromDb.CourtTypeId,
-                courtTypeName = courtFromDb.CourtType.TypeName,
+                courtTypeName = courtFromDb.CourtType?.TypeName ?? "",
                 complexId = courtFromDb.ComplexId,
                 complexName = courtFromDb.Complex?.ComplexName,
                 description = "", 
@@ -128,26 +128,26 @@ namespace SportCourtManagent_Server.Controllers
                 capacity = 4, 
                 surface = "Acrylic", 
                 status = courtFromDb.Status.ToString(),
-                openTime = courtFromDb.OpenTime,
-                closeTime = courtFromDb.CloseTime,
+                openTime = courtFromDb.OpenTime.ToString(@"hh\:mm"),
+                closeTime = courtFromDb.CloseTime.ToString(@"hh\:mm"),
                 pricePerHour = courtFromDb.PricePerHour,
                 courtSize = courtFromDb.CourtSize,
                 imageUrl = courtFromDb.CourtImages.OrderByDescending(i => i.IsPrimary).Select(i => i.ImageUrl).FirstOrDefault() ?? "",
                 imageUrls = courtFromDb.CourtImages.Select(i => i.ImageUrl).ToList(),
                 createdAt = DateTime.UtcNow,
                 
-                courtType = customerDetail != null ? new {
+                courtType = customerDetail?.CourtType != null ? new {
                     courtTypeId = customerDetail.CourtType.CourtTypeId,
                     typeName = customerDetail.CourtType.TypeName,
                     isActive = customerDetail.CourtType.IsActive
                 } : null,
-                images = customerDetail != null ? customerDetail.Images.Select(img => new {
+                images = customerDetail?.Images != null ? customerDetail.Images.Select(img => new {
                     imageId = img.CourtImageId,
                     imageUrl = img.ImageUrl,
                     isPrimary = img.IsPrimary,
                     sortOrder = 1
                 }).ToList() : null,
-                pricings = customerDetail != null ? customerDetail.Pricings.Select(p => new {
+                pricings = customerDetail?.Pricings != null ? customerDetail.Pricings.Select(p => new {
                     pricingId = p.PricingId,
                     slotId = p.SlotId,
                     slotName = p.SlotName,
@@ -157,14 +157,14 @@ namespace SportCourtManagent_Server.Controllers
                     price = p.Price,
                     peakMultiplier = 1.0
                 }).ToList() : null,
-                reviewSummary = customerDetail != null ? new {
+                reviewSummary = customerDetail?.ReviewSummary != null ? new {
                     averageRating = customerDetail.ReviewSummary.AverageRating,
                     totalReviews = customerDetail.ReviewSummary.TotalReviews,
                     ratingDistribution = customerDetail.ReviewSummary.RatingDistribution
                 } : null
             };
 
-            return Ok(combinedResult);
+            return Ok(ApiResults.Ok(combinedResult));
         }
 
 
@@ -184,51 +184,95 @@ namespace SportCourtManagent_Server.Controllers
         public async Task<IActionResult> GetCourtServices(int id)
         {
             var court = await _context.Courts
+                .Include(c => c.CourtType)
                 .FirstOrDefaultAsync(c => c.CourtId == id && !c.IsDeleted);
 
             if (court == null)
                 return NotFound(new { message = "Không tìm thấy sân." });
 
-            // Find services offered for this court type in this complex
+            // 1. Find services offered specifically for this court type in this complex
             var offerings = await _context.ComplexCourtTypeServices
                 .Include(c => c.Service)
                 .Where(c => c.ComplexId == court.ComplexId && c.CourtTypeId == court.CourtTypeId && c.IsActive && c.Service.IsActive)
                 .ToListAsync();
 
-            var result = offerings.Select(o => new
+            if (offerings.Any())
             {
-                serviceId = o.ServiceId,
-                serviceName = o.Service.ServiceName,
-                category = o.Service.Category,
-                price = o.Price > 0 ? o.Price : o.Service.Price,
-                unit = o.Service.Unit,
-                description = o.Service.Description,
-                stockQty = o.StockQty > 0 ? o.StockQty : o.Service.StockQty,
-                isActive = o.IsActive
-            }).ToList();
-
-            // If no specific offerings found, fall back to active global services
-            if (!result.Any())
-            {
-                var globalServices = await _context.Services
-                    .Where(s => s.IsActive)
-                    .Select(s => new
-                    {
-                        serviceId = s.ServiceId,
-                        serviceName = s.ServiceName,
-                        category = s.Category,
-                        price = s.Price,
-                        unit = s.Unit,
-                        description = s.Description,
-                        stockQty = s.StockQty,
-                        isActive = s.IsActive
-                    })
-                    .ToListAsync();
-
-                return Ok(ApiResults.Ok(globalServices));
+                var result = offerings.Select(o => new
+                {
+                    serviceId = o.ServiceId,
+                    serviceName = o.Service.ServiceName,
+                    category = o.Service.Category,
+                    price = o.Price > 0 ? o.Price : o.Service.Price,
+                    unit = o.Service.Unit,
+                    description = o.Service.Description,
+                    stockQty = o.StockQty > 0 ? o.StockQty : o.Service.StockQty,
+                    isActive = o.IsActive
+                }).ToList();
+                return Ok(ApiResults.Ok(result));
             }
 
-            return Ok(ApiResults.Ok(result));
+            // 2. Check offerings for this complex in general
+            var complexOfferings = await _context.ComplexCourtTypeServices
+                .Include(c => c.Service)
+                .Where(c => c.ComplexId == court.ComplexId && c.IsActive && c.Service.IsActive)
+                .ToListAsync();
+
+            if (complexOfferings.Any())
+            {
+                var result = complexOfferings.Select(o => new
+                {
+                    serviceId = o.ServiceId,
+                    serviceName = o.Service.ServiceName,
+                    category = o.Service.Category,
+                    price = o.Price > 0 ? o.Price : o.Service.Price,
+                    unit = o.Service.Unit,
+                    description = o.Service.Description,
+                    stockQty = o.StockQty > 0 ? o.StockQty : o.Service.StockQty,
+                    isActive = o.IsActive
+                }).ToList();
+                return Ok(ApiResults.Ok(result));
+            }
+
+            // 3. Fallback to global active services filtered by sport matching the court type
+            string typeName = court.CourtType?.TypeName ?? "";
+            var globalServices = await _context.Services
+                .Where(s => s.IsActive)
+                .ToListAsync();
+
+            var filteredServices = globalServices.Where(s =>
+            {
+                string name = s.ServiceName.ToLower();
+                if (typeName.Contains("cầu lông", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (name.Contains("pickleball") || name.Contains("tennis") || name.Contains("bóng đá")) return false;
+                }
+                else if (typeName.Contains("pickleball", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (name.Contains("cầu lông") || name.Contains("tennis") || name.Contains("bóng đá")) return false;
+                }
+                else if (typeName.Contains("tennis", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (name.Contains("cầu lông") || name.Contains("pickleball") || name.Contains("bóng đá")) return false;
+                }
+                else if (typeName.Contains("bóng đá", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (name.Contains("cầu lông") || name.Contains("pickleball") || name.Contains("tennis") || name.Contains("vợt")) return false;
+                }
+                return true;
+            }).Select(s => new
+            {
+                serviceId = s.ServiceId,
+                serviceName = s.ServiceName,
+                category = s.Category,
+                price = s.Price,
+                unit = s.Unit,
+                description = s.Description,
+                stockQty = s.StockQty,
+                isActive = s.IsActive
+            }).ToList();
+
+            return Ok(ApiResults.Ok(filteredServices));
         }
 
         // GET /odata/courts — OData query
@@ -275,17 +319,57 @@ namespace SportCourtManagent_Server.Controllers
             _context.Courts.Add(court);
             await _context.SaveChangesAsync();
 
-            if (!string.IsNullOrWhiteSpace(dto.ImageUrl))
+            var urlsToSave = dto.ImageUrls != null && dto.ImageUrls.Any()
+                ? dto.ImageUrls.Where(u => !string.IsNullOrWhiteSpace(u)).Select(u => u.Trim()).ToList()
+                : (!string.IsNullOrWhiteSpace(dto.ImageUrl) ? new List<string> { dto.ImageUrl.Trim() } : new List<string>());
+
+            if (!string.IsNullOrWhiteSpace(dto.ImageUrl) && urlsToSave.Contains(dto.ImageUrl.Trim()))
             {
-                var courtImage = new CourtImage
+                var primaryUrl = dto.ImageUrl.Trim();
+                urlsToSave.Remove(primaryUrl);
+                urlsToSave.Insert(0, primaryUrl);
+            }
+
+            bool isFirst = true;
+            foreach (var url in urlsToSave)
+            {
+                _context.CourtImages.Add(new CourtImage
                 {
                     CourtId = court.CourtId,
-                    ImageUrl = dto.ImageUrl.Trim(),
-                    IsPrimary = true
-                };
-                _context.CourtImages.Add(courtImage);
+                    ImageUrl = url,
+                    IsPrimary = isFirst
+                });
+                isFirst = false;
+            }
+            if (urlsToSave.Any())
+            {
                 await _context.SaveChangesAsync();
             }
+
+            // Create CourtPricings from dto.Pricings or defaults
+            var timeSlots = await _context.TimeSlots.ToListAsync();
+            foreach (var slot in timeSlots)
+            {
+                var inputPricing = dto.Pricings?.FirstOrDefault(p => p.SlotId == slot.SlotId);
+                decimal slotPrice;
+                if (inputPricing != null && inputPricing.Price > 0)
+                {
+                    slotPrice = inputPricing.Price;
+                }
+                else
+                {
+                    var durationHours = (decimal)(slot.EndTime - slot.StartTime).TotalHours;
+                    slotPrice = court.PricePerHour * (durationHours > 0 ? durationHours : 1.5m);
+                }
+
+                _context.CourtPricings.Add(new CourtPricing
+                {
+                    CourtId = court.CourtId,
+                    SlotId = slot.SlotId,
+                    Price = slotPrice
+                });
+            }
+            await _context.SaveChangesAsync();
 
             await _context.Entry(court).Reference(c => c.CourtType).LoadAsync();
             await _context.Entry(court).Reference(c => c.Complex).LoadAsync();
@@ -296,7 +380,7 @@ namespace SportCourtManagent_Server.Controllers
                 CourtName = court.CourtName,
                 CourtCode = court.CourtCode,
                 CourtTypeId = court.CourtTypeId,
-                CourtTypeName = court.CourtType.TypeName,
+                CourtTypeName = court.CourtType?.TypeName ?? "",
                 ComplexId = court.ComplexId,
                 ComplexName = court.Complex?.ComplexName,
                 Status = court.Status.ToString(),
@@ -304,10 +388,11 @@ namespace SportCourtManagent_Server.Controllers
                 CloseTime = court.CloseTime.ToString(@"hh\:mm"),
                 PricePerHour = court.PricePerHour,
                 CourtSize = court.CourtSize,
-                ImageUrl = dto.ImageUrl
+                ImageUrl = urlsToSave.FirstOrDefault(),
+                ImageUrls = urlsToSave
             };
 
-            return StatusCode(201, result);
+            return StatusCode(201, ApiResults.Ok(result, "Tạo sân thể thao thành công.", 201));
         }
 
         // PUT /api/courts/{id} — Update court (Admin)
@@ -330,7 +415,7 @@ namespace SportCourtManagent_Server.Controllers
             try
             {
                 await _courtService.UpdateAsync(id, dto);
-                return Ok(ApiResults.Ok(null, "Cập nhật sân thể thao thành công."));
+                return Ok(ApiResults.Ok(dto, "Cập nhật sân thể thao thành công."));
             }
             catch (System.Collections.Generic.KeyNotFoundException) { return NotFound(ApiResults.Fail("Không tìm thấy sân.", 404)); }
             catch (System.ArgumentException ex) { return BadRequest(ApiResults.Fail(ex.Message)); }

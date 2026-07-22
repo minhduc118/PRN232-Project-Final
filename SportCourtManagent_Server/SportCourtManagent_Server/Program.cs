@@ -255,7 +255,12 @@ app.UseSwaggerUI(c =>
 // Redirect root URL directly to Swagger UI
 app.MapGet("/", () => Results.Redirect("/swagger"));
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors("AllowAll");
 

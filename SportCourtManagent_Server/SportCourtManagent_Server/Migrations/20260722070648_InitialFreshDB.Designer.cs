@@ -12,8 +12,8 @@ using SportCourtManagent_Server.Models;
 namespace SportCourtManagent_Server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260705145432_MergeManagerStaffCore")]
-    partial class MergeManagerStaffCore
+    [Migration("20260722070648_InitialFreshDB")]
+    partial class InitialFreshDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -90,6 +90,9 @@ namespace SportCourtManagent_Server.Migrations
                     b.Property<TimeSpan>("EndTime")
                         .HasColumnType("time");
 
+                    b.Property<DateTime?>("ExpiredAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Note")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -123,8 +126,6 @@ namespace SportCourtManagent_Server.Migrations
                     b.HasIndex("BookingCode")
                         .IsUnique();
 
-                    b.HasIndex("CourtId");
-
                     b.HasIndex("PromotionId");
 
                     b.HasIndex("SlotId");
@@ -132,6 +133,10 @@ namespace SportCourtManagent_Server.Migrations
                     b.HasIndex("TournamentId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex(new[] { "CourtId", "SlotId", "BookingDate" }, "IX_Booking_Court_Slot_Date")
+                        .IsUnique()
+                        .HasFilter("[Status] != 2");
 
                     b.ToTable("Bookings");
                 });
@@ -1196,7 +1201,7 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 1,
                             Category = "EquipmentRent",
-                            CreatedAt = new DateTime(2026, 7, 5, 14, 54, 31, 110, DateTimeKind.Utc).AddTicks(7482),
+                            CreatedAt = new DateTime(2026, 7, 22, 7, 6, 47, 722, DateTimeKind.Utc).AddTicks(7656),
                             IsActive = true,
                             Price = 30000.00m,
                             ServiceName = "Thuê vợt Pickleball",
@@ -1207,7 +1212,7 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 2,
                             Category = "EquipmentRent",
-                            CreatedAt = new DateTime(2026, 7, 5, 14, 54, 31, 110, DateTimeKind.Utc).AddTicks(7489),
+                            CreatedAt = new DateTime(2026, 7, 22, 7, 6, 47, 722, DateTimeKind.Utc).AddTicks(7663),
                             IsActive = true,
                             Price = 20000.00m,
                             ServiceName = "Thuê vợt cầu lông",
@@ -1218,7 +1223,7 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 3,
                             Category = "Drink",
-                            CreatedAt = new DateTime(2026, 7, 5, 14, 54, 31, 110, DateTimeKind.Utc).AddTicks(7491),
+                            CreatedAt = new DateTime(2026, 7, 22, 7, 6, 47, 722, DateTimeKind.Utc).AddTicks(7665),
                             IsActive = true,
                             Price = 15000.00m,
                             ServiceName = "Nước uống Pocari",
@@ -1229,7 +1234,7 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 4,
                             Category = "Drink",
-                            CreatedAt = new DateTime(2026, 7, 5, 14, 54, 31, 110, DateTimeKind.Utc).AddTicks(7493),
+                            CreatedAt = new DateTime(2026, 7, 22, 7, 6, 47, 722, DateTimeKind.Utc).AddTicks(7666),
                             IsActive = true,
                             Price = 10000.00m,
                             ServiceName = "Nước suối Aquafina",
@@ -1491,6 +1496,9 @@ namespace SportCourtManagent_Server.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<DateTime?>("ExpiredAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -1723,6 +1731,71 @@ namespace SportCourtManagent_Server.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Waitlists");
+                });
+
+            modelBuilder.Entity("SportCourtManagent_Server.Models.Wallet", b =>
+                {
+                    b.Property<int>("WalletId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WalletId"));
+
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("WalletId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("Wallets");
+                });
+
+            modelBuilder.Entity("SportCourtManagent_Server.Models.WalletTransaction", b =>
+                {
+                    b.Property<int>("TransactionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TransactionId"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("BookingId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WalletId")
+                        .HasColumnType("int");
+
+                    b.HasKey("TransactionId");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("WalletId");
+
+                    b.ToTable("WalletTransactions");
                 });
 
             modelBuilder.Entity("SportCourtManagent_Server.Models.AuditLog", b =>
@@ -2208,6 +2281,35 @@ namespace SportCourtManagent_Server.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("SportCourtManagent_Server.Models.Wallet", b =>
+                {
+                    b.HasOne("SportCourtManagent_Server.Models.User", "User")
+                        .WithOne("Wallet")
+                        .HasForeignKey("SportCourtManagent_Server.Models.Wallet", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SportCourtManagent_Server.Models.WalletTransaction", b =>
+                {
+                    b.HasOne("SportCourtManagent_Server.Models.Booking", "Booking")
+                        .WithMany()
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SportCourtManagent_Server.Models.Wallet", "Wallet")
+                        .WithMany("WalletTransactions")
+                        .HasForeignKey("WalletId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Booking");
+
+                    b.Navigation("Wallet");
+                });
+
             modelBuilder.Entity("SportCourtManagent_Server.Models.Booking", b =>
                 {
                     b.Navigation("BookingServices");
@@ -2335,6 +2437,13 @@ namespace SportCourtManagent_Server.Migrations
                     b.Navigation("UserRoles");
 
                     b.Navigation("Waitlists");
+
+                    b.Navigation("Wallet");
+                });
+
+            modelBuilder.Entity("SportCourtManagent_Server.Models.Wallet", b =>
+                {
+                    b.Navigation("WalletTransactions");
                 });
 #pragma warning restore 612, 618
         }

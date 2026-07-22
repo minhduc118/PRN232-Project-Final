@@ -37,6 +37,12 @@ namespace SportCourtManagent_Server.Controllers
             }
         }
 
+        [HttpGet("date-now")]
+        public IActionResult GetDateNow()
+        {
+            return Ok(ApiResults.Ok(DateTime.Now, "Lấy thời gian hiện tại thành công."));
+        }
+
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {

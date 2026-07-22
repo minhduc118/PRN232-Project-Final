@@ -296,7 +296,8 @@ namespace SportCourtManagent_Server.Services.Implements
               TotalAmount = subTotal,
               Status = BookingStatus.Pending,
               Note = request.Note,
-              CreatedAt = DateTime.UtcNow
+              CreatedAt = DateTime.UtcNow,
+              ExpiredAt = DateTime.UtcNow.AddMinutes(10)
             };
 
             totalAmount += subTotal;

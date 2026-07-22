@@ -2,8 +2,10 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SportCourtManagent_Server.DTOs.Role;
 using SportCourtManagent_Server.Helpers;
 using SportCourtManagent_Server.Services.Interfaces;
+using System.Collections.Generic;
 
 namespace SportCourtManagent_Server.Controllers
 {
@@ -34,12 +36,26 @@ namespace SportCourtManagent_Server.Controllers
         }
 
         [HttpGet("permission-matrix")]
-        public IActionResult GetPermissionMatrix()
+        public async Task<IActionResult> GetPermissionMatrix()
         {
             try
             {
-                var rows = _roleManagement.GetPermissionMatrix();
+                var rows = await _roleManagement.GetPermissionMatrixAsync();
                 return Ok(ApiResults.Ok(rows, "Lấy ma trận phân quyền thành công."));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResults.Fail(ex.Message, 500));
+            }
+        }
+
+        [HttpPut("permission-matrix")]
+        public async Task<IActionResult> UpdatePermissionMatrix([FromBody] List<PermissionMatrixRowDto> matrix)
+        {
+            try
+            {
+                await _roleManagement.UpdatePermissionMatrixAsync(matrix);
+                return Ok(ApiResults.Ok(matrix, "Cập nhật ma trận phân quyền thành công."));
             }
             catch (Exception ex)
             {

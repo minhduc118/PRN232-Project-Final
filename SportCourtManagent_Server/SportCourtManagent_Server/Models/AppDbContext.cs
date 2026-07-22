@@ -43,6 +43,7 @@ namespace SportCourtManagent_Server.Models
         public DbSet<TaskItem> Tasks { get; set; } = null!;
         public DbSet<Wallet> Wallets { get; set; } = null!;
         public DbSet<WalletTransaction> WalletTransactions { get; set; } = null!;
+        public DbSet<PermissionMatrixEntry> PermissionMatrixEntries { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -96,6 +97,10 @@ namespace SportCourtManagent_Server.Models
 
             modelBuilder.Entity<PlayerRequestMember>()
                 .HasIndex(prm => new { prm.RequestId, prm.UserId })
+                .IsUnique();
+
+            modelBuilder.Entity<PermissionMatrixEntry>()
+                .HasIndex(p => p.Feature)
                 .IsUnique();
 
             // Wallet 1-1 with User

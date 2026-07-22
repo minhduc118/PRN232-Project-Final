@@ -144,37 +144,39 @@ namespace SportCourtManagent_Server.Services.Implements
                 CourtName = court.CourtName,
                 CourtCode = court.CourtCode,
                 CourtSize = court.CourtSize,
-                Location = court.Complex.ComplexName + " - " + court.Complex.Address,
+                Location = court.Complex != null ? (court.Complex.ComplexName + " - " + court.Complex.Address) : "",
 
                 ImageUrl = court.CourtImages.OrderByDescending(ci => ci.IsPrimary).Select(ci => ci.ImageUrl).FirstOrDefault(),
                 OpenTime = court.OpenTime,
                 CloseTime = court.CloseTime,
                 PricePerHour = court.PricePerHour,
                 Status = court.Status.ToString(),
-                CourtType = new CourtTypeDto
+                CourtType = court.CourtType != null ? new CourtTypeDto
                 {
                     CourtTypeId = court.CourtType.CourtTypeId,
                     TypeName = court.CourtType.TypeName,
                     IsActive = court.CourtType.IsActive,
                     CourtCount = 0, // not needed in detail view
-                },
+                } : new CourtTypeDto { CourtTypeId = court.CourtTypeId, TypeName = "", IsActive = true },
                 Images = court.CourtImages.Select(ci => new CourtImageDto
                 {
                     CourtImageId = ci.CourtImageId,
                     ImageUrl = ci.ImageUrl,
                     IsPrimary = ci.IsPrimary,
                 }).ToList(),
-                Pricings = court.CourtPricings.Select(cp => new CourtPricingDto
-                {
-                    PricingId = cp.PricingId,
-                    SlotId = cp.SlotId,
-                    SlotName = cp.TimeSlot?.SlotName ?? "Không xác định",
-                    StartTime = cp.TimeSlot?.StartTime ?? TimeSpan.Zero,
-                    EndTime = cp.TimeSlot?.EndTime ?? TimeSpan.Zero,
-                    DayType = cp.TimeSlot?.DayType.ToString() ?? "Weekday",
+                Pricings = court.CourtPricings
+                    .Where(cp => cp.TimeSlot == null || (cp.TimeSlot.StartTime >= court.OpenTime && cp.TimeSlot.EndTime <= court.CloseTime))
+                    .Select(cp => new CourtPricingDto
+                    {
+                        PricingId = cp.PricingId,
+                        SlotId = cp.SlotId,
+                        SlotName = cp.TimeSlot?.SlotName ?? "Không xác định",
+                        StartTime = cp.TimeSlot?.StartTime ?? TimeSpan.Zero,
+                        EndTime = cp.TimeSlot?.EndTime ?? TimeSpan.Zero,
+                        DayType = cp.TimeSlot?.DayType.ToString() ?? "Weekday",
 
-                    Price = cp.Price,
-                }).OrderBy(p => p.StartTime).ToList(),
+                        Price = cp.Price,
+                    }).OrderBy(p => p.StartTime).ToList(),
                 ReviewSummary = new CourtReviewSummaryDto
                 {
                     AverageRating = avgRating,
@@ -202,12 +204,20 @@ namespace SportCourtManagent_Server.Services.Implements
                 .Select(b => new { b.SlotId, b.Status })
                 .ToListAsync();
 
-            // Availability must cover every selectable slot. Some courts use the
-            // hourly fallback price and therefore have no CourtPricing rows.
+            // Availability slots filter by court's operating hours (OpenTime & CloseTime)
             var timeSlots = await _db.TimeSlots
                 .AsNoTracking()
+                .Where(slot => slot.StartTime >= court.OpenTime && slot.EndTime <= court.CloseTime)
                 .OrderBy(slot => slot.StartTime)
                 .ToListAsync();
+
+            if (!timeSlots.Any())
+            {
+                timeSlots = await _db.TimeSlots
+                    .AsNoTracking()
+                    .OrderBy(slot => slot.StartTime)
+                    .ToListAsync();
+            }
 
             // Court-wide statuses take precedence over individual booking statuses.
             var isUnderMaintenance = court.Status == CourtStatus.Maintenance;
@@ -320,13 +330,20 @@ namespace SportCourtManagent_Server.Services.Implements
                 IsDeleted = false
             };
 
-            if (!string.IsNullOrWhiteSpace(dto.ImageUrl))
+            // Handle multiple images if provided in ImageUrls, otherwise fallback to ImageUrl
+            var urlsToSave = dto.ImageUrls != null && dto.ImageUrls.Any()
+                ? dto.ImageUrls.Where(u => !string.IsNullOrWhiteSpace(u)).ToList()
+                : (!string.IsNullOrWhiteSpace(dto.ImageUrl) ? new List<string> { dto.ImageUrl } : new List<string>());
+
+            bool isFirst = true;
+            foreach (var url in urlsToSave)
             {
                 court.CourtImages.Add(new CourtImage
                 {
-                    ImageUrl = dto.ImageUrl,
-                    IsPrimary = true
+                    ImageUrl = url,
+                    IsPrimary = isFirst
                 });
+                isFirst = false;
             }
 
             await _courtRepo.AddAsync(court);
@@ -361,24 +378,73 @@ namespace SportCourtManagent_Server.Services.Implements
             court.PricePerHour = dto.PricePerHour;
             court.CourtSize = dto.CourtSize;
 
-            if (!string.IsNullOrWhiteSpace(dto.ImageUrl))
+            var urlsToSave = dto.ImageUrls != null && dto.ImageUrls.Any()
+                ? dto.ImageUrls.Where(u => !string.IsNullOrWhiteSpace(u)).ToList()
+                : (!string.IsNullOrWhiteSpace(dto.ImageUrl) ? new List<string> { dto.ImageUrl } : new List<string>());
+
+            if (!string.IsNullOrWhiteSpace(dto.ImageUrl) && urlsToSave.Contains(dto.ImageUrl.Trim()))
             {
-                var primary = court.CourtImages.FirstOrDefault(i => i.IsPrimary);
-                if (primary != null)
-                {
-                    primary.ImageUrl = dto.ImageUrl;
-                }
-                else
+                var primaryUrl = dto.ImageUrl.Trim();
+                urlsToSave.Remove(primaryUrl);
+                urlsToSave.Insert(0, primaryUrl);
+            }
+
+            if (urlsToSave.Any())
+            {
+                court.CourtImages.Clear();
+                bool isFirst = true;
+                foreach (var url in urlsToSave)
                 {
                     court.CourtImages.Add(new CourtImage
                     {
-                        ImageUrl = dto.ImageUrl,
-                        IsPrimary = true
+                        CourtId = court.CourtId,
+                        ImageUrl = url,
+                        IsPrimary = isFirst
                     });
+                    isFirst = false;
                 }
             }
 
             await _courtRepo.UpdateAsync(court);
+
+            // Save or update CourtPricings for all TimeSlots
+            var allSlots = await _db.TimeSlots.ToListAsync();
+            var existingPricings = await _db.CourtPricings
+                .Where(cp => cp.CourtId == court.CourtId)
+                .ToListAsync();
+
+            foreach (var slot in allSlots)
+            {
+                var inputPricing = dto.Pricings?.FirstOrDefault(p => p.SlotId == slot.SlotId);
+                var existing = existingPricings.FirstOrDefault(cp => cp.SlotId == slot.SlotId);
+
+                decimal targetPrice;
+                if (inputPricing != null && inputPricing.Price > 0)
+                {
+                    targetPrice = inputPricing.Price;
+                }
+                else
+                {
+                    var durationHours = (decimal)(slot.EndTime - slot.StartTime).TotalHours;
+                    targetPrice = court.PricePerHour * (durationHours > 0 ? durationHours : 1.5m);
+                }
+
+                if (existing != null)
+                {
+                    existing.Price = targetPrice;
+                    _db.CourtPricings.Update(existing);
+                }
+                else
+                {
+                    _db.CourtPricings.Add(new CourtPricing
+                    {
+                        CourtId = court.CourtId,
+                        SlotId = slot.SlotId,
+                        Price = targetPrice
+                    });
+                }
+            }
+            await _db.SaveChangesAsync();
         }
 
         public async Task DeleteAsync(int id)
@@ -397,15 +463,24 @@ namespace SportCourtManagent_Server.Services.Implements
             CourtName = c.CourtName,
             CourtCode = c.CourtCode,
             CourtTypeId = c.CourtTypeId,
-            CourtTypeName = c.CourtType.TypeName,
+            CourtTypeName = c.CourtType?.TypeName ?? "",
             ComplexId = c.ComplexId,
-            ComplexName = c.Complex.ComplexName,
+            ComplexName = c.Complex?.ComplexName,
             Status = c.Status.ToString(),
             OpenTime = c.OpenTime.ToString(@"hh\:mm"),
             CloseTime = c.CloseTime.ToString(@"hh\:mm"),
             PricePerHour = c.PricePerHour,
             CourtSize = c.CourtSize,
-            ImageUrl = c.CourtImages.OrderBy(i => i.CourtImageId).Select(i => i.ImageUrl).FirstOrDefault()
+            ImageUrl = c.CourtImages.OrderByDescending(i => i.IsPrimary).ThenBy(i => i.CourtImageId).Select(i => i.ImageUrl).FirstOrDefault(),
+            ImageUrls = c.CourtImages.Select(i => i.ImageUrl).ToList(),
+            Pricings = c.CourtPricings?.Select(cp => new CourtPricingInputDto
+            {
+                SlotId = cp.SlotId,
+                SlotName = cp.TimeSlot?.SlotName,
+                StartTime = cp.TimeSlot?.StartTime.ToString(@"hh\:mm"),
+                EndTime = cp.TimeSlot?.EndTime.ToString(@"hh\:mm"),
+                Price = cp.Price
+            }).ToList()
         };
     }
 }

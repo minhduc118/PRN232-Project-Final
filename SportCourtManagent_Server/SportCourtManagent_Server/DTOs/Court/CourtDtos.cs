@@ -67,5 +67,16 @@ namespace SportCourtManagent_Server.DTOs.Court
         public decimal PricePerHour { get; set; }
         public string? CourtSize { get; set; }
         public string? ImageUrl { get; set; }
+        public List<string>? ImageUrls { get; set; }
+        public List<CourtPricingInputDto>? Pricings { get; set; }
+    }
+
+    public class CourtPricingInputDto
+    {
+        public int SlotId { get; set; }
+        public string? SlotName { get; set; }
+        public string? StartTime { get; set; }
+        public string? EndTime { get; set; }
+        public decimal Price { get; set; }
     }
 }

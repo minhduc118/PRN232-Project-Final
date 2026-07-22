@@ -313,16 +313,26 @@ namespace SportCourtManagent_Server.Controllers
             wallet.UpdatedAt = DateTime.UtcNow;
 
             // Ghi nhận Payment cho dịch vụ bổ sung
-            var payment = new Payment
+            var existingPayment = await _context.Payments.FirstOrDefaultAsync(p => p.BookingId == booking.BookingId);
+            if (existingPayment != null)
             {
-                BookingId = booking.BookingId,
-                Amount = request.Amount,
-                PaymentMethod = PaymentMethod.Wallet,
-                TransactionId = $"WT-SRV-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}",
-                Status = PaymentStatus.Success,
-                PaidAt = DateTime.UtcNow
-            };
-            await _context.Payments.AddAsync(payment);
+                existingPayment.Amount = booking.TotalAmount;
+                existingPayment.PaidAt = DateTime.UtcNow;
+                _context.Payments.Update(existingPayment);
+            }
+            else
+            {
+                var payment = new Payment
+                {
+                    BookingId = booking.BookingId,
+                    Amount = booking.TotalAmount,
+                    PaymentMethod = PaymentMethod.Wallet,
+                    TransactionId = $"WT-SRV-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}",
+                    Status = PaymentStatus.Success,
+                    PaidAt = DateTime.UtcNow
+                };
+                await _context.Payments.AddAsync(payment);
+            }
 
             // Ghi nhận WalletTransaction
             var wt = new WalletTransaction

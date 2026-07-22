@@ -1187,7 +1187,7 @@ namespace SportCourtManagent_Server.Services.Implements
           ? $"Đặt thêm: {addedServicesText}"
           : $"{booking.Note} | Đặt thêm: {addedServicesText}";
 
-      await _bookingRepo.UpdateAsync(booking);
+      await _context.SaveChangesAsync();
       return MapToDto(booking);
     }
 

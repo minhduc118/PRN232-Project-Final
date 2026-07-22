@@ -114,6 +114,11 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new KeyNotFoundException($"Không tìm thấy lịch bảo trì với Id {maintenanceId} tại cơ sở này.");
             }
 
+            if (schedule.Status == MaintenanceStatus.Completed)
+            {
+                throw new ArgumentException("Lịch bảo trì đã hoàn thành, không thể chỉnh sửa.");
+            }
+
             var court = _courtRepository.GetById(request.CourtId.Value);
             if (court == null)
             {
@@ -251,6 +256,11 @@ namespace SportCourtManagent_Server.Services.Implements
             if (schedule == null || schedule.Court.ComplexId != complexId)
             {
                 throw new KeyNotFoundException($"Không tìm thấy lịch bảo trì với Id {maintenanceId} tại cơ sở này.");
+            }
+
+            if (schedule.Status == MaintenanceStatus.Completed)
+            {
+                throw new ArgumentException("Lịch bảo trì đã hoàn thành, không thể xóa.");
             }
 
             if (schedule.Status == MaintenanceStatus.InProgress)

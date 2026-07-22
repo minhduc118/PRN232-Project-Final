@@ -212,12 +212,17 @@ namespace SportCourtManagent_Server.Controllers
             if (tournament.UserId != userId)
                 return Forbid();
 
-            if (string.Equals(tournament.Status, "Paid", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(tournament.Status, "Confirmed", StringComparison.OrdinalIgnoreCase))
+            if (tournament.Status == TournamentStatus.Paid ||
+                tournament.Status == TournamentStatus.Confirmed)
                 return BadRequest(new { message = "Giải đấu này đã được thanh toán rồi." });
 
-            if (string.Equals(tournament.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+            if (tournament.Status == TournamentStatus.Cancelled)
                 return BadRequest(new { message = "Giải đấu đã bị hủy, không thể thanh toán." });
+
+            if (tournament.Status == TournamentStatus.Pending &&
+                tournament.ExpiredAt.HasValue &&
+                tournament.ExpiredAt.Value < DateTime.UtcNow)
+                return BadRequest(new { message = "Giải đấu đã hết hạn giữ chỗ, vui lòng đặt lại." });
 
             var totalAmount = tournament.TotalAmount;
 
@@ -237,10 +242,10 @@ namespace SportCourtManagent_Server.Controllers
             wallet.UpdatedAt = DateTime.UtcNow;
 
             // Cập nhật trạng thái giải đấu
-            tournament.Status = "Paid";
+            tournament.Status = TournamentStatus.Paid;
 
             // Cập nhật trạng thái các Booking trong giải đấu
-            foreach (var booking in tournament.Bookings)
+            foreach (var booking in tournament.Bookings.Where(b => b.Status == BookingStatus.Pending))
             {
                 booking.Status = BookingStatus.Confirmed;
 

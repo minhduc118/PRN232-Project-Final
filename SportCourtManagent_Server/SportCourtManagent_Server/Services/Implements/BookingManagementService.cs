@@ -24,6 +24,7 @@ namespace SportCourtManagent_Server.Services.Implements
     private readonly ITournamentLockManager _lockManager;
     private const string PublicTournamentsCacheKey = "PublicTournamentsList";
     private readonly IHubContext<SlotStatusHub> _hubContext;
+    private readonly ILogger<BookingManagementService> _logger;
 
     public BookingManagementService(
       IBookingRepository bookingRepo,
@@ -31,7 +32,8 @@ namespace SportCourtManagent_Server.Services.Implements
       AppDbContext context,
       IMemoryCache cache,
       ITournamentLockManager lockManager,
-      IHubContext<SlotStatusHub> hubContext)
+      IHubContext<SlotStatusHub> hubContext,
+      ILogger<BookingManagementService> logger)
 
     {
       _bookingRepo = bookingRepo ?? throw new ArgumentNullException(nameof(bookingRepo));
@@ -40,6 +42,7 @@ namespace SportCourtManagent_Server.Services.Implements
       _cache = cache ?? throw new ArgumentNullException(nameof(cache));
       _lockManager = lockManager ?? throw new ArgumentNullException(nameof(lockManager));
       _hubContext = hubContext ?? throw new ArgumentNullException(nameof(hubContext));
+      _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     }
 
@@ -410,7 +413,9 @@ namespace SportCourtManagent_Server.Services.Implements
       try
       {
         await AcquireTournamentLocksAsync(lockPairs, acquiredPairs);
-        return await ExecuteCreateTournamentTransactionAsync(userId, request);
+        var tournament = await ExecuteCreateTournamentTransactionAsync(userId, request);
+        await BroadcastTournamentSlotStatusesAsync(tournament.Bookings, "Held");
+        return tournament;
       }
       finally
       {
@@ -456,6 +461,23 @@ namespace SportCourtManagent_Server.Services.Implements
       }
     }
 
+    /// <summary>Broadcasts tournament slot changes without allowing a transient hub failure to fail a committed booking.</summary>
+    private async Task BroadcastTournamentSlotStatusesAsync(IEnumerable<BookingDto> bookings, string status)
+    {
+      try
+      {
+        foreach (var booking in bookings)
+        {
+          await _hubContext.Clients.Group($"court-{booking.CourtId}")
+            .SendAsync("SlotStatusChanged", booking.CourtId, booking.SlotId, booking.BookingDate.ToString("yyyy-MM-dd"), status);
+        }
+      }
+      catch (Exception ex)
+      {
+        _logger.LogWarning(ex, "Could not broadcast tournament slot status {Status}.", status);
+      }
+    }
+
     /// <summary>Executes tournament creation inside a database transaction.</summary>
     private async Task<TournamentDto> ExecuteCreateTournamentTransactionAsync(int userId, CreateTournamentRequest request)
     {
@@ -494,6 +516,7 @@ namespace SportCourtManagent_Server.Services.Implements
           throw;
         }
       });
+
     }
 
     /// <summary>Processes batch loading and creates tournament bookings without loop queries.</summary>
@@ -671,6 +694,7 @@ namespace SportCourtManagent_Server.Services.Implements
           throw;
         }
       });
+
     }
 
     /// <summary>Validates edit permissions for tournament.</summary>
@@ -909,7 +933,7 @@ namespace SportCourtManagent_Server.Services.Implements
       if (tournament == null) return null;
 
       var strategy = _context.Database.CreateExecutionStrategy();
-      return await strategy.ExecuteAsync(async () =>
+      var result = await strategy.ExecuteAsync(async () =>
       {
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
@@ -927,6 +951,14 @@ namespace SportCourtManagent_Server.Services.Implements
           throw;
         }
       });
+
+      if (request.Status is TournamentStatus.Cancelled or TournamentStatus.Paid or TournamentStatus.Confirmed)
+      {
+        var slotStatus = request.Status == TournamentStatus.Cancelled ? "Available" : "Booked";
+        await BroadcastTournamentSlotStatusesAsync(result.Bookings, slotStatus);
+      }
+
+      return result;
     }
 
     /// <summary>Applies cascade status updates to child bookings.</summary>
@@ -1052,8 +1084,33 @@ namespace SportCourtManagent_Server.Services.Implements
     {
       if (!_cache.TryGetValue(PublicTournamentsCacheKey, out List<TournamentPublicDto>? allPublic) || allPublic == null)
       {
-        var dbTournaments = await GetBaseTournamentQuery().Where(t => t.Status == TournamentStatus.Paid || t.Status == TournamentStatus.Confirmed).OrderByDescending(t => t.CreatedAt).ToListAsync();
-        allPublic = dbTournaments.Select(MapToPublicDto).ToList();
+        var dbTournaments = await GetBaseTournamentQuery()
+          .Where(t => t.Status == TournamentStatus.Paid || t.Status == TournamentStatus.Confirmed)
+          .ToListAsync();
+        var today = DateTime.UtcNow.Date;
+        allPublic = dbTournaments
+          .Select(MapToPublicDto)
+          .Select(t =>
+          {
+            t.Courts = t.Courts
+              .Where(c => c.Status != BookingStatus.Cancelled)
+              .OrderBy(c => c.BookingDate)
+              .ThenBy(c => c.StartTime)
+              .ToList();
+            return t;
+          })
+          .OrderBy(t => t.Courts
+            .Where(c => c.Status != BookingStatus.Cancelled && c.BookingDate.Date >= today)
+            .Select(c => c.BookingDate.Date)
+            .DefaultIfEmpty(DateTime.MaxValue)
+            .Min())
+          .ThenByDescending(t => t.Courts
+            .Where(c => c.Status != BookingStatus.Cancelled)
+            .Select(c => c.BookingDate.Date)
+            .DefaultIfEmpty(DateTime.MinValue)
+            .Max())
+          .ThenByDescending(t => t.CreatedAt)
+          .ToList();
         _cache.Set(PublicTournamentsCacheKey, allPublic, TimeSpan.FromMinutes(10));
       }
       var query = allPublic.AsEnumerable();

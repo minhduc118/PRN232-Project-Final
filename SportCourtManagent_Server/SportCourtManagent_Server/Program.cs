@@ -178,6 +178,34 @@ builder.WebHost.ConfigureKestrel(options =>
 
 var app = builder.Build();
 
+if (args.Contains("--reset-db"))
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    try
+    {
+        dbContext.Database.ExecuteSqlRaw(@"
+            DECLARE @sql NVARCHAR(MAX) = N'';
+            SELECT @sql += 'ALTER TABLE ' + QUOTENAME(s.name) + '.' + QUOTENAME(t.name) + ' DROP CONSTRAINT ' + QUOTENAME(f.name) + ';' + CHAR(13)
+            FROM sys.foreign_keys f
+            INNER JOIN sys.tables t ON f.parent_object_id = t.object_id
+            INNER JOIN sys.schemas s ON t.schema_id = s.schema_id;
+
+            SELECT @sql += 'DROP TABLE ' + QUOTENAME(s.name) + '.' + QUOTENAME(t.name) + ';' + CHAR(13)
+            FROM sys.tables t
+            INNER JOIN sys.schemas s ON t.schema_id = s.schema_id;
+
+            EXEC sp_executesql @sql;
+        ");
+        Console.WriteLine("[DB Reset] All tables dropped successfully from db60780.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[DB Reset Error] {ex.Message}");
+    }
+    return;
+}
+
 app.Use(async (context, next) =>
 {
     foreach (var cookieKey in context.Request.Cookies.Keys)

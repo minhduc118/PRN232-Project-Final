@@ -21,6 +21,6 @@ public class AvailabilitySlotDto
     public TimeSpan EndTime { get; set; }
     public decimal Price { get; set; }
 
-    /// <summary>Available | Booked | Maintenance</summary>
+    /// <summary>Available | Held | Booked | Maintenance | Inactive</summary>
     public string Status { get; set; } = "Available";
 }

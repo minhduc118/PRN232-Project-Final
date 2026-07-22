@@ -193,36 +193,53 @@ namespace SportCourtManagent_Server.Services.Implements
             // Get all bookings for this court on the given date (non-cancelled and non-expired)
             var targetDate = date.Date;
             var now = DateTime.UtcNow;
-            var bookedSlotIds = await _db.Bookings
+            var activeBookings = await _db.Bookings
                 .AsNoTracking()
                 .Where(b => b.CourtId == courtId
                              && b.BookingDate.Date == targetDate
                              && b.Status != BookingStatus.Cancelled
                              && (b.Status != BookingStatus.Pending || !b.ExpiredAt.HasValue || b.ExpiredAt > now))
-                .Select(b => b.SlotId)
+                .Select(b => new { b.SlotId, b.Status })
                 .ToListAsync();
 
-            // Check if court is under maintenance on this date
+            // Availability must cover every selectable slot. Some courts use the
+            // hourly fallback price and therefore have no CourtPricing rows.
+            var timeSlots = await _db.TimeSlots
+                .AsNoTracking()
+                .OrderBy(slot => slot.StartTime)
+                .ToListAsync();
+
+            // Court-wide statuses take precedence over individual booking statuses.
             var isUnderMaintenance = court.Status == CourtStatus.Maintenance;
+            var isInactive = court.Status == CourtStatus.Inactive;
 
-            var slots = court.CourtPricings
-                .GroupBy(cp => cp.SlotId)
-                .Select(g => g.First())
-                .Select(cp => new AvailabilitySlotDto
+            var pricingBySlot = court.CourtPricings
+                .GroupBy(pricing => pricing.SlotId)
+                .ToDictionary(group => group.Key, group => group.First());
+
+            var slots = timeSlots
+                .Select(slot =>
                 {
-                    SlotId = cp.SlotId,
-                    SlotName = cp.TimeSlot?.SlotName ?? "Không xác định",
-                    StartTime = cp.TimeSlot?.StartTime ?? TimeSpan.Zero,
-                    EndTime = cp.TimeSlot?.EndTime ?? TimeSpan.Zero,
+                    pricingBySlot.TryGetValue(slot.SlotId, out var pricing);
+                    var durationHours = (decimal)(slot.EndTime - slot.StartTime).TotalHours;
+                    var booking = activeBookings.FirstOrDefault(item => item.SlotId == slot.SlotId);
 
-                    Price = cp.Price,
-                    Status = isUnderMaintenance
-                                ? "Maintenance"
-                                : bookedSlotIds.Contains(cp.SlotId)
-                                    ? "Booked"
-                                    : "Available",
+                    return new AvailabilitySlotDto
+                    {
+                        SlotId = slot.SlotId,
+                        SlotName = slot.SlotName,
+                        StartTime = slot.StartTime,
+                        EndTime = slot.EndTime,
+                        Price = pricing?.Price ?? court.PricePerHour * durationHours,
+                        Status = isUnderMaintenance
+                                    ? "Maintenance"
+                                    : isInactive
+                                        ? "Inactive"
+                                        : booking != null
+                                            ? booking.Status == BookingStatus.Pending ? "Held" : "Booked"
+                                            : "Available",
+                    };
                 })
-                .OrderBy(s => s.StartTime)
                 .ToList();
 
             return new CourtAvailabilityDto

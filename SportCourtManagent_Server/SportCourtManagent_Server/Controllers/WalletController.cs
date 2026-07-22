@@ -195,6 +195,90 @@ namespace SportCourtManagent_Server.Controllers
             return Ok(new { success = true, message = "Thanh toán bằng ví thành công." });
         }
 
+        [HttpPost("pay-tournament")]
+        public async Task<IActionResult> PayTournament([FromBody] PayTournamentRequest request)
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(claim, out int userId))
+                return Unauthorized();
+
+            var tournament = await _context.Tournaments
+                .Include(t => t.Bookings)
+                .FirstOrDefaultAsync(t => t.TournamentId == request.TournamentId);
+
+            if (tournament == null)
+                return BadRequest(new { message = "Không tìm thấy giải đấu." });
+
+            if (tournament.UserId != userId)
+                return Forbid();
+
+            if (tournament.Status == TournamentStatus.Paid ||
+                tournament.Status == TournamentStatus.Confirmed)
+                return BadRequest(new { message = "Giải đấu này đã được thanh toán rồi." });
+
+            if (tournament.Status == TournamentStatus.Cancelled)
+                return BadRequest(new { message = "Giải đấu đã bị hủy, không thể thanh toán." });
+
+            if (tournament.Status == TournamentStatus.Pending &&
+                tournament.ExpiredAt.HasValue &&
+                tournament.ExpiredAt.Value < DateTime.UtcNow)
+                return BadRequest(new { message = "Giải đấu đã hết hạn giữ chỗ, vui lòng đặt lại." });
+
+            var totalAmount = tournament.TotalAmount;
+
+            var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
+            if (wallet == null)
+            {
+                wallet = new Wallet { UserId = userId, Balance = 10000000m };
+                await _context.Wallets.AddAsync(wallet);
+                await _context.SaveChangesAsync();
+            }
+
+            if (wallet.Balance < totalAmount)
+                return BadRequest(new { message = $"Số dư ví không đủ. Chi phí giải đấu là {totalAmount:N0}đ nhưng ví chỉ còn {wallet.Balance:N0}đ." });
+
+            // Trừ tiền ví
+            wallet.Balance -= totalAmount;
+            wallet.UpdatedAt = DateTime.UtcNow;
+
+            // Cập nhật trạng thái giải đấu
+            tournament.Status = TournamentStatus.Paid;
+
+            // Cập nhật trạng thái các Booking trong giải đấu
+            foreach (var booking in tournament.Bookings.Where(b => b.Status == BookingStatus.Pending))
+            {
+                booking.Status = BookingStatus.Confirmed;
+
+                var existsPayment = await _context.Payments.AnyAsync(p => p.BookingId == booking.BookingId);
+                if (!existsPayment)
+                {
+                    await _context.Payments.AddAsync(new Payment
+                    {
+                        BookingId = booking.BookingId,
+                        Amount = booking.TotalAmount,
+                        PaymentMethod = PaymentMethod.Wallet,
+                        TransactionId = $"WT-TM-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}",
+                        Status = PaymentStatus.Success,
+                        PaidAt = DateTime.UtcNow
+                    });
+                }
+            }
+
+            // Ghi WalletTransaction cho giải đấu
+            await _context.WalletTransactions.AddAsync(new WalletTransaction
+            {
+                WalletId = wallet.WalletId,
+                Amount = -totalAmount,
+                Type = WalletTransactionType.Payment,
+                Description = $"Thanh toán giải đấu #{tournament.TournamentId} - {tournament.TournamentName}",
+                CreatedAt = DateTime.UtcNow
+            });
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { success = true, message = "Thanh toán giải đấu bằng ví thành công." });
+        }
+
         [HttpPost("pay-services")]
         public async Task<IActionResult> PayServices([FromBody] PayServicesRequest request)
         {
@@ -266,5 +350,10 @@ namespace SportCourtManagent_Server.Controllers
     {
         public string BookingCode { get; set; } = "";
         public decimal Amount { get; set; }
+    }
+
+    public class PayTournamentRequest
+    {
+        public int TournamentId { get; set; }
     }
 }

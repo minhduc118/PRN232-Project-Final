@@ -43,6 +43,24 @@ namespace SportCourtManagent_Server.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "PermissionMatrix",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Feature = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Admin = table.Column<bool>(type: "bit", nullable: false),
+                    Manager = table.Column<bool>(type: "bit", nullable: false),
+                    Staff = table.Column<bool>(type: "bit", nullable: false),
+                    Customer = table.Column<bool>(type: "bit", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PermissionMatrix", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Promotions",
                 columns: table => new
                 {
@@ -999,10 +1017,10 @@ namespace SportCourtManagent_Server.Migrations
                 columns: new[] { "ServiceId", "Category", "CreatedAt", "Description", "IsActive", "Price", "ServiceName", "StockQty", "Unit" },
                 values: new object[,]
                 {
-                    { 1, "EquipmentRent", new DateTime(2026, 7, 22, 16, 52, 28, 802, DateTimeKind.Utc).AddTicks(2712), null, true, 30000.00m, "Thuê vợt Pickleball", 20, "cái" },
-                    { 2, "EquipmentRent", new DateTime(2026, 7, 22, 16, 52, 28, 802, DateTimeKind.Utc).AddTicks(2720), null, true, 20000.00m, "Thuê vợt cầu lông", 30, "cái" },
-                    { 3, "Drink", new DateTime(2026, 7, 22, 16, 52, 28, 802, DateTimeKind.Utc).AddTicks(2721), null, true, 15000.00m, "Nước uống Pocari", 100, "cái" },
-                    { 4, "Drink", new DateTime(2026, 7, 22, 16, 52, 28, 802, DateTimeKind.Utc).AddTicks(2723), null, true, 10000.00m, "Nước suối Aquafina", 150, "cái" }
+                    { 1, "EquipmentRent", new DateTime(2026, 7, 22, 17, 21, 26, 48, DateTimeKind.Utc).AddTicks(5822), null, true, 30000.00m, "Thuê vợt Pickleball", 20, "cái" },
+                    { 2, "EquipmentRent", new DateTime(2026, 7, 22, 17, 21, 26, 48, DateTimeKind.Utc).AddTicks(5831), null, true, 20000.00m, "Thuê vợt cầu lông", 30, "cái" },
+                    { 3, "Drink", new DateTime(2026, 7, 22, 17, 21, 26, 48, DateTimeKind.Utc).AddTicks(5833), null, true, 15000.00m, "Nước uống Pocari", 100, "cái" },
+                    { 4, "Drink", new DateTime(2026, 7, 22, 17, 21, 26, 48, DateTimeKind.Utc).AddTicks(5835), null, true, 10000.00m, "Nước suối Aquafina", 150, "cái" }
                 });
 
             migrationBuilder.InsertData(
@@ -1288,6 +1306,12 @@ namespace SportCourtManagent_Server.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_PermissionMatrix_Feature",
+                table: "PermissionMatrix",
+                column: "Feature",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PlayerRequestMembers_RequestId_UserId",
                 table: "PlayerRequestMembers",
                 columns: new[] { "RequestId", "UserId" },
@@ -1483,6 +1507,9 @@ namespace SportCourtManagent_Server.Migrations
 
             migrationBuilder.DropTable(
                 name: "Notifications");
+
+            migrationBuilder.DropTable(
+                name: "PermissionMatrix");
 
             migrationBuilder.DropTable(
                 name: "PlayerRequestMembers");

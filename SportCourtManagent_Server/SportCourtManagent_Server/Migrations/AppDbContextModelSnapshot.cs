@@ -923,6 +923,42 @@ namespace SportCourtManagent_Server.Migrations
                     b.ToTable("Payments");
                 });
 
+            modelBuilder.Entity("SportCourtManagent_Server.Models.PermissionMatrixEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Admin")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("Customer")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Feature")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("Manager")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("Staff")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Feature")
+                        .IsUnique();
+
+                    b.ToTable("PermissionMatrix");
+                });
+
             modelBuilder.Entity("SportCourtManagent_Server.Models.PlayerRequest", b =>
                 {
                     b.Property<int>("RequestId")
@@ -1228,7 +1264,7 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 1,
                             Category = "EquipmentRent",
-                            CreatedAt = new DateTime(2026, 7, 22, 16, 52, 28, 802, DateTimeKind.Utc).AddTicks(2712),
+                            CreatedAt = new DateTime(2026, 7, 22, 17, 21, 26, 48, DateTimeKind.Utc).AddTicks(5822),
                             IsActive = true,
                             Price = 30000.00m,
                             ServiceName = "Thuê vợt Pickleball",
@@ -1239,7 +1275,7 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 2,
                             Category = "EquipmentRent",
-                            CreatedAt = new DateTime(2026, 7, 22, 16, 52, 28, 802, DateTimeKind.Utc).AddTicks(2720),
+                            CreatedAt = new DateTime(2026, 7, 22, 17, 21, 26, 48, DateTimeKind.Utc).AddTicks(5831),
                             IsActive = true,
                             Price = 20000.00m,
                             ServiceName = "Thuê vợt cầu lông",
@@ -1250,7 +1286,7 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 3,
                             Category = "Drink",
-                            CreatedAt = new DateTime(2026, 7, 22, 16, 52, 28, 802, DateTimeKind.Utc).AddTicks(2721),
+                            CreatedAt = new DateTime(2026, 7, 22, 17, 21, 26, 48, DateTimeKind.Utc).AddTicks(5833),
                             IsActive = true,
                             Price = 15000.00m,
                             ServiceName = "Nước uống Pocari",
@@ -1261,7 +1297,7 @@ namespace SportCourtManagent_Server.Migrations
                         {
                             ServiceId = 4,
                             Category = "Drink",
-                            CreatedAt = new DateTime(2026, 7, 22, 16, 52, 28, 802, DateTimeKind.Utc).AddTicks(2723),
+                            CreatedAt = new DateTime(2026, 7, 22, 17, 21, 26, 48, DateTimeKind.Utc).AddTicks(5835),
                             IsActive = true,
                             Price = 10000.00m,
                             ServiceName = "Nước suối Aquafina",

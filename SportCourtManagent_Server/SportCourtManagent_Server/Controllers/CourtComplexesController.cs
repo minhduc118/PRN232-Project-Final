@@ -90,8 +90,9 @@ namespace SportCourtManagent_Server.Controllers
         }
 
         [HttpPost("upload-image")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Manager,Staff")]
         [RequestSizeLimit(5 * 1024 * 1024)]
+
         public async Task<IActionResult> UploadImage(IFormFile file)
         {
             try

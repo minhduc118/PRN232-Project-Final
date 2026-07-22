@@ -17,6 +17,7 @@ namespace SportCourtManagent_Server.DTOs.Maintenance
         [Required(ErrorMessage = "Thời gian kết thúc không được để trống.")]
         public DateTime? EndDateTime { get; set; }
 
+        [Required(ErrorMessage = "Vui lòng chọn nhân viên phụ trách.")]
         public int? AssignedStaffId { get; set; }
 
         [Required(ErrorMessage = "Lý do bảo trì không được để trống.")]
@@ -40,6 +41,7 @@ namespace SportCourtManagent_Server.DTOs.Maintenance
         [Required(ErrorMessage = "Thời gian kết thúc không được để trống.")]
         public DateTime? EndDateTime { get; set; }
 
+        [Required(ErrorMessage = "Vui lòng chọn nhân viên phụ trách.")]
         public int? AssignedStaffId { get; set; }
 
         [Required(ErrorMessage = "Lý do bảo trì không được để trống.")]
@@ -51,7 +53,11 @@ namespace SportCourtManagent_Server.DTOs.Maintenance
 
         [MaxLength(500, ErrorMessage = "Kết quả ghi chú không được vượt quá 500 ký tự.")]
         public string? Result { get; set; }
+
+        [MaxLength(500, ErrorMessage = "Đường dẫn ảnh minh chứng không được vượt quá 500 ký tự.")]
+        public string? ImageProof { get; set; }
     }
+
 
     public class VerifyMaintenanceRequest
     {

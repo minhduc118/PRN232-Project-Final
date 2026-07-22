@@ -58,4 +58,15 @@ namespace SportCourtManagent_Server.DTOs.Task
         [MaxLength(500, ErrorMessage = "Ghi chú không được vượt quá 500 ký tự.")]
         public string? Note { get; set; }
     }
+
+    public class CompleteTaskRequest
+    {
+        [Required(ErrorMessage = "Vui lòng nhập mô tả kết quả công việc.")]
+        [MaxLength(500, ErrorMessage = "Mô tả không được vượt quá 500 ký tự.")]
+        public string ResultNote { get; set; } = null!;
+
+        public string? ProofImageUrl { get; set; }
+    }
 }
+
+

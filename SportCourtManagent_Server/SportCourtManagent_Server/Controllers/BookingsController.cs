@@ -90,6 +90,10 @@ namespace SportCourtManagent_Server.Controllers
       {
         return BadRequest(ApiResults.Fail(ex.Message, 400));
       }
+      catch (DbUpdateException)
+      {
+        return Conflict(ApiResults.Fail("Khung giờ thi đấu này vừa có người khác đặt thành công hoặc bị trùng lịch. Vui lòng chọn ca khác.", 409));
+      }
       catch (Exception ex)
       {
         return StatusCode(500, ApiResults.Fail(ex.Message, 500));
@@ -109,6 +113,10 @@ namespace SportCourtManagent_Server.Controllers
       catch (ArgumentException ex)
       {
         return BadRequest(ApiResults.Fail(ex.Message, 400));
+      }
+      catch (DbUpdateException)
+      {
+        return Conflict(ApiResults.Fail("Một hoặc nhiều khung giờ trong lịch định kỳ vừa bị trùng với đơn đặt khác. Vui lòng chọn ca khác.", 409));
       }
       catch (Exception ex)
       {
@@ -131,6 +139,10 @@ namespace SportCourtManagent_Server.Controllers
       catch (ArgumentException ex)
       {
         return BadRequest(new { message = ex.Message });
+      }
+      catch (DbUpdateException)
+      {
+        return Conflict(new { message = "Khung giờ thi đấu này vừa có người khác đặt thành công hoặc bị trùng lịch. Vui lòng chọn ca khác." });
       }
       catch (Exception ex)
       {

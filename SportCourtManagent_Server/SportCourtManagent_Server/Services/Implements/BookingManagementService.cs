@@ -548,7 +548,7 @@ namespace SportCourtManagent_Server.Services.Implements
         {
           var slotId = sel.SlotIds[i];
           var reqServices = (i == 0) ? sel.Services : null;
-          var booking = BuildSingleTournamentBooking(userId, tournamentId, sel.CourtId, slotId, sel.BookingDate, reqServices, request.Note, slots, courts, pricings, complexServices, activeBookings);
+          var booking = await BuildSingleTournamentBookingAsync(userId, tournamentId, sel.CourtId, slotId, sel.BookingDate, reqServices, request.Note, slots, courts, pricings, complexServices, activeBookings);
           
           // Add to activeBookings to prevent duplicates within the same request
           activeBookings.Add(booking);
@@ -560,13 +560,13 @@ namespace SportCourtManagent_Server.Services.Implements
     }
 
     /// <summary>Builds a single booking entity and checks lazy expiration.</summary>
-    private Booking BuildSingleTournamentBooking(
+    private async Task<Booking> BuildSingleTournamentBookingAsync(
       int userId, int tournamentId, int courtId, int slotId, DateTime bookingDate, List<ServiceItemRequest>? reqServices, string? note,
       Dictionary<int, TimeSlot> slots, Dictionary<int, Court> courts, List<CourtPricing> pricings,
       List<ComplexCourtTypeService> complexServices, List<Booking> activeBookings)
     {
       if (!slots.TryGetValue(slotId, out var slot)) throw new ArgumentException($"Khung giờ {slotId} không hợp lệ.");
-      CheckSlotConflictAndLazyExpire(courtId, slotId, bookingDate, slot.SlotName, activeBookings);
+      await CheckSlotConflictAndLazyExpireAsync(courtId, slotId, bookingDate, slot.SlotName, activeBookings);
 
       decimal subTotal = CalculateBatchSubTotal(courtId, slot, reqServices, courts, pricings, complexServices);
       var booking = new Booking
@@ -591,9 +591,9 @@ namespace SportCourtManagent_Server.Services.Implements
     }
 
     /// <summary>Checks slot conflict and applies lazy expiration for pending timed-out bookings.</summary>
-    private void CheckSlotConflictAndLazyExpire(int courtId, int slotId, DateTime date, string slotName, List<Booking> activeBookings)
+    private async Task CheckSlotConflictAndLazyExpireAsync(int courtId, int slotId, DateTime date, string slotName, List<Booking> activeBookings)
     {
-      var conflict = activeBookings.FirstOrDefault(b => b.CourtId == courtId && b.SlotId == slotId && b.BookingDate.Date == date.Date);
+      var conflict = activeBookings.FirstOrDefault(b => b.CourtId == courtId && b.SlotId == slotId && b.BookingDate.Date == date.Date && b.Status != BookingStatus.Cancelled);
       if (conflict != null)
       {
         if (conflict.Status == BookingStatus.Pending && conflict.ExpiredAt.HasValue && conflict.ExpiredAt.Value < DateTime.UtcNow)
@@ -601,6 +601,8 @@ namespace SportCourtManagent_Server.Services.Implements
           conflict.Status = BookingStatus.Cancelled;
           conflict.CancelReason = "Hết hạn thanh toán (TTL expired)";
           _context.Bookings.Update(conflict);
+          await _context.SaveChangesAsync();
+          activeBookings.Remove(conflict);
         }
         else
         {
@@ -845,8 +847,15 @@ namespace SportCourtManagent_Server.Services.Implements
       foreach (var item in services.Where(x => x.Quantity > 0))
       {
         var s = complexServices.FirstOrDefault(x => x.ServiceId == item.ServiceId);
-        if (s != null)
+        var serviceObj = await _context.Services.FindAsync(item.ServiceId);
+        if (s != null && serviceObj != null)
         {
+          if (serviceObj.StockQty < item.Quantity)
+          {
+            throw new InvalidOperationException($"Số lượng hàng tồn kho không đủ cho dịch vụ '{serviceObj.ServiceName}'. Còn lại: {serviceObj.StockQty}, Yêu cầu: {item.Quantity}");
+          }
+          serviceObj.StockQty -= item.Quantity;
+          _context.Services.Update(serviceObj);
           booking.BookingServices.Add(new BookingService { ServiceId = item.ServiceId, Quantity = item.Quantity, TotalPrice = s.Price * item.Quantity });
         }
       }
@@ -1015,6 +1024,21 @@ namespace SportCourtManagent_Server.Services.Implements
     /// <summary>Gets paged customer bookings with database filtering.</summary>
     public async Task<PagedResult<BookingDto>> GetPagedCustomerBookingsAsync(int userId, BookingFilterParams filter)
     {
+      var now = DateTime.UtcNow;
+      var expiredBookings = await _context.Bookings
+          .Where(b => b.UserId == userId && b.Status == BookingStatus.Pending && b.ExpiredAt.HasValue && b.ExpiredAt.Value <= now)
+          .ToListAsync();
+
+      if (expiredBookings.Any())
+      {
+        foreach (var exp in expiredBookings)
+        {
+          exp.Status = BookingStatus.Cancelled;
+          exp.CancelReason = "Hết hạn thanh toán (Quá 10 phút)";
+        }
+        await _context.SaveChangesAsync();
+      }
+
       var query = _context.Bookings.Include(b => b.User).Include(b => b.Court).Include(b => b.TimeSlot).Include(b => b.Promotion).Include(b => b.Payment).Include(b => b.BookingServices).ThenInclude(bs => bs.Service).Where(b => b.UserId == userId).AsQueryable();
       if (!string.IsNullOrWhiteSpace(filter.Status) && Enum.TryParse<BookingStatus>(filter.Status, true, out var st))
       {
@@ -1142,17 +1166,38 @@ namespace SportCourtManagent_Server.Services.Implements
       var booking = await _bookingRepo.GetDetailAsync(bookingId);
       if (booking == null) return null;
 
+      var court = await _context.Courts.FindAsync(booking.CourtId);
+
       decimal additionalAmount = 0;
       foreach (var kvp in serviceQuantities.Where(q => q.Value > 0))
       {
         var service = await _context.Services.FindAsync(kvp.Key);
         if (service == null) throw new ArgumentException($"Dịch vụ #{kvp.Key} không tồn tại.");
 
-        if (service.StockQty < kvp.Value)
-          throw new InvalidOperationException($"Số lượng hàng tồn kho không đủ cho dịch vụ '{service.ServiceName}'. Còn lại: {service.StockQty}, Yêu cầu: {kvp.Value}");
+        ComplexCourtTypeService? offering = null;
+        if (court != null)
+        {
+          offering = await _context.ComplexCourtTypeServices
+              .FirstOrDefaultAsync(cs => cs.ComplexId == court.ComplexId && cs.CourtTypeId == court.CourtTypeId && cs.ServiceId == kvp.Key && cs.IsActive);
+          if (offering == null)
+          {
+            offering = await _context.ComplexCourtTypeServices
+                .FirstOrDefaultAsync(cs => cs.ComplexId == court.ComplexId && cs.ServiceId == kvp.Key && cs.IsActive);
+          }
+        }
+
+        int availableStock = (offering != null && offering.StockQty > 0) ? offering.StockQty : service.StockQty;
+
+        if (availableStock < kvp.Value)
+          throw new InvalidOperationException($"Số lượng hàng tồn kho không đủ cho dịch vụ '{service.ServiceName}'. Còn lại: {availableStock}, Yêu cầu: {kvp.Value}");
 
         // Deduct stock
-        service.StockQty -= kvp.Value;
+        if (offering != null && offering.StockQty > 0)
+        {
+          offering.StockQty -= kvp.Value;
+          _context.ComplexCourtTypeServices.Update(offering);
+        }
+        service.StockQty = Math.Max(0, service.StockQty - kvp.Value);
         _context.Services.Update(service);
 
         // Check if service already exists in booking

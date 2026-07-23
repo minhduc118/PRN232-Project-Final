@@ -180,6 +180,7 @@ namespace SportCourtManagent_Server.Controllers
         }
 
         // GET /api/courts/{id}/services — Get services specific to court type & complex
+        // GET /api/courts/{id}/services — Get services specific to court type & complex
         [HttpGet("{id:int}/services")]
         public async Task<IActionResult> GetCourtServices(int id)
         {
@@ -190,59 +191,13 @@ namespace SportCourtManagent_Server.Controllers
             if (court == null)
                 return NotFound(new { message = "Không tìm thấy sân." });
 
-            // 1. Find services offered specifically for this court type in this complex
-            var offerings = await _context.ComplexCourtTypeServices
-                .Include(c => c.Service)
-                .Where(c => c.ComplexId == court.ComplexId && c.CourtTypeId == court.CourtTypeId && c.IsActive && c.Service.IsActive)
-                .ToListAsync();
-
-            if (offerings.Any())
-            {
-                var result = offerings.Select(o => new
-                {
-                    serviceId = o.ServiceId,
-                    serviceName = o.Service.ServiceName,
-                    category = o.Service.Category,
-                    price = o.Price > 0 ? o.Price : o.Service.Price,
-                    unit = o.Service.Unit,
-                    description = o.Service.Description,
-                    stockQty = o.StockQty > 0 ? o.StockQty : o.Service.StockQty,
-                    isActive = o.IsActive
-                }).ToList();
-                return Ok(ApiResults.Ok(result));
-            }
-
-            // 2. Check offerings for this complex in general
-            var complexOfferings = await _context.ComplexCourtTypeServices
-                .Include(c => c.Service)
-                .Where(c => c.ComplexId == court.ComplexId && c.IsActive && c.Service.IsActive)
-                .ToListAsync();
-
-            if (complexOfferings.Any())
-            {
-                var result = complexOfferings.Select(o => new
-                {
-                    serviceId = o.ServiceId,
-                    serviceName = o.Service.ServiceName,
-                    category = o.Service.Category,
-                    price = o.Price > 0 ? o.Price : o.Service.Price,
-                    unit = o.Service.Unit,
-                    description = o.Service.Description,
-                    stockQty = o.StockQty > 0 ? o.StockQty : o.Service.StockQty,
-                    isActive = o.IsActive
-                }).ToList();
-                return Ok(ApiResults.Ok(result));
-            }
-
-            // 3. Fallback to global active services filtered by sport matching the court type
             string typeName = court.CourtType?.TypeName ?? "";
-            var globalServices = await _context.Services
-                .Where(s => s.IsActive)
-                .ToListAsync();
 
-            var filteredServices = globalServices.Where(s =>
+            // Helper to filter out services that don't match court's sport type
+            bool MatchesCourtSport(string serviceName)
             {
-                string name = s.ServiceName.ToLower();
+                if (string.IsNullOrWhiteSpace(typeName)) return true;
+                string name = serviceName.ToLower();
                 if (typeName.Contains("cầu lông", StringComparison.OrdinalIgnoreCase))
                 {
                     if (name.Contains("pickleball") || name.Contains("tennis") || name.Contains("bóng đá")) return false;
@@ -260,17 +215,78 @@ namespace SportCourtManagent_Server.Controllers
                     if (name.Contains("cầu lông") || name.Contains("pickleball") || name.Contains("tennis") || name.Contains("vợt")) return false;
                 }
                 return true;
-            }).Select(s => new
+            }
+
+            // 1. Find services offered specifically for this court type in this complex
+            var offerings = await _context.ComplexCourtTypeServices
+                .Include(c => c.Service)
+                .Where(c => c.ComplexId == court.ComplexId && c.CourtTypeId == court.CourtTypeId && c.IsActive && c.Service.IsActive)
+                .ToListAsync();
+
+            if (offerings.Any())
             {
-                serviceId = s.ServiceId,
-                serviceName = s.ServiceName,
-                category = s.Category,
-                price = s.Price,
-                unit = s.Unit,
-                description = s.Description,
-                stockQty = s.StockQty,
-                isActive = s.IsActive
-            }).ToList();
+                var result = offerings
+                    .Where(o => MatchesCourtSport(o.Service.ServiceName))
+                    .Select(o => new
+                    {
+                        serviceId = o.ServiceId,
+                        serviceName = o.Service.ServiceName,
+                        category = o.Service.Category,
+                        price = o.Price > 0 ? o.Price : o.Service.Price,
+                        unit = o.Service.Unit,
+                        description = o.Service.Description,
+                        stockQty = o.Service.StockQty,
+                        isActive = o.IsActive
+                    }).ToList();
+
+                if (result.Any())
+                    return Ok(ApiResults.Ok(result));
+            }
+
+            // 2. Check offerings for this complex in general
+            var complexOfferings = await _context.ComplexCourtTypeServices
+                .Include(c => c.Service)
+                .Where(c => c.ComplexId == court.ComplexId && c.IsActive && c.Service.IsActive)
+                .ToListAsync();
+
+            if (complexOfferings.Any())
+            {
+                var result = complexOfferings
+                    .Where(o => MatchesCourtSport(o.Service.ServiceName))
+                    .Select(o => new
+                    {
+                        serviceId = o.ServiceId,
+                        serviceName = o.Service.ServiceName,
+                        category = o.Service.Category,
+                        price = o.Price > 0 ? o.Price : o.Service.Price,
+                        unit = o.Service.Unit,
+                        description = o.Service.Description,
+                        stockQty = o.Service.StockQty,
+                        isActive = o.IsActive
+                    }).ToList();
+
+                if (result.Any())
+                    return Ok(ApiResults.Ok(result));
+            }
+
+            // 3. Fallback to global active services filtered by sport matching the court type
+            var globalServices = await _context.Services
+                .Where(s => s.IsActive)
+                .ToListAsync();
+
+            var filteredServices = globalServices
+                .Where(s => MatchesCourtSport(s.ServiceName))
+                .Select(s => new
+                {
+                    serviceId = s.ServiceId,
+                    serviceName = s.ServiceName,
+                    category = s.Category,
+                    price = s.Price,
+                    unit = s.Unit,
+                    description = s.Description,
+                    stockQty = s.StockQty,
+                    isActive = s.IsActive
+                }).ToList();
 
             return Ok(ApiResults.Ok(filteredServices));
         }

@@ -69,11 +69,28 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
         public async Task<bool> HasConflictingBookingAsync(int courtId, int slotId, DateTime bookingDate)
         {
             var now = DateTime.UtcNow;
+
+            // Auto-cancel any expired pending bookings for this court slot so they don't cause duplicate key constraint violations in DB
+            var expiredBookings = await _context.Bookings.Where(b => b.CourtId == courtId
+                                           && b.SlotId == slotId
+                                           && b.BookingDate.Date == bookingDate.Date
+                                           && b.Status == BookingStatus.Pending
+                                           && b.ExpiredAt.HasValue && b.ExpiredAt.Value <= now).ToListAsync();
+
+            if (expiredBookings.Any())
+            {
+                foreach (var exp in expiredBookings)
+                {
+                    exp.Status = BookingStatus.Cancelled;
+                    exp.CancelReason = "Hết hạn thanh toán (TTL expired)";
+                }
+                await _context.SaveChangesAsync();
+            }
+
             return await _context.Bookings.AnyAsync(b => b.CourtId == courtId 
                                            && b.SlotId == slotId 
                                            && b.BookingDate.Date == bookingDate.Date
-                                           && b.Status != BookingStatus.Cancelled
-                                           && (b.Status != BookingStatus.Pending || !b.ExpiredAt.HasValue || b.ExpiredAt > now));
+                                           && b.Status != BookingStatus.Cancelled);
         }
 
         public async Task<BookingBillingResult> ProcessBookingBillingAsync  (CreateBookingRequestDto dto, decimal courtPrice)

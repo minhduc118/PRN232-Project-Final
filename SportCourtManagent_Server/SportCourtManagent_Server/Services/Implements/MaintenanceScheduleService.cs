@@ -16,17 +16,20 @@ namespace SportCourtManagent_Server.Services.Implements
         private readonly ICourtRepository _courtRepository;
         private readonly ICourtComplexRepository _complexRepository;
         private readonly IStaffRepository _staffRepository;
+        private readonly IBookingRepository _bookingRepository;
 
         public MaintenanceScheduleService(
             IMaintenanceScheduleRepository maintenanceRepository,
             ICourtRepository courtRepository,
             ICourtComplexRepository complexRepository,
-            IStaffRepository staffRepository)
+            IStaffRepository staffRepository,
+            IBookingRepository bookingRepository)
         {
             _maintenanceRepository = maintenanceRepository;
             _courtRepository = courtRepository;
             _complexRepository = complexRepository;
             _staffRepository = staffRepository;
+            _bookingRepository = bookingRepository;
         }
 
         public async Task<MaintenanceResponse> CreateMaintenanceAsync(int complexId, CreateMaintenanceRequest request)
@@ -67,6 +70,19 @@ namespace SportCourtManagent_Server.Services.Implements
             if (court.ComplexId != complexId)
             {
                 throw new ArgumentException("Sân được chọn không thuộc cơ sở này.");
+            }
+
+            // Check for overlapping bookings
+            var bookings = await _bookingRepository.GetBookingsByCourtAsync(request.CourtId.Value);
+            foreach (var b in bookings)
+            {
+                var bookingStart = b.BookingDate.Date.Add(b.StartTime);
+                var bookingEnd = b.BookingDate.Date.Add(b.EndTime);
+                
+                if (bookingStart < request.EndDateTime.Value && bookingEnd > request.StartDateTime.Value)
+                {
+                    throw new ArgumentException($"Sân đã có khách đặt lịch ({bookingStart:dd/MM/yyyy HH:mm} - {bookingEnd:HH:mm}) trong thời gian bảo trì.");
+                }
             }
 
             if (!request.AssignedStaffId.HasValue || request.AssignedStaffId.Value <= 0)
@@ -139,6 +155,19 @@ namespace SportCourtManagent_Server.Services.Implements
             if (court.ComplexId != complexId)
             {
                 throw new ArgumentException("Sân được chọn không thuộc cơ sở này.");
+            }
+
+            // Check for overlapping bookings
+            var bookings = await _bookingRepository.GetBookingsByCourtAsync(request.CourtId.Value);
+            foreach (var b in bookings)
+            {
+                var bookingStart = b.BookingDate.Date.Add(b.StartTime);
+                var bookingEnd = b.BookingDate.Date.Add(b.EndTime);
+                
+                if (bookingStart < request.EndDateTime.Value && bookingEnd > request.StartDateTime.Value)
+                {
+                    throw new ArgumentException($"Sân đã có khách đặt lịch ({bookingStart:dd/MM/yyyy HH:mm} - {bookingEnd:HH:mm}) trong thời gian bảo trì.");
+                }
             }
 
             if (!request.AssignedStaffId.HasValue || request.AssignedStaffId.Value <= 0)

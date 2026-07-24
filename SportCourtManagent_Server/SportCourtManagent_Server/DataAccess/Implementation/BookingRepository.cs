@@ -255,5 +255,12 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
                     .ThenInclude(bs => bs.Service)
                 .FirstOrDefaultAsync(b => b.BookingId == id);
         }
+
+        public async Task<IEnumerable<Booking>> GetBookingsByCourtAsync(int courtId)
+        {
+            return await _context.Bookings
+                .Where(b => b.CourtId == courtId && b.Status != BookingStatus.Cancelled && b.Status != BookingStatus.NoShow)
+                .ToListAsync();
+        }
     }
 }

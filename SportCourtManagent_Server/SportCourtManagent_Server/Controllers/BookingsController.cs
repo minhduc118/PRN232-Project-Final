@@ -150,27 +150,31 @@ namespace SportCourtManagent_Server.Controllers
       }
     }
 
-    /// <summary>Creates a tournament booking (multiple courts and slots).</summary>
-    [HttpPost("tournament")]
-    public async Task<IActionResult> CreateTournament([FromBody] CreateTournamentRequest request)
+    /// <summary>Creates a tournament booking with immediate wallet payment.</summary>
+    [HttpPost("tournament/pay-wallet")]
+    public async Task<IActionResult> CreateAndPayTournamentWithWallet([FromBody] CreateTournamentRequest request)
     {
       try
       {
-        if (!TryGetUserId(out int userId)) return Unauthorized(new { message = "Không xác định được người dùng." });
-        var result = await _bookingService.CreateTournamentAsync(userId, request);
-        return Ok(new { data = result, message = "Tạo giải đấu thành công." });
+        if (!TryGetUserId(out int userId)) return Unauthorized(ApiResults.Fail("Không xác định được người dùng.", 401));
+        var result = await _bookingService.CreateAndPayTournamentWithWalletAsync(userId, request);
+        return Ok(ApiResults.Ok(result, "Tạo và thanh toán giải đấu thành công."));
       }
       catch (ArgumentException ex)
       {
-        return Conflict(new { message = ex.Message });
+        return BadRequest(ApiResults.Fail(ex.Message, 400));
+      }
+      catch (InvalidOperationException ex)
+      {
+        return BadRequest(ApiResults.Fail(ex.Message, 400));
       }
       catch (DbUpdateException)
       {
-        return Conflict(new { message = "Khung giờ thi đấu này vừa có người khác đặt thành công trước bạn vài giây. Vui lòng chọn ca khác." });
+        return Conflict(ApiResults.Fail("Một hoặc nhiều ca thi đấu trong giải đấu vừa có người khác thanh toán trước bạn vài giây. Tiền ví chưa bị trừ.", 409));
       }
       catch (Exception ex)
       {
-        return StatusCode(500, new { message = ex.Message });
+        return StatusCode(500, ApiResults.Fail(ex.Message, 500));
       }
     }
 

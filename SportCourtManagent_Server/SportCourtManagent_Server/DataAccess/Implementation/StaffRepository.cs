@@ -84,5 +84,16 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             _context.StaffComplexes.Remove(record);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<List<User>> GetUnassignedStaffsAsync()
+        {
+            return await _context.Users
+                .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+                .Where(u => u.UserRoles.Any(ur => ur.Role.RoleName == "Staff")
+                    && !_context.StaffComplexes.Any(sc => sc.StaffId == u.UserId)
+                    && u.IsActive)
+                .OrderBy(u => u.FullName)
+                .ToListAsync();
+        }
     }
 }

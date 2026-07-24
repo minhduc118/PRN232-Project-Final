@@ -9,5 +9,6 @@ namespace SportCourtManagent_Server.DataAccess.Interfaces
         Task<User?> GetStaffWithRolesAsync(int staffId);
         Task AssignStaffToComplexAsync(int staffId, int complexId);
         Task RemoveStaffFromComplexAsync(int staffId, int complexId);
+        Task<List<User>> GetUnassignedStaffsAsync();
     }
 }

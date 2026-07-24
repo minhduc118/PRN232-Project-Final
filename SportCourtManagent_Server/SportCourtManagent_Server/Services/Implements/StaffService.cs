@@ -517,5 +517,19 @@ namespace SportCourtManagent_Server.Services.Implements
             }
             return TimeZoneInfo.ConvertTimeFromUtc(utcNow, vnZone);
         }
+
+        public async Task<List<StaffSummaryResponse>> GetUnassignedStaffsAsync()
+        {
+            var staffs = await _staffRepository.GetUnassignedStaffsAsync();
+            return staffs.Select(s => new StaffSummaryResponse
+            {
+                UserId = s.UserId,
+                FullName = s.FullName,
+                Email = s.Email,
+                Phone = s.Phone,
+                AvatarUrl = s.AvatarUrl,
+                IsActive = s.IsActive
+            }).ToList();
+        }
     }
 }

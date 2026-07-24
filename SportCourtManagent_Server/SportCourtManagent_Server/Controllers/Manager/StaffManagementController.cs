@@ -368,5 +368,21 @@ namespace SportCourtManagent_Server.Controllers.Manager
                 return StatusCode(500, new { Message = $"Lỗi hệ thống: {ex.Message}" });
             }
         }
+
+        // GET /api/manager/complexes/{complexId}/staff/unassigned
+        [HttpGet("unassigned")]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> GetUnassignedStaffList()
+        {
+            try
+            {
+                var result = await _staffService.GetUnassignedStaffsAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Message = $"Lỗi hệ thống: {ex.Message}" });
+            }
+        }
     }
 }

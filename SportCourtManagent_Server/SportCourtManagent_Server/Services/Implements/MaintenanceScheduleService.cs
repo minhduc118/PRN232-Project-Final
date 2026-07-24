@@ -226,9 +226,9 @@ namespace SportCourtManagent_Server.Services.Implements
             return MapToResponse(schedule);
         }
 
-        public async Task<PagedMaintenanceResponse> GetMaintenanceListAsync(int complexId, MaintenanceStatus? status = null, int page = 1, int pageSize = 10)
+        public async Task<PagedMaintenanceResponse> GetMaintenanceListAsync(int complexId, MaintenanceStatus? status = null, int? assignedStaffId = null, int page = 1, int pageSize = 10)
         {
-            var (items, totalCount) = await _maintenanceRepository.GetByComplexAsync(complexId, status, page, pageSize);
+            var (items, totalCount) = await _maintenanceRepository.GetByComplexAsync(complexId, status, assignedStaffId, page, pageSize);
 
             return new PagedMaintenanceResponse
             {

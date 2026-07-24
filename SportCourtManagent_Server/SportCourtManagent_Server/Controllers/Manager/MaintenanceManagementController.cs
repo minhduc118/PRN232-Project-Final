@@ -50,12 +50,13 @@ namespace SportCourtManagent_Server.Controllers.Manager
         public async Task<IActionResult> GetMaintenanceList(
             [FromRoute] int complexId,
             [FromQuery] MaintenanceStatus? status = null,
+            [FromQuery] int? assignedStaffId = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10)
         {
             try
             {
-                var result = await _maintenanceService.GetMaintenanceListAsync(complexId, status, page, pageSize);
+                var result = await _maintenanceService.GetMaintenanceListAsync(complexId, status, assignedStaffId, page, pageSize);
                 return Ok(result);
             }
             catch (Exception ex)

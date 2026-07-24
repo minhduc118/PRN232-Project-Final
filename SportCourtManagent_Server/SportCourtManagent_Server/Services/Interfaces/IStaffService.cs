@@ -34,5 +34,7 @@ namespace SportCourtManagent_Server.Services.Interfaces
         Task<StaffShiftResponse> CheckOutShiftAsync(int staffId, int shiftId);
 
         Task<List<StaffShiftResponse>> GetAttendanceReportAsync(int complexId, DateOnly? dateFrom, DateOnly? dateTo, int? staffId = null);
+
+        Task<List<StaffSummaryResponse>> GetUnassignedStaffsAsync();
     }
 }

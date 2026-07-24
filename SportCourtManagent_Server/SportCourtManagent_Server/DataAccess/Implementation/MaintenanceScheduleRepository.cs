@@ -31,7 +31,7 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             return await _context.SaveChangesAsync() > 0;
         }
 
-        public async Task<(List<MaintenanceSchedule> Items, int TotalCount)> GetByComplexAsync(int complexId, MaintenanceStatus? status = null, int page = 1, int pageSize = 10)
+        public async Task<(List<MaintenanceSchedule> Items, int TotalCount)> GetByComplexAsync(int complexId, MaintenanceStatus? status = null, int? assignedStaffId = null, int page = 1, int pageSize = 10)
         {
             var query = _context.MaintenanceSchedules
                 .Include(ms => ms.Court)
@@ -43,6 +43,11 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
             if (status.HasValue)
             {
                 query = query.Where(ms => ms.Status == status.Value);
+            }
+
+            if (assignedStaffId.HasValue)
+            {
+                query = query.Where(ms => ms.AssignedStaffId == assignedStaffId.Value);
             }
 
             var totalCount = await query.CountAsync();

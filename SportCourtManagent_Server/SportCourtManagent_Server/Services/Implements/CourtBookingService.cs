@@ -82,24 +82,6 @@ namespace SportCourtManagent_Server.Services.Implements
 
             var billingResult = await _bookingRepository.ProcessBookingBillingAsync(dto, courtPrice);
 
-            // Kiểm tra ví
-            var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
-            if (wallet == null)
-            {
-                wallet = new Wallet { UserId = userId, Balance = 10000000m };
-                await _context.Wallets.AddAsync(wallet);
-                await _context.SaveChangesAsync();
-            }
-
-            if (wallet.Balance < billingResult.TotalAmount)
-            {
-                throw new InvalidOperationException($"Số dư ví không đủ. Chi phí đặt sân là {billingResult.TotalAmount:N0}đ nhưng ví của bạn chỉ còn {wallet.Balance:N0}đ. Vui lòng nạp thêm tiền.");
-            }
-
-            // Trừ tiền ví
-            wallet.Balance -= billingResult.TotalAmount;
-            wallet.UpdatedAt = DateTime.UtcNow;
-
             string bookingCode = $"BK-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}";
 
             var booking = new Booking
@@ -114,36 +96,13 @@ namespace SportCourtManagent_Server.Services.Implements
                 SubTotal = billingResult.SubTotal,
                 DiscountAmount = billingResult.DiscountAmount,
                 TotalAmount = billingResult.TotalAmount,
-                Status = BookingStatus.Confirmed, // Confirmed immediately
+                Status = BookingStatus.Pending, // Pending payment
+                ExpiredAt = DateTime.UtcNow.AddMinutes(5),
                 PromotionId = billingResult.AppliedPromotion?.PromotionId,
                 BookingServices = billingResult.BookingServices
             };
 
             await _bookingRepository.AddAsync(booking);
-
-            // Ghi nhận Payment
-            var payment = new Payment
-            {
-                BookingId = booking.BookingId,
-                Amount = booking.TotalAmount,
-                PaymentMethod = PaymentMethod.Wallet,
-                TransactionId = $"WT-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}",
-                Status = PaymentStatus.Success,
-                PaidAt = DateTime.UtcNow
-            };
-            await _paymentRepository.AddAsync(payment);
-
-            // Ghi nhận WalletTransaction
-            var wt = new WalletTransaction
-            {
-                WalletId = wallet.WalletId,
-                Amount = -booking.TotalAmount,
-                Type = WalletTransactionType.Payment,
-                BookingId = booking.BookingId,
-                Description = $"Thanh toán đặt sân {booking.BookingCode}",
-                CreatedAt = DateTime.UtcNow
-            };
-            await _context.WalletTransactions.AddAsync(wt);
             await _context.SaveChangesAsync();
 
             return new BookingResponseDto

@@ -297,7 +297,7 @@ namespace SportCourtManagent_Server.Services.Implements
               Status = BookingStatus.Pending,
               Note = request.Note,
               CreatedAt = DateTime.UtcNow,
-              ExpiredAt = DateTime.UtcNow.AddMinutes(10)
+              ExpiredAt = DateTime.UtcNow.AddMinutes(5)
             };
 
             totalAmount += subTotal;
@@ -495,7 +495,7 @@ namespace SportCourtManagent_Server.Services.Implements
             UserId = userId,
             Status = TournamentStatus.Pending,
             CreatedAt = DateTime.UtcNow,
-            ExpiredAt = DateTime.UtcNow.AddMinutes(10)
+            ExpiredAt = DateTime.UtcNow.AddMinutes(5)
           };
           await _context.Tournaments.AddAsync(tournament);
           await _context.SaveChangesAsync();
@@ -534,6 +534,7 @@ namespace SportCourtManagent_Server.Services.Implements
       var complexIds = courts.Values.Select(c => c.ComplexId).Distinct().ToList();
       var courtTypeIds = courts.Values.Select(c => c.CourtTypeId).Distinct().ToList();
       var complexServices = await _context.ComplexCourtTypeServices
+          .Include(cs => cs.Service)
           .Where(cs => complexIds.Contains(cs.ComplexId) && courtTypeIds.Contains(cs.CourtTypeId) && serviceIds.Contains(cs.ServiceId))
           .ToListAsync();
 
@@ -584,7 +585,7 @@ namespace SportCourtManagent_Server.Services.Implements
         TournamentId = tournamentId,
         Note = note,
         CreatedAt = DateTime.UtcNow,
-        ExpiredAt = DateTime.UtcNow.AddMinutes(10)
+        ExpiredAt = DateTime.UtcNow.AddMinutes(5)
       };
       AddBatchBookingServices(booking, reqServices, courts, complexServices);
       return booking;
@@ -623,7 +624,8 @@ namespace SportCourtManagent_Server.Services.Implements
         foreach (var item in reqServices.Where(x => x.Quantity > 0))
         {
           var s = complexServices.FirstOrDefault(cs => cs.ComplexId == crt.ComplexId && cs.CourtTypeId == crt.CourtTypeId && cs.ServiceId == item.ServiceId);
-          if (s != null) subTotal += s.Price * item.Quantity;
+          decimal price = s != null ? (s.Price > 0 ? s.Price : (s.Service?.Price ?? 0)) : 0;
+          subTotal += price * item.Quantity;
         }
       }
       return subTotal;
@@ -636,9 +638,10 @@ namespace SportCourtManagent_Server.Services.Implements
       foreach (var item in reqServices.Where(x => x.Quantity > 0))
       {
         var s = complexServices.FirstOrDefault(cs => cs.ComplexId == crt.ComplexId && cs.CourtTypeId == crt.CourtTypeId && cs.ServiceId == item.ServiceId);
-        if (s != null)
+        decimal price = s != null ? (s.Price > 0 ? s.Price : (s.Service?.Price ?? 0)) : 0;
+        if (price > 0)
         {
-          booking.BookingServices.Add(new BookingService { ServiceId = item.ServiceId, Quantity = item.Quantity, TotalPrice = s.Price * item.Quantity });
+          booking.BookingServices.Add(new BookingService { ServiceId = item.ServiceId, Quantity = item.Quantity, TotalPrice = price * item.Quantity });
         }
       }
     }
@@ -774,7 +777,7 @@ namespace SportCourtManagent_Server.Services.Implements
             UserId = userId, CourtId = pair.CourtId, SlotId = pair.SlotId, BookingDate = pair.Date,
             StartTime = slot.StartTime, EndTime = slot.EndTime, SubTotal = subTotal, TotalAmount = subTotal,
             Status = BookingStatus.Pending, TournamentId = tournament.TournamentId, Note = request.Note,
-            CreatedAt = DateTime.UtcNow, ExpiredAt = DateTime.UtcNow.AddMinutes(10)
+            CreatedAt = DateTime.UtcNow, ExpiredAt = DateTime.UtcNow.AddMinutes(5)
           };
           await AddBookingServicesAsync(booking, reqServices);
           newBookings.Add(booking);
@@ -801,13 +804,16 @@ namespace SportCourtManagent_Server.Services.Implements
       {
         var serviceIds = services.Select(s => s.ServiceId).ToList();
         var complexServices = await _context.ComplexCourtTypeServices
+            .Include(cs => cs.Service)
             .Where(cs => cs.ComplexId == court.ComplexId && cs.CourtTypeId == court.CourtTypeId && serviceIds.Contains(cs.ServiceId))
             .ToListAsync();
             
         foreach (var item in services.Where(x => x.Quantity > 0))
         {
           var s = complexServices.FirstOrDefault(x => x.ServiceId == item.ServiceId);
-          if (s != null) subTotal += s.Price * item.Quantity;
+          var serviceObj = s?.Service ?? await _context.Services.FindAsync(item.ServiceId);
+          decimal price = s != null && s.Price > 0 ? s.Price : (serviceObj?.Price ?? 0);
+          subTotal += price * item.Quantity;
         }
       }
       return subTotal;
@@ -842,13 +848,14 @@ namespace SportCourtManagent_Server.Services.Implements
       if (court == null) return;
       var serviceIds = services.Select(s => s.ServiceId).ToList();
       var complexServices = await _context.ComplexCourtTypeServices
+            .Include(cs => cs.Service)
             .Where(cs => cs.ComplexId == court.ComplexId && cs.CourtTypeId == court.CourtTypeId && serviceIds.Contains(cs.ServiceId))
             .ToListAsync();
       foreach (var item in services.Where(x => x.Quantity > 0))
       {
         var s = complexServices.FirstOrDefault(x => x.ServiceId == item.ServiceId);
-        var serviceObj = await _context.Services.FindAsync(item.ServiceId);
-        if (s != null && serviceObj != null)
+        var serviceObj = s?.Service ?? await _context.Services.FindAsync(item.ServiceId);
+        if (serviceObj != null)
         {
           if (serviceObj.StockQty < item.Quantity)
           {
@@ -856,7 +863,8 @@ namespace SportCourtManagent_Server.Services.Implements
           }
           serviceObj.StockQty -= item.Quantity;
           _context.Services.Update(serviceObj);
-          booking.BookingServices.Add(new BookingService { ServiceId = item.ServiceId, Quantity = item.Quantity, TotalPrice = s.Price * item.Quantity });
+          decimal price = s != null && s.Price > 0 ? s.Price : serviceObj.Price;
+          booking.BookingServices.Add(new BookingService { ServiceId = item.ServiceId, Quantity = item.Quantity, TotalPrice = price * item.Quantity });
         }
       }
     }
@@ -895,7 +903,7 @@ namespace SportCourtManagent_Server.Services.Implements
           ServiceId = bs.ServiceId,
           ServiceName = bs.Service?.ServiceName ?? $"Service #{bs.ServiceId}",
           Quantity = bs.Quantity,
-          UnitPrice = bs.Service?.Price ?? 0,
+          UnitPrice = bs.Quantity > 0 ? (bs.TotalPrice / bs.Quantity) : (bs.Service?.Price ?? 0),
           TotalPrice = bs.TotalPrice
         }).ToList() ?? new List<BookingServiceItemDto>()
       };
@@ -1034,7 +1042,7 @@ namespace SportCourtManagent_Server.Services.Implements
         foreach (var exp in expiredBookings)
         {
           exp.Status = BookingStatus.Cancelled;
-          exp.CancelReason = "Hết hạn thanh toán (Quá 10 phút)";
+          exp.CancelReason = "Hết hạn thanh toán (Quá 5 phút)";
         }
         await _context.SaveChangesAsync();
       }
@@ -1200,12 +1208,14 @@ namespace SportCourtManagent_Server.Services.Implements
         service.StockQty = Math.Max(0, service.StockQty - kvp.Value);
         _context.Services.Update(service);
 
+        decimal unitPrice = (offering != null && offering.Price > 0) ? offering.Price : service.Price;
+
         // Check if service already exists in booking
         var existingService = booking.BookingServices.FirstOrDefault(bs => bs.ServiceId == kvp.Key);
         if (existingService != null)
         {
           existingService.Quantity += kvp.Value;
-          existingService.TotalPrice += service.Price * kvp.Value;
+          existingService.TotalPrice += unitPrice * kvp.Value;
         }
         else
         {
@@ -1214,12 +1224,12 @@ namespace SportCourtManagent_Server.Services.Implements
             BookingId = bookingId,
             ServiceId = kvp.Key,
             Quantity = kvp.Value,
-            TotalPrice = service.Price * kvp.Value
+            TotalPrice = unitPrice * kvp.Value
           };
           booking.BookingServices.Add(bookingService);
         }
 
-        additionalAmount += service.Price * kvp.Value;
+        additionalAmount += unitPrice * kvp.Value;
       }
 
       booking.TotalAmount += additionalAmount;
@@ -1234,7 +1244,8 @@ namespace SportCourtManagent_Server.Services.Implements
           : $"{booking.Note} | Đặt thêm: {addedServicesText}";
 
       await _context.SaveChangesAsync();
-      return MapToDto(booking);
+      var updated = await _bookingRepo.GetDetailAsync(bookingId);
+      return MapToDto(updated ?? booking);
     }
 
     /// <summary>Joins FIFO Waitlist queue for a booked slot.</summary>

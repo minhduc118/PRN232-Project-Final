@@ -438,21 +438,76 @@ namespace SportCourtManagent_Server.Controllers
             catch (System.InvalidOperationException ex) { return BadRequest(ApiResults.Fail(ex.Message)); }
         }
 
-        // DELETE /api/courts/{id} — Delete court (Admin)
+        // POST /api/courts/{id}/deactivate — Ngưng hoạt động (chỉ khi không còn booking Active)
+        [HttpPost("{id:int}/deactivate")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Deactivate(int id)
+        {
+            try
+            {
+                var result = await _courtService.DeactivateAsync(id);
+                return Ok(ApiResults.Ok(result, result.Message));
+            }
+            catch (KeyNotFoundException) { return NotFound(ApiResults.Fail("Không tìm thấy sân.", 404)); }
+            catch (InvalidOperationException ex) { return BadRequest(ApiResults.Fail(ex.Message)); }
+        }
+
+        // POST /api/courts/{id}/restore — Khôi phục hoạt động
+        [HttpPost("{id:int}/restore")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Restore(int id)
+        {
+            try
+            {
+                var result = await _courtService.RestoreAsync(id);
+                return Ok(ApiResults.Ok(result, result.Message));
+            }
+            catch (KeyNotFoundException) { return NotFound(ApiResults.Fail("Không tìm thấy sân.", 404)); }
+            catch (InvalidOperationException ex) { return BadRequest(ApiResults.Fail(ex.Message)); }
+        }
+
+        // GET /api/courts/{id}/maintenance-conflicts?start=&end=
+        [HttpGet("{id:int}/maintenance-conflicts")]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> PreviewMaintenanceConflicts(
+            int id, [FromQuery] DateTime start, [FromQuery] DateTime end)
+        {
+            try
+            {
+                var preview = await _courtService.PreviewMaintenanceConflictsAsync(id, start, end);
+                return Ok(ApiResults.Ok(preview));
+            }
+            catch (KeyNotFoundException) { return NotFound(ApiResults.Fail("Không tìm thấy sân.", 404)); }
+            catch (ArgumentException ex) { return BadRequest(ApiResults.Fail(ex.Message)); }
+        }
+
+        // POST /api/courts/{id}/maintenance — Lên lịch bảo trì + refund conflict nếu ConfirmRefund
+        [HttpPost("{id:int}/maintenance")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ScheduleMaintenance(int id, [FromBody] ScheduleCourtMaintenanceRequest request)
+        {
+            try
+            {
+                var result = await _courtService.ScheduleMaintenanceAsync(id, request);
+                return Ok(ApiResults.Ok(result, result.Message));
+            }
+            catch (KeyNotFoundException) { return NotFound(ApiResults.Fail("Không tìm thấy sân.", 404)); }
+            catch (ArgumentException ex) { return BadRequest(ApiResults.Fail(ex.Message)); }
+            catch (InvalidOperationException ex) { return BadRequest(ApiResults.Fail(ex.Message)); }
+        }
+
+        // DELETE /api/courts/{id} — Giữ endpoint cũ, hành vi = Ngưng hoạt động
         [HttpDelete("{id:int}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             try
             {
-                var court = await _courtService.GetByIdAsync(id);
-                if (court == null)
-                    return NotFound(ApiResults.Fail("Không tìm thấy sân.", 404));
-
-                await _courtService.DeleteAsync(id);
-                return Ok(ApiResults.Ok(null, "Xóa sân thành công."));
+                var result = await _courtService.DeactivateAsync(id);
+                return Ok(ApiResults.Ok(result, result.Message));
             }
-            catch (System.InvalidOperationException ex) { return BadRequest(ApiResults.Fail(ex.Message)); }
+            catch (KeyNotFoundException) { return NotFound(ApiResults.Fail("Không tìm thấy sân.", 404)); }
+            catch (InvalidOperationException ex) { return BadRequest(ApiResults.Fail(ex.Message)); }
         }
     }
 }

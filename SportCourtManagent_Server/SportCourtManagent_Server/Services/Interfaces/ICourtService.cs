@@ -27,7 +27,22 @@ namespace SportCourtManagent_Server.Services.Interfaces
         Task<CourtDto?> GetByIdAsync(int id);
         Task<CourtDto> CreateAsync(CourtDto dto);
         Task UpdateAsync(int id, CourtDto dto);
+
+        /// <summary>Ngưng hoạt động (Inactive). Chỉ khi không còn booking Pending/Confirmed.</summary>
+        Task<CourtLifecycleResultDto> DeactivateAsync(int id);
+
+        /// <summary>Khôi phục sân về Available.</summary>
+        Task<CourtLifecycleResultDto> RestoreAsync(int id);
+
+        /// <summary>Xem trước booking bị conflict khi bảo trì theo khung giờ.</summary>
+        Task<MaintenanceConflictPreviewDto> PreviewMaintenanceConflictsAsync(int courtId, DateTime start, DateTime end);
+
+        /// <summary>Lên lịch bảo trì: chặn slot, hủy+refund booking conflict nếu ConfirmRefund.</summary>
+        Task<CourtLifecycleResultDto> ScheduleMaintenanceAsync(int courtId, ScheduleCourtMaintenanceRequest request);
+
+        [Obsolete("Dùng DeactivateAsync — không soft-delete sân nữa.")]
         Task DeleteAsync(int id);
+
         Task<bool> ExistsByCodeAsync(string courtCode, int? excludeCourtId = null);
     }
 }

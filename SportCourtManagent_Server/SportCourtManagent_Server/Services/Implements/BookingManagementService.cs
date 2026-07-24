@@ -72,6 +72,13 @@ namespace SportCourtManagent_Server.Services.Implements
     {
       if (request == null) throw new ArgumentNullException(nameof(request));
 
+      var court = await _context.Courts.FindAsync(request.CourtId);
+      if (court == null) throw new ArgumentException("Sân không tồn tại.");
+      if (court.IsDeleted)
+        throw new InvalidOperationException("Sân đã bị xóa khỏi hệ thống, không thể đặt.");
+      if (court.Status == CourtStatus.Inactive || court.Status == CourtStatus.Maintenance)
+        throw new InvalidOperationException($"Sân đang ở trạng thái {court.Status}, không thể đặt.");
+
       var targetSlotIds = (request.SlotIds != null && request.SlotIds.Any())
         ? request.SlotIds.Distinct().OrderBy(s => s).ToList()
         : new List<int> { request.SlotId };
@@ -86,9 +93,20 @@ namespace SportCourtManagent_Server.Services.Implements
       if (request.BookingDate.Date == nowLocal.Date && slots.Min(s => s.StartTime) <= nowLocal.TimeOfDay)
         throw new ArgumentException("Khung giờ đặt sân đã qua thời gian hiện tại, không thể đặt sân.");
 
-      var primarySlot = slots.First();
       var startTime = slots.Min(s => s.StartTime);
       var endTime = slots.Max(s => s.EndTime);
+      var bookingStart = request.BookingDate.Date.Add(startTime);
+      var bookingEnd = request.BookingDate.Date.Add(endTime);
+      var hasMaintenanceOverlap = await _context.MaintenanceSchedules.AnyAsync(m =>
+        m.CourtId == request.CourtId
+        && (m.Status == MaintenanceStatus.Scheduled || m.Status == MaintenanceStatus.InProgress)
+        && m.StartDateTime < bookingEnd
+        && m.EndDateTime > bookingStart);
+      if (hasMaintenanceOverlap)
+        throw new InvalidOperationException("Khung giờ này nằm trong lịch bảo trì sân, không thể đặt.");
+
+      var primarySlot = slots.First();
+      // startTime/endTime already computed above
 
       var hasPricing = await _context.CourtPricings.AnyAsync(cp => cp.CourtId == request.CourtId && targetSlotIds.Contains(cp.SlotId));
       if (!hasPricing)
@@ -256,6 +274,10 @@ namespace SportCourtManagent_Server.Services.Implements
 
       var court = await _context.Courts.FindAsync(request.CourtId);
       if (court == null) throw new ArgumentException("Sân không tồn tại.");
+      if (court.IsDeleted)
+        throw new InvalidOperationException("Sân đã bị xóa khỏi hệ thống, không thể đặt.");
+      if (court.Status == CourtStatus.Inactive || court.Status == CourtStatus.Maintenance)
+        throw new InvalidOperationException($"Sân đang ở trạng thái {court.Status}, không thể đặt định kỳ.");
 
       var targetSlotIds = (request.SlotIds != null && request.SlotIds.Any())
         ? request.SlotIds.Distinct().OrderBy(s => s).ToList()
@@ -267,6 +289,17 @@ namespace SportCourtManagent_Server.Services.Implements
       var primarySlot = slots.First();
       var startTime = slots.Min(s => s.StartTime);
       var endTime = slots.Max(s => s.EndTime);
+
+      // Chặn nếu có bảo trì overlap bất kỳ ngày nào trong range (kiểm tra thô theo range)
+      var rangeStart = request.StartDate.Date.Add(startTime);
+      var rangeEnd = request.EndDate.Date.Add(endTime);
+      var hasMaintenanceOverlap = await _context.MaintenanceSchedules.AnyAsync(m =>
+        m.CourtId == request.CourtId
+        && (m.Status == MaintenanceStatus.Scheduled || m.Status == MaintenanceStatus.InProgress)
+        && m.StartDateTime < rangeEnd
+        && m.EndDateTime > rangeStart);
+      if (hasMaintenanceOverlap)
+        throw new InvalidOperationException("Khoảng đặt định kỳ giao với lịch bảo trì sân. Vui lòng chọn thời gian khác hoặc đợi hết bảo trì.");
 
       // Check if court supports these slots
       var hasPricing = await _context.CourtPricings.AnyAsync(cp => cp.CourtId == request.CourtId && targetSlotIds.Contains(cp.SlotId));

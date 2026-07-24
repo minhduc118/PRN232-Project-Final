@@ -90,6 +90,18 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new ArgumentException("Khung giờ đặt sân đã qua thời gian hiện tại, không thể đặt sân.");
             }
 
+            var bookingStart = dto.BookingDate.Date.Add(timeSlots.Min(s => s.StartTime));
+            var bookingEnd = dto.BookingDate.Date.Add(timeSlots.Max(s => s.EndTime));
+            var hasMaintenanceOverlap = await _context.MaintenanceSchedules.AnyAsync(m =>
+                m.CourtId == dto.CourtId
+                && (m.Status == MaintenanceStatus.Scheduled || m.Status == MaintenanceStatus.InProgress)
+                && m.StartDateTime < bookingEnd
+                && m.EndDateTime > bookingStart);
+            if (hasMaintenanceOverlap)
+            {
+                throw new InvalidOperationException("Khung giờ này nằm trong lịch bảo trì sân, không thể đặt.");
+            }
+
             foreach (var sId in targetSlotIds)
             {
                 var isAlreadyBookedInDb = await _bookingRepository.HasConflictingBookingAsync(dto.CourtId, sId, dto.BookingDate);
@@ -158,6 +170,19 @@ namespace SportCourtManagent_Server.Services.Implements
             await _context.WalletTransactions.AddAsync(wt);
 
             await _bookingRepository.AddAsync(booking);
+            await _context.SaveChangesAsync();
+
+            // Đồng bộ bản ghi Payment (trước đây thiếu → hoàn tiền bảo trì ra 0đ)
+            _context.Payments.Add(new Payment
+            {
+                BookingId = booking.BookingId,
+                Amount = booking.TotalAmount,
+                PaymentMethod = PaymentMethod.Wallet,
+                TransactionId = $"WT-{Guid.NewGuid().ToString("N")[..8].ToUpper()}",
+                Status = PaymentStatus.Success,
+                PaidAt = DateTime.UtcNow
+            });
+            wt.BookingId = booking.BookingId;
             await _context.SaveChangesAsync();
 
             return new BookingResponseDto

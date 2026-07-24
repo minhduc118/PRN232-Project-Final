@@ -79,6 +79,17 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new ArgumentException("Khung giờ đã chọn không tồn tại.");
             }
 
+            // Validate: reject booking for past date/time
+            var nowLocal = DateTime.Now;
+            if (dto.BookingDate.Date < nowLocal.Date)
+            {
+                throw new ArgumentException("Ngày đặt sân đã qua, không thể đặt sân.");
+            }
+            if (dto.BookingDate.Date == nowLocal.Date && timeSlots.Min(s => s.StartTime) <= nowLocal.TimeOfDay)
+            {
+                throw new ArgumentException("Khung giờ đặt sân đã qua thời gian hiện tại, không thể đặt sân.");
+            }
+
             foreach (var sId in targetSlotIds)
             {
                 var isAlreadyBookedInDb = await _bookingRepository.HasConflictingBookingAsync(dto.CourtId, sId, dto.BookingDate);

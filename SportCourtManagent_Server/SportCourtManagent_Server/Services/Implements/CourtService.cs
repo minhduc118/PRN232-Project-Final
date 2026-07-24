@@ -227,12 +227,19 @@ namespace SportCourtManagent_Server.Services.Implements
                 .GroupBy(pricing => pricing.SlotId)
                 .ToDictionary(group => group.Key, group => group.First());
 
+            var nowLocal = DateTime.Now;
+            var isPastDate = targetDate < nowLocal.Date;
+            var isToday = targetDate == nowLocal.Date;
+
             var slots = timeSlots
                 .Select(slot =>
                 {
                     pricingBySlot.TryGetValue(slot.SlotId, out var pricing);
                     var durationHours = (decimal)(slot.EndTime - slot.StartTime).TotalHours;
                     var booking = activeBookings.FirstOrDefault(item => item.SlotId == slot.SlotId);
+
+                    // Check if this slot's start time has already passed
+                    var isSlotPast = isPastDate || (isToday && slot.StartTime <= nowLocal.TimeOfDay);
 
                     return new AvailabilitySlotDto
                     {
@@ -241,13 +248,15 @@ namespace SportCourtManagent_Server.Services.Implements
                         StartTime = slot.StartTime,
                         EndTime = slot.EndTime,
                         Price = pricing?.Price ?? court.PricePerHour * durationHours,
-                        Status = isUnderMaintenance
-                                    ? "Maintenance"
-                                    : isInactive
-                                        ? "Inactive"
-                                        : booking != null
-                                            ? booking.Status == BookingStatus.Pending ? "Held" : "Booked"
-                                            : "Available",
+                        Status = isSlotPast
+                                    ? "Past"
+                                    : isUnderMaintenance
+                                        ? "Maintenance"
+                                        : isInactive
+                                            ? "Inactive"
+                                            : booking != null
+                                                ? booking.Status == BookingStatus.Pending ? "Held" : "Booked"
+                                                : "Available",
                     };
                 })
                 .ToList();

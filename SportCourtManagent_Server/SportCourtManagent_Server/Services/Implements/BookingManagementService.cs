@@ -79,6 +79,13 @@ namespace SportCourtManagent_Server.Services.Implements
       var slots = await _context.TimeSlots.Where(s => targetSlotIds.Contains(s.SlotId)).OrderBy(s => s.StartTime).ToListAsync();
       if (!slots.Any()) throw new ArgumentException("Khung giờ không hợp lệ.");
 
+      // Validate: reject booking for past date/time
+      var nowLocal = DateTime.Now;
+      if (request.BookingDate.Date < nowLocal.Date)
+        throw new ArgumentException("Ngày đặt sân đã qua, không thể đặt sân.");
+      if (request.BookingDate.Date == nowLocal.Date && slots.Min(s => s.StartTime) <= nowLocal.TimeOfDay)
+        throw new ArgumentException("Khung giờ đặt sân đã qua thời gian hiện tại, không thể đặt sân.");
+
       var primarySlot = slots.First();
       var startTime = slots.Min(s => s.StartTime);
       var endTime = slots.Max(s => s.EndTime);
@@ -234,7 +241,8 @@ namespace SportCourtManagent_Server.Services.Implements
     public async Task<RecurringBookingResponseDto> CreateRecurringBookingAsync(int userId, CreateRecurringBookingRequest request)
     {
       if (request == null) throw new ArgumentNullException(nameof(request));
-      if (request.StartDate.Date < DateTime.Today)
+      var nowLocal = DateTime.Now;
+      if (request.StartDate.Date < nowLocal.Date)
         throw new ArgumentException("Ngày bắt đầu đặt sân không được ở trong quá khứ.");
       if (request.DaysOfWeek == null || !request.DaysOfWeek.Any())
         throw new ArgumentException("Phải chọn ít nhất một ngày trong tuần.");
@@ -284,15 +292,22 @@ namespace SportCourtManagent_Server.Services.Implements
       }
 
       // Generate all target dates from StartDate to EndDate matching DaysOfWeek
+      // Also filter out past date/time slots
       var allDates = new List<DateTime>();
       for (var date = request.StartDate.Date; date <= request.EndDate.Date; date = date.AddDays(1))
       {
         if (request.DaysOfWeek.Contains((int)date.DayOfWeek))
+        {
+          // Skip past dates entirely
+          if (date < nowLocal.Date) continue;
+          // For today, skip if slot start time has already passed
+          if (date == nowLocal.Date && startTime <= nowLocal.TimeOfDay) continue;
           allDates.Add(date);
+        }
       }
 
       if (!allDates.Any())
-        throw new ArgumentException("Không có ngày nào phù hợp trong khoảng thời gian đã chọn.");
+        throw new ArgumentException("Tất cả các ngày trong khoảng thời gian đã chọn đều đã qua hoặc đã có người đặt.");
 
       // Batch check all conflicting dates & apply lazy expiration
       var existingBookings = await _context.Bookings
@@ -535,12 +550,27 @@ namespace SportCourtManagent_Server.Services.Implements
       }
     }
 
-    /// <summary>Validates the tournament request.</summary>
-    private static void ValidateCreateTournamentRequest(CreateTournamentRequest request)
+    /// <summary>Validates the tournament request, including past-time check.</summary>
+    private void ValidateCreateTournamentRequest(CreateTournamentRequest request)
     {
       if (request == null) throw new ArgumentNullException(nameof(request));
       if (request.CourtSelections == null || !request.CourtSelections.Any())
         throw new ArgumentException("Giải đấu phải có ít nhất một sân được chọn.");
+
+      // Validate: reject tournament bookings for past date/time
+      var nowLocal = DateTime.Now;
+      foreach (var sel in request.CourtSelections)
+      {
+        if (sel.BookingDate.Date < nowLocal.Date)
+          throw new ArgumentException($"Ngày {sel.BookingDate:dd/MM/yyyy} đã qua, không thể tạo giải đấu.");
+
+        if (sel.BookingDate.Date == nowLocal.Date && sel.SlotIds != null && sel.SlotIds.Any())
+        {
+          var selSlots = _context.TimeSlots.Where(s => sel.SlotIds.Contains(s.SlotId)).ToList();
+          if (selSlots.Any() && selSlots.Min(s => s.StartTime) <= nowLocal.TimeOfDay)
+            throw new ArgumentException($"Khung giờ đã chọn cho ngày {sel.BookingDate:dd/MM/yyyy} đã qua thời gian hiện tại, không thể tạo giải đấu.");
+        }
+      }
     }
 
     /// <summary>Gets unique court and date pairs sorted to prevent deadlock.</summary>

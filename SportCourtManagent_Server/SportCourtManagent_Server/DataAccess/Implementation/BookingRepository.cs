@@ -101,6 +101,7 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
 
             if (dto.BookingServices != null && dto.BookingServices.Any())
             {
+                var court = await _context.Courts.FindAsync(dto.CourtId);
                 foreach (var svcDto in dto.BookingServices)
                 {
                     var service = await _context.Services.FindAsync(svcDto.ServiceId);
@@ -117,11 +118,27 @@ namespace SportCourtManagent_Server.DataAccess.Implementation
                     service.StockQty -= svcDto.Quantity;
                     _context.Services.Update(service);
 
+                    decimal unitPrice = service.Price;
+                    if (court != null)
+                    {
+                        var offering = await _context.ComplexCourtTypeServices
+                            .FirstOrDefaultAsync(cs => cs.ComplexId == court.ComplexId && cs.CourtTypeId == court.CourtTypeId && cs.ServiceId == svcDto.ServiceId && cs.IsActive);
+                        if (offering == null)
+                        {
+                            offering = await _context.ComplexCourtTypeServices
+                                .FirstOrDefaultAsync(cs => cs.ComplexId == court.ComplexId && cs.ServiceId == svcDto.ServiceId && cs.IsActive);
+                        }
+                        if (offering != null)
+                        {
+                            unitPrice = offering.Price > 0 ? offering.Price : service.Price;
+                        }
+                    }
+
                     var bookingService = new BookingService
                     {
                         ServiceId = service.ServiceId,
                         Quantity = svcDto.Quantity,
-                        TotalPrice = service.Price * svcDto.Quantity,
+                        TotalPrice = unitPrice * svcDto.Quantity,
                         Service = service
                     };
 

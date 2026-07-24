@@ -100,6 +100,12 @@ namespace SportCourtManagent_Server.Services.Implements
             DateOnly shiftDate = request.ShiftDate.Value;
             ShiftType shiftType = request.ShiftType.Value;
 
+            var today = DateOnly.FromDateTime(GetVietnamTime());
+            if (shiftDate < today)
+            {
+                throw new ArgumentException("Không thể lập lịch ca trực cho ngày trong quá khứ.");
+            }
+
             var complex = await _complexRepository.GetByIdWithDetailsAsync(complexId);
             if (complex == null)
             {

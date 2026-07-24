@@ -36,7 +36,18 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new ArgumentException("Thông tin bảo trì không hợp lệ (thiếu CourtId, MaintenanceType, StartDateTime hoặc EndDateTime).");
             }
 
-            if (request.EndDateTime <= request.StartDateTime)
+            var vnNow = GetVietnamTime(DateTime.UtcNow);
+            if (request.StartDateTime.Value <= vnNow)
+            {
+                throw new ArgumentException("Thời gian bắt đầu phải ở trong tương lai.");
+            }
+
+            if (request.EndDateTime.Value <= vnNow)
+            {
+                throw new ArgumentException("Thời gian kết thúc phải ở trong tương lai.");
+            }
+
+            if (request.EndDateTime.Value <= request.StartDateTime.Value)
             {
                 throw new ArgumentException("Thời gian kết thúc phải sau thời gian bắt đầu.");
             }
@@ -318,6 +329,20 @@ namespace SportCourtManagent_Server.Services.Implements
                 Status = schedule.Status.ToString(),
                 CreatedAt = DateTime.Now
             };
+        }
+
+        private DateTime GetVietnamTime(DateTime utcNow)
+        {
+            TimeZoneInfo vnZone;
+            try
+            {
+                vnZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                vnZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            }
+            return TimeZoneInfo.ConvertTimeFromUtc(utcNow, vnZone);
         }
     }
 }

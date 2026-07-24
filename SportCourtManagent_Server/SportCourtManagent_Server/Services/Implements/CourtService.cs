@@ -223,6 +223,18 @@ namespace SportCourtManagent_Server.Services.Implements
             var isUnderMaintenance = court.Status == CourtStatus.Maintenance;
             var isInactive = court.Status == CourtStatus.Inactive;
 
+            // Scheduled maintenance windows that overlap this date
+            var dayStart = targetDate;
+            var dayEnd = targetDate.AddDays(1);
+            var maintenanceWindows = await _db.MaintenanceSchedules
+                .AsNoTracking()
+                .Where(m => m.CourtId == courtId
+                    && (m.Status == MaintenanceStatus.Scheduled || m.Status == MaintenanceStatus.InProgress)
+                    && m.StartDateTime < dayEnd
+                    && m.EndDateTime > dayStart)
+                .Select(m => new { m.StartDateTime, m.EndDateTime })
+                .ToListAsync();
+
             var pricingBySlot = court.CourtPricings
                 .GroupBy(pricing => pricing.SlotId)
                 .ToDictionary(group => group.Key, group => group.First());
@@ -234,6 +246,11 @@ namespace SportCourtManagent_Server.Services.Implements
                     var durationHours = (decimal)(slot.EndTime - slot.StartTime).TotalHours;
                     var booking = activeBookings.FirstOrDefault(item => item.SlotId == slot.SlotId);
 
+                    var slotStart = targetDate.Add(slot.StartTime);
+                    var slotEnd = targetDate.Add(slot.EndTime);
+                    var overlapsMaintenance = isUnderMaintenance || maintenanceWindows.Any(m =>
+                        slotStart < m.EndDateTime && slotEnd > m.StartDateTime);
+
                     return new AvailabilitySlotDto
                     {
                         SlotId = slot.SlotId,
@@ -241,10 +258,10 @@ namespace SportCourtManagent_Server.Services.Implements
                         StartTime = slot.StartTime,
                         EndTime = slot.EndTime,
                         Price = pricing?.Price ?? court.PricePerHour * durationHours,
-                        Status = isUnderMaintenance
-                                    ? "Maintenance"
-                                    : isInactive
-                                        ? "Inactive"
+                        Status = isInactive
+                                    ? "Inactive"
+                                    : overlapsMaintenance
+                                        ? "Maintenance"
                                         : booking != null
                                             ? booking.Status == BookingStatus.Pending ? "Held" : "Booked"
                                             : "Available",
@@ -447,75 +464,306 @@ namespace SportCourtManagent_Server.Services.Implements
             await _db.SaveChangesAsync();
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task<CourtLifecycleResultDto> DeactivateAsync(int id)
         {
-            // 1. Kiểm tra có booking Pending/Confirmed không
-            var activeBookings = await _db.Bookings
-                .Include(b => b.Payment)
-                .Where(b => b.CourtId == id &&
-                            (b.Status == BookingStatus.Pending ||
-                             b.Status == BookingStatus.Confirmed))
-                .ToListAsync();
+            var court = await _courtRepo.GetByIdAsync(id)
+                ?? throw new KeyNotFoundException("Không tìm thấy sân.");
 
-            var now = DateTime.UtcNow;
+            if (court.IsDeleted)
+                throw new InvalidOperationException("Sân đã bị xóa khỏi hệ thống.");
 
-            // 2. Tự động hủy booking và hoàn tiền
-            foreach (var booking in activeBookings)
+            var activeCount = await _db.Bookings.CountAsync(b =>
+                b.CourtId == id &&
+                (b.Status == BookingStatus.Pending || b.Status == BookingStatus.Confirmed));
+
+            if (activeCount > 0)
             {
-                booking.Status = BookingStatus.Cancelled;
-                booking.CancelReason = "Sân bị xóa khỏi hệ thống bởi Admin.";
-
-                // Hoàn tiền vào Wallet nếu payment đã thành công
-                if (booking.Payment != null && booking.Payment.Status == PaymentStatus.Success)
-                {
-                    var refundAmount = booking.Payment.Amount;
-
-                    var wallet = await _db.Wallets
-                        .FirstOrDefaultAsync(w => w.UserId == booking.UserId);
-
-                    if (wallet == null)
-                    {
-                        wallet = new Wallet { UserId = booking.UserId, Balance = 0, CreatedAt = now, UpdatedAt = now };
-                        _db.Wallets.Add(wallet);
-                        await _db.SaveChangesAsync(); // flush để có WalletId
-                    }
-
-                    wallet.Balance += refundAmount;
-                    wallet.UpdatedAt = now;
-
-                    _db.WalletTransactions.Add(new WalletTransaction
-                    {
-                        WalletId = wallet.WalletId,
-                        Amount = refundAmount,
-                        Type = WalletTransactionType.Refund,
-                        BookingId = booking.BookingId,
-                        Description = $"Hoàn tiền do sân bị xóa (Booking #{booking.BookingId})",
-                        CreatedAt = now
-                    });
-
-                    booking.Payment.Status = PaymentStatus.Refunded;
-                    booking.Payment.RefundAmount = refundAmount;
-                }
-
-                // Gửi notification cho khách hàng
-                _db.Notifications.Add(new Notification
-                {
-                    UserId = booking.UserId,
-                    Title = $"Booking #{booking.BookingId} đã bị hủy do sân không còn hoạt động" +
-                            (booking.Payment?.Status == PaymentStatus.Refunded
-                                ? ". Tiền đã được hoàn vào ví của bạn."
-                                : "."),
-                    Type = NotificationType.BookingCancel,
-                    IsRead = false,
-                    CreatedAt = now
-                });
+                throw new InvalidOperationException(
+                    $"Sân đang có {activeCount} lịch đặt (Pending/Confirmed). Không thể ngưng hoạt động — chỉ được chuyển Bảo trì.");
             }
 
-            if (activeBookings.Count > 0)
+            court.Status = CourtStatus.Inactive;
+            await _courtRepo.UpdateAsync(court);
+
+            return new CourtLifecycleResultDto
+            {
+                CourtId = court.CourtId,
+                CourtName = court.CourtName,
+                Status = CourtStatus.Inactive.ToString(),
+                Message = "Đã chuyển sân sang Ngưng hoạt động."
+            };
+        }
+
+        public async Task<CourtLifecycleResultDto> RestoreAsync(int id)
+        {
+            var court = await _courtRepo.GetByIdAsync(id)
+                ?? throw new KeyNotFoundException("Không tìm thấy sân.");
+
+            if (court.IsDeleted)
+                throw new InvalidOperationException("Sân đã bị xóa khỏi hệ thống, không thể khôi phục.");
+
+            court.Status = CourtStatus.Available;
+            await _courtRepo.UpdateAsync(court);
+
+            // Đóng các lịch bảo trì đang mở của sân (nếu có)
+            var openMaint = await _db.MaintenanceSchedules
+                .Where(m => m.CourtId == id &&
+                    (m.Status == MaintenanceStatus.Scheduled || m.Status == MaintenanceStatus.InProgress))
+                .ToListAsync();
+            foreach (var m in openMaint)
+            {
+                m.Status = MaintenanceStatus.Cancelled;
+                m.Result = "Đã hủy khi Admin khôi phục sân.";
+            }
+            if (openMaint.Count > 0)
                 await _db.SaveChangesAsync();
 
-            // 3. Soft delete sân
-            await _courtRepo.SoftDeleteAsync(id);
+            return new CourtLifecycleResultDto
+            {
+                CourtId = court.CourtId,
+                CourtName = court.CourtName,
+                Status = CourtStatus.Available.ToString(),
+                Message = "Đã khôi phục sân về trạng thái Hoạt động."
+            };
+        }
+
+        public async Task<MaintenanceConflictPreviewDto> PreviewMaintenanceConflictsAsync(
+            int courtId, DateTime start, DateTime end)
+        {
+            ValidateMaintenanceWindow(start, end);
+
+            var court = await _courtRepo.GetByIdAsync(courtId)
+                ?? throw new KeyNotFoundException("Không tìm thấy sân.");
+
+            var conflicts = await GetOverlappingActiveBookingsAsync(courtId, start, end);
+
+            return new MaintenanceConflictPreviewDto
+            {
+                CourtId = court.CourtId,
+                CourtName = court.CourtName,
+                StartDateTime = start,
+                EndDateTime = end,
+                ConflictCount = conflicts.Count,
+                TotalRefundAmount = conflicts.Sum(c => c.RefundAmount),
+                Conflicts = conflicts
+            };
+        }
+
+        public async Task<CourtLifecycleResultDto> ScheduleMaintenanceAsync(
+            int courtId, ScheduleCourtMaintenanceRequest request)
+        {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            ValidateMaintenanceWindow(request.StartDateTime, request.EndDateTime);
+
+            var court = await _courtRepo.GetByIdAsync(courtId)
+                ?? throw new KeyNotFoundException("Không tìm thấy sân.");
+
+            if (court.IsDeleted)
+                throw new InvalidOperationException("Sân đã bị xóa khỏi hệ thống.");
+
+            if (court.Status == CourtStatus.Inactive)
+                throw new InvalidOperationException("Sân đang Ngưng hoạt động. Hãy khôi phục trước khi lên lịch bảo trì.");
+
+            var conflicts = await GetOverlappingActiveBookingsEntitiesAsync(
+                courtId, request.StartDateTime, request.EndDateTime);
+
+            if (conflicts.Count > 0 && !request.ConfirmRefund)
+            {
+                throw new InvalidOperationException(
+                    $"Có {conflicts.Count} lịch đặt bị trùng khung bảo trì. Vui lòng xác nhận hoàn tiền (ConfirmRefund=true).");
+            }
+
+            var now = DateTime.UtcNow;
+            var cancelled = 0;
+            decimal totalRefunded = 0;
+
+            if (conflicts.Count > 0)
+            {
+                var reason = string.IsNullOrWhiteSpace(request.Reason)
+                    ? "Sân bảo trì theo lịch Admin."
+                    : $"Sân bảo trì: {request.Reason.Trim()}";
+
+                foreach (var booking in conflicts)
+                {
+                    var refunded = await CancelBookingWithRefundAsync(
+                        booking, reason, $"Hoàn tiền do sân bảo trì (Booking #{booking.BookingId})", now);
+                    cancelled++;
+                    totalRefunded += refunded;
+                }
+            }
+
+            var isOngoing = request.StartDateTime <= now && now < request.EndDateTime;
+            var schedule = new MaintenanceSchedule
+            {
+                CourtId = courtId,
+                MaintenanceType = MaintenanceType.Routine,
+                StartDateTime = request.StartDateTime,
+                EndDateTime = request.EndDateTime,
+                Reason = request.Reason?.Trim(),
+                Status = isOngoing ? MaintenanceStatus.InProgress : MaintenanceStatus.Scheduled
+            };
+            _db.MaintenanceSchedules.Add(schedule);
+
+            if (isOngoing || conflicts.Count > 0)
+            {
+                court.Status = CourtStatus.Maintenance;
+                await _courtRepo.UpdateAsync(court);
+            }
+
+            await _db.SaveChangesAsync();
+
+            return new CourtLifecycleResultDto
+            {
+                CourtId = court.CourtId,
+                CourtName = court.CourtName,
+                Status = court.Status.ToString(),
+                Message = conflicts.Count > 0
+                    ? $"Đã lên lịch bảo trì. Đã hủy {cancelled} lịch đặt và hoàn {totalRefunded:N0}đ."
+                    : "Đã lên lịch bảo trì. Không có lịch đặt bị ảnh hưởng.",
+                CancelledBookings = cancelled,
+                TotalRefunded = totalRefunded
+            };
+        }
+
+        /// <summary>Giữ tương thích: chuyển sang Ngưng hoạt động thay vì soft-delete.</summary>
+        public Task DeleteAsync(int id) => DeactivateAsync(id);
+
+        private static void ValidateMaintenanceWindow(DateTime start, DateTime end)
+        {
+            if (end <= start)
+                throw new ArgumentException("Thời gian kết thúc bảo trì phải sau thời gian bắt đầu.");
+            if ((end - start).TotalDays > 30)
+                throw new ArgumentException("Khung bảo trì tối đa 30 ngày.");
+        }
+
+        private async Task<List<MaintenanceConflictBookingDto>> GetOverlappingActiveBookingsAsync(
+            int courtId, DateTime start, DateTime end)
+        {
+            var bookings = await GetOverlappingActiveBookingsEntitiesAsync(courtId, start, end);
+            return bookings.Select(b => new MaintenanceConflictBookingDto
+            {
+                BookingId = b.BookingId,
+                BookingCode = b.BookingCode,
+                CustomerName = b.User?.FullName ?? $"User #{b.UserId}",
+                BookingDate = b.BookingDate,
+                StartTime = b.StartTime.ToString(@"hh\:mm"),
+                EndTime = b.EndTime.ToString(@"hh\:mm"),
+                RefundAmount = GetRefundableAmount(b),
+                Status = b.Status.ToString()
+            }).ToList();
+        }
+
+        private async Task<List<Booking>> GetOverlappingActiveBookingsEntitiesAsync(
+            int courtId, DateTime start, DateTime end)
+        {
+            // Lấy booking active trong khoảng ngày rồi lọc overlap theo giờ ở memory
+            // (StartTime/EndTime là TimeSpan, khó so sánh trực tiếp với DateTime trên SQL mọi provider)
+            var fromDate = start.Date;
+            var toDate = end.Date;
+
+            var candidates = await _db.Bookings
+                .Include(b => b.Payment)
+                .Include(b => b.User)
+                .Where(b => b.CourtId == courtId
+                    && (b.Status == BookingStatus.Pending || b.Status == BookingStatus.Confirmed)
+                    && b.BookingDate.Date >= fromDate
+                    && b.BookingDate.Date <= toDate)
+                .ToListAsync();
+
+            return candidates.Where(b =>
+            {
+                var bookingStart = b.BookingDate.Date.Add(b.StartTime);
+                var bookingEnd = b.BookingDate.Date.Add(b.EndTime);
+                return bookingStart < end && bookingEnd > start;
+            }).ToList();
+        }
+
+        /// <summary>
+        /// Số tiền có thể hoàn: ưu tiên Payment.Success; fallback TotalAmount
+        /// (đặt sân ví cũ có thể không có bản ghi Payment).
+        /// </summary>
+        private static decimal GetRefundableAmount(Booking booking)
+        {
+            if (booking.Payment != null)
+            {
+                if (booking.Payment.Status == PaymentStatus.Success)
+                    return booking.Payment.Amount;
+                if (booking.Payment.Status == PaymentStatus.PartialRefund)
+                    return Math.Max(0, booking.Payment.Amount - booking.Payment.RefundAmount);
+                // Refunded / Failed / Pending → không hoàn thêm từ Payment
+                if (booking.Payment.Status == PaymentStatus.Refunded)
+                    return 0;
+            }
+
+            // Confirmed đã trừ ví nhưng thiếu Payment row → dùng TotalAmount
+            if (booking.Status == BookingStatus.Confirmed && booking.TotalAmount > 0)
+                return booking.TotalAmount;
+
+            return 0;
+        }
+
+        private async Task<decimal> CancelBookingWithRefundAsync(
+            Booking booking, string cancelReason, string refundDescription, DateTime now)
+        {
+            booking.Status = BookingStatus.Cancelled;
+            booking.CancelReason = cancelReason;
+
+            var refunded = GetRefundableAmount(booking);
+            if (refunded > 0)
+            {
+                var wallet = await _db.Wallets.FirstOrDefaultAsync(w => w.UserId == booking.UserId);
+                if (wallet == null)
+                {
+                    wallet = new Wallet { UserId = booking.UserId, Balance = 0, CreatedAt = now, UpdatedAt = now };
+                    _db.Wallets.Add(wallet);
+                    await _db.SaveChangesAsync();
+                }
+
+                wallet.Balance += refunded;
+                wallet.UpdatedAt = now;
+
+                _db.WalletTransactions.Add(new WalletTransaction
+                {
+                    WalletId = wallet.WalletId,
+                    Amount = refunded,
+                    Type = WalletTransactionType.Refund,
+                    BookingId = booking.BookingId,
+                    Description = refundDescription,
+                    CreatedAt = now
+                });
+
+                if (booking.Payment != null)
+                {
+                    booking.Payment.Status = PaymentStatus.Refunded;
+                    booking.Payment.RefundAmount = refunded;
+                }
+                else
+                {
+                    // Ghi nhận Payment refund để đồng bộ audit (booking cũ thiếu Payment)
+                    _db.Payments.Add(new Payment
+                    {
+                        BookingId = booking.BookingId,
+                        Amount = refunded,
+                        PaymentMethod = PaymentMethod.Wallet,
+                        TransactionId = $"RF-{Guid.NewGuid().ToString("N")[..8].ToUpper()}",
+                        Status = PaymentStatus.Refunded,
+                        RefundAmount = refunded,
+                        PaidAt = now
+                    });
+                }
+            }
+
+            _db.Notifications.Add(new Notification
+            {
+                UserId = booking.UserId,
+                Title = $"Booking #{booking.BookingId} đã bị hủy" +
+                        (refunded > 0 ? $". Đã hoàn {refunded:N0}đ vào ví." : "."),
+                Type = NotificationType.BookingCancel,
+                IsRead = false,
+                CreatedAt = now
+            });
+
+            return refunded;
         }
 
         public async Task<bool> ExistsByCodeAsync(string courtCode, int? excludeCourtId = null)

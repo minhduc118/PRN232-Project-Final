@@ -130,6 +130,20 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings["Audience"] ?? "SportCourtClient",
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
     };
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) &&
+                (path.StartsWithSegments("/hubs/notifications") || path.StartsWithSegments("/hubs/slot-status")))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
+    };
 });
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -269,6 +283,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<SportCourtManagent_Server.Hubs.SlotStatusHub>("/hubs/slot-status");
+app.MapHub<SportCourtManagent_Server.Hubs.NotificationHub>("/hubs/notifications");
 
 app.Run();
 

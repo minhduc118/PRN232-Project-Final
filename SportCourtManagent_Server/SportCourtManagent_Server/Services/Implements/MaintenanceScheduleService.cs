@@ -16,17 +16,20 @@ namespace SportCourtManagent_Server.Services.Implements
         private readonly ICourtRepository _courtRepository;
         private readonly ICourtComplexRepository _complexRepository;
         private readonly IStaffRepository _staffRepository;
+        private readonly INotificationRepository _notificationRepository;
 
         public MaintenanceScheduleService(
             IMaintenanceScheduleRepository maintenanceRepository,
             ICourtRepository courtRepository,
             ICourtComplexRepository complexRepository,
-            IStaffRepository staffRepository)
+            IStaffRepository staffRepository,
+            INotificationRepository notificationRepository)
         {
             _maintenanceRepository = maintenanceRepository;
             _courtRepository = courtRepository;
             _complexRepository = complexRepository;
             _staffRepository = staffRepository;
+            _notificationRepository = notificationRepository;
         }
 
         public async Task<MaintenanceResponse> CreateMaintenanceAsync(int complexId, CreateMaintenanceRequest request)
@@ -181,6 +184,30 @@ namespace SportCourtManagent_Server.Services.Implements
             }
 
             await _maintenanceRepository.UpdateAsync(schedule);
+
+            if (schedule.Status == MaintenanceStatus.Completed && oldStatus != MaintenanceStatus.Completed)
+            {
+                try
+                {
+                    var complex = await _complexRepository.GetByIdWithDetailsAsync(complexId);
+                    if (complex != null)
+                    {
+                        await _notificationRepository.CreateNotificationAsync(new Notification
+                        {
+                            UserId = complex.ManagerId,
+                            Title = $"Nhân viên {staff.FullName} đã báo cáo hoàn thành bảo trì cho sân: '{court.CourtName}'",
+                            Type = NotificationType.System,
+                            IsRead = false,
+                            CreatedAt = DateTime.Now
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Manager Maintenance Notification Error] {ex.Message}");
+                }
+            }
+
             return MapToResponse(schedule, court, court.Complex, staff);
         }
 

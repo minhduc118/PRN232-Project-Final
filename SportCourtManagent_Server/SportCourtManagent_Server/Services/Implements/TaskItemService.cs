@@ -344,6 +344,28 @@ namespace SportCourtManagent_Server.Services.Implements
 
             var updated = await _taskRepository.UpdateAsync(task);
             var loadedTask = await _taskRepository.GetByIdAsync(updated.TaskId) ?? updated;
+
+            try
+            {
+                var complex = await _complexRepository.GetByIdWithDetailsAsync(task.ComplexId);
+                var staff = await _staffRepository.GetStaffWithRolesAsync(staffId);
+                if (complex != null)
+                {
+                    await _notificationRepository.CreateNotificationAsync(new Notification
+                    {
+                        UserId = complex.ManagerId,
+                        Title = $"Nhân viên {staff?.FullName ?? "Staff"} đã hoàn thành công việc: '{task.Title}'",
+                        Type = NotificationType.System,
+                        IsRead = false,
+                        CreatedAt = DateTime.Now
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Manager Task Notification Error] {ex.Message}");
+            }
+
             return MapToResponse(loadedTask);
         }
 

@@ -22,6 +22,7 @@ namespace SportCourtManagent_Server.Services.Interfaces
     /// <summary>Updates booking status asynchronous.</summary>
     Task<BookingDto?> UpdateBookingStatusAsync(int id, UpdateBookingStatusRequest request);
     Task<TournamentDto> CreateTournamentAsync(int userId, CreateTournamentRequest request);
+    Task<TournamentDto> CreateAndPayTournamentWithWalletAsync(int userId, CreateTournamentRequest request);
 
     Task<IEnumerable<TournamentDto>> GetCustomerTournamentsAsync(int userId);
     Task<PagedResult<TournamentDto>> GetPagedCustomerTournamentsAsync(int userId, TournamentFilterParams filter);

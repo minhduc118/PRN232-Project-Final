@@ -21,6 +21,8 @@ namespace SportCourtManagent_Server.DTOs.Booking
     [Required]
     public int SlotId { get; set; }
 
+    public List<int>? SlotIds { get; set; }
+
     [Required]
     public DateTime BookingDate { get; set; }
 

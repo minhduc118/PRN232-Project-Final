@@ -72,114 +72,162 @@ namespace SportCourtManagent_Server.Services.Implements
     {
       if (request == null) throw new ArgumentNullException(nameof(request));
 
-      var slot = await _context.TimeSlots.FindAsync(request.SlotId);
-      if (slot == null) throw new ArgumentException("Khung giờ không hợp lệ.");
+      var targetSlotIds = (request.SlotIds != null && request.SlotIds.Any())
+        ? request.SlotIds.Distinct().OrderBy(s => s).ToList()
+        : new List<int> { request.SlotId };
 
-      // Check if court supports this slot
-      var hasPricing = await _context.CourtPricings.AnyAsync(cp => cp.CourtId == request.CourtId && cp.SlotId == request.SlotId);
+      var slots = await _context.TimeSlots.Where(s => targetSlotIds.Contains(s.SlotId)).OrderBy(s => s.StartTime).ToListAsync();
+      if (!slots.Any()) throw new ArgumentException("Khung giờ không hợp lệ.");
+
+      var primarySlot = slots.First();
+      var startTime = slots.Min(s => s.StartTime);
+      var endTime = slots.Max(s => s.EndTime);
+
+      var hasPricing = await _context.CourtPricings.AnyAsync(cp => cp.CourtId == request.CourtId && targetSlotIds.Contains(cp.SlotId));
       if (!hasPricing)
       {
           throw new ArgumentException("Sân đấu này không mở cửa hoạt động trong khung giờ đã chọn.");
       }
 
-      // Check for duplicate slot booking & apply lazy expiration
-      var existingBookings = await _context.Bookings.Where(b =>
-        b.CourtId == request.CourtId
-        && b.SlotId == request.SlotId
-        && b.BookingDate.Date == request.BookingDate.Date
-        && b.Status != BookingStatus.Cancelled).ToListAsync();
-
-      var now = DateTime.UtcNow;
-      foreach (var conflict in existingBookings)
+      var strategy = _context.Database.CreateExecutionStrategy();
+      return await strategy.ExecuteAsync(async () =>
       {
-        if (conflict.Status == BookingStatus.Pending && conflict.ExpiredAt.HasValue && conflict.ExpiredAt.Value < now)
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
         {
-          conflict.Status = BookingStatus.Cancelled;
-          conflict.CancelReason = "Hết hạn thanh toán (TTL expired)";
-          _context.Bookings.Update(conflict);
-        }
-        else
-        {
-          throw new ArgumentException($"Khung giờ {slot.SlotName} ngày {request.BookingDate:dd/MM/yyyy} đã có người đặt hoặc đang giữ chỗ chờ thanh toán.");
-        }
-      }
-      if (existingBookings.Any(b => b.Status == BookingStatus.Cancelled))
-      {
-        await _context.SaveChangesAsync();
-      }
-      decimal subTotal = await CalculateSubTotalAsync(request.CourtId, slot, request.ServiceIds);
-      var (promoId, discountAmount) = await ProcessPromotionAsync(request.PromotionCode, subTotal);
-      decimal totalAmount = Math.Max(0, subTotal - discountAmount);
+          // Check for duplicate slot booking & apply lazy expiration atomically inside transaction
+          var existingBookings = await _context.Bookings.Where(b =>
+            b.CourtId == request.CourtId
+            && targetSlotIds.Contains(b.SlotId)
+            && b.BookingDate.Date == request.BookingDate.Date
+            && b.Status != BookingStatus.Cancelled).ToListAsync();
 
-      // Kiểm tra ví
-      var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
-      if (wallet == null)
-      {
-          wallet = new Wallet { UserId = userId, Balance = 10000000m }; // Cấp 10M test
-          await _context.Wallets.AddAsync(wallet);
+          var now = DateTime.UtcNow;
+          foreach (var conflict in existingBookings)
+          {
+            if (conflict.Status == BookingStatus.Pending && conflict.ExpiredAt.HasValue && conflict.ExpiredAt.Value < now)
+            {
+              conflict.Status = BookingStatus.Cancelled;
+              conflict.CancelReason = "Hết hạn thanh toán (TTL expired)";
+              _context.Bookings.Update(conflict);
+            }
+            else
+            {
+              throw new ArgumentException($"Khung giờ ngày {request.BookingDate:dd/MM/yyyy} đã có người đặt hoặc đang giữ chỗ chờ thanh toán.");
+            }
+          }
+          if (existingBookings.Any(b => b.Status == BookingStatus.Cancelled))
+          {
+            await _context.SaveChangesAsync();
+          }
+
+          decimal subTotal = 0;
+          foreach (var s in slots)
+          {
+            subTotal += await CalculateSubTotalAsync(request.CourtId, s, null);
+          }
+          if (request.ServiceIds != null && request.ServiceIds.Any())
+          {
+            var court = await _context.Courts.FindAsync(request.CourtId);
+            if (court != null)
+            {
+              var serviceIds = request.ServiceIds.Select(s => s.ServiceId).ToList();
+              var complexServices = await _context.ComplexCourtTypeServices
+                  .Include(cs => cs.Service)
+                  .Where(cs => cs.ComplexId == court.ComplexId && cs.CourtTypeId == court.CourtTypeId && serviceIds.Contains(cs.ServiceId))
+                  .ToListAsync();
+
+              foreach (var item in request.ServiceIds)
+              {
+                var match = complexServices.FirstOrDefault(cs => cs.ServiceId == item.ServiceId);
+                if (match != null)
+                {
+                  subTotal += match.Price * item.Quantity;
+                }
+              }
+            }
+          }
+
+          var (promoId, discountAmount) = await ProcessPromotionAsync(request.PromotionCode, subTotal);
+          decimal totalAmount = Math.Max(0, subTotal - discountAmount);
+
+          // Wallet check & atomic deduction
+          var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
+          if (wallet == null)
+          {
+              wallet = new Wallet { UserId = userId, Balance = 10000000m };
+              await _context.Wallets.AddAsync(wallet);
+              await _context.SaveChangesAsync();
+          }
+
+          if (wallet.Balance < totalAmount)
+          {
+              throw new InvalidOperationException($"Số dư ví không đủ. Chi phí đặt sân là {totalAmount:N0}đ nhưng ví của bạn chỉ còn {wallet.Balance:N0}đ. Vui lòng nạp thêm tiền.");
+          }
+
+          wallet.Balance -= totalAmount;
+          wallet.UpdatedAt = DateTime.UtcNow;
+
+          var booking = new Booking
+          {
+            BookingCode = $"BK{DateTime.UtcNow:yyMMddHHmmss}{Guid.NewGuid().ToString("N")[..5].ToUpper()}",
+            UserId = userId,
+            CourtId = request.CourtId,
+            SlotId = primarySlot.SlotId,
+            BookingDate = request.BookingDate,
+            StartTime = startTime,
+            EndTime = endTime,
+            SubTotal = subTotal,
+            DiscountAmount = discountAmount,
+            TotalAmount = totalAmount,
+            Status = BookingStatus.Confirmed,
+            PromotionId = promoId,
+            Note = request.Note,
+            CreatedAt = DateTime.UtcNow
+          };
+
+          await AddBookingServicesAsync(booking, request.ServiceIds);
+          await _bookingRepo.AddAsync(booking);
+
+          var payment = new Payment
+          {
+              BookingId = booking.BookingId,
+              Amount = booking.TotalAmount,
+              PaymentMethod = PaymentMethod.Wallet,
+              TransactionId = $"WT-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}",
+              Status = PaymentStatus.Success,
+              PaidAt = DateTime.UtcNow
+          };
+          _context.Payments.Add(payment);
+
+          var wt = new WalletTransaction
+          {
+              WalletId = wallet.WalletId,
+              Amount = -booking.TotalAmount,
+              Type = WalletTransactionType.Payment,
+              BookingId = booking.BookingId,
+              Description = $"Thanh toán đặt sân {booking.BookingCode}",
+              CreatedAt = DateTime.UtcNow
+          };
+          await _context.WalletTransactions.AddAsync(wt);
           await _context.SaveChangesAsync();
-      }
+          await transaction.CommitAsync();
 
-      if (wallet.Balance < totalAmount)
-      {
-          throw new InvalidOperationException($"Số dư ví không đủ. Chi phí đặt sân là {totalAmount:N0}đ nhưng ví của bạn chỉ còn {wallet.Balance:N0}đ. Vui lòng nạp thêm tiền.");
-      }
+          // Push SignalR slot status update
+          foreach (var sId in targetSlotIds)
+          {
+            await _hubContext.Clients.Group($"court-{request.CourtId}")
+              .SendAsync("SlotStatusChanged", request.CourtId, sId, request.BookingDate.ToString("yyyy-MM-dd"), "Booked");
+          }
 
-      // Trừ tiền ví
-      wallet.Balance -= totalAmount;
-      wallet.UpdatedAt = DateTime.UtcNow;
-
-      var booking = new Booking
-      {
-        BookingCode = $"BK{DateTime.UtcNow:yyMMddHHmmss}{Guid.NewGuid().ToString("N")[..5].ToUpper()}",
-        UserId = userId,
-        CourtId = request.CourtId,
-        SlotId = request.SlotId,
-        BookingDate = request.BookingDate,
-        StartTime = slot.StartTime,
-        EndTime = slot.EndTime,
-        SubTotal = subTotal,
-        DiscountAmount = discountAmount,
-        TotalAmount = totalAmount,
-        Status = BookingStatus.Confirmed, // Confirmed immediately
-        PromotionId = promoId,
-        Note = request.Note,
-        CreatedAt = DateTime.UtcNow
-      };
-
-      await AddBookingServicesAsync(booking, request.ServiceIds);
-      await _bookingRepo.AddAsync(booking);
-
-      // Ghi nhận Payment
-      var payment = new Payment
-      {
-          BookingId = booking.BookingId,
-          Amount = booking.TotalAmount,
-          PaymentMethod = PaymentMethod.Wallet,
-          TransactionId = $"WT-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}",
-          Status = PaymentStatus.Success,
-          PaidAt = DateTime.UtcNow
-      };
-      _context.Payments.Add(payment);
-
-      // Ghi nhận WalletTransaction
-      var wt = new WalletTransaction
-      {
-          WalletId = wallet.WalletId,
-          Amount = -booking.TotalAmount,
-          Type = WalletTransactionType.Payment,
-          BookingId = booking.BookingId,
-          Description = $"Thanh toán đặt sân {booking.BookingCode}",
-          CreatedAt = DateTime.UtcNow
-      };
-      await _context.WalletTransactions.AddAsync(wt);
-      await _context.SaveChangesAsync();
-
-      // Push SignalR slot status update
-      await _hubContext.Clients.Group($"court-{request.CourtId}")
-        .SendAsync("SlotStatusChanged", request.CourtId, request.SlotId, request.BookingDate.ToString("yyyy-MM-dd"), "Booked");
-
-      return MapToDto(await _bookingRepo.GetDetailAsync(booking.BookingId) ?? booking);
+          return MapToDto(await _bookingRepo.GetDetailAsync(booking.BookingId) ?? booking);
+        }
+        catch
+        {
+          await transaction.RollbackAsync();
+          throw;
+        }
+      });
     }
 
     /// <summary>Creates recurring bookings across multiple weeks. Skips conflicting dates (Option A).</summary>
@@ -201,11 +249,38 @@ namespace SportCourtManagent_Server.Services.Implements
       var court = await _context.Courts.FindAsync(request.CourtId);
       if (court == null) throw new ArgumentException("Sân không tồn tại.");
 
-      // Check if court supports this slot
-      var hasPricing = await _context.CourtPricings.AnyAsync(cp => cp.CourtId == request.CourtId && cp.SlotId == request.SlotId);
+      var targetSlotIds = (request.SlotIds != null && request.SlotIds.Any())
+        ? request.SlotIds.Distinct().OrderBy(s => s).ToList()
+        : new List<int> { request.SlotId };
+
+      var slots = await _context.TimeSlots.Where(s => targetSlotIds.Contains(s.SlotId)).OrderBy(s => s.StartTime).ToListAsync();
+      if (!slots.Any()) throw new ArgumentException("Khung giờ không hợp lệ.");
+
+      var primarySlot = slots.First();
+      var startTime = slots.Min(s => s.StartTime);
+      var endTime = slots.Max(s => s.EndTime);
+
+      // Check if court supports these slots
+      var hasPricing = await _context.CourtPricings.AnyAsync(cp => cp.CourtId == request.CourtId && targetSlotIds.Contains(cp.SlotId));
       if (!hasPricing)
       {
           throw new ArgumentException("Sân đấu này không mở cửa hoạt động trong khung giờ đã chọn.");
+      }
+
+      // Validate that selected DaysOfWeek actually occur in the date range
+      var validDaysInRange = new HashSet<int>();
+      for (var d = request.StartDate.Date; d <= request.EndDate.Date; d = d.AddDays(1))
+      {
+        validDaysInRange.Add((int)d.DayOfWeek);
+      }
+
+      var invalidDays = request.DaysOfWeek.Where(dow => !validDaysInRange.Contains(dow)).ToList();
+      if (invalidDays.Any())
+      {
+        string invalidNames = string.Join(", ", invalidDays.Select(d => d switch {
+          0 => "Chủ Nhật", 1 => "Thứ 2", 2 => "Thứ 3", 3 => "Thứ 4", 4 => "Thứ 5", 5 => "Thứ 6", 6 => "Thứ 7", _ => d.ToString()
+        }));
+        throw new ArgumentException($"Các ngày ({invalidNames}) không xuất hiện trong khoảng thời gian từ {request.StartDate:dd/MM/yyyy} đến {request.EndDate:dd/MM/yyyy}.");
       }
 
       // Generate all target dates from StartDate to EndDate matching DaysOfWeek
@@ -222,7 +297,7 @@ namespace SportCourtManagent_Server.Services.Implements
       // Batch check all conflicting dates & apply lazy expiration
       var existingBookings = await _context.Bookings
         .Where(b => b.CourtId == request.CourtId
-                  && b.SlotId == request.SlotId
+                  && targetSlotIds.Contains(b.SlotId)
                   && allDates.Contains(b.BookingDate)
                   && b.Status != BookingStatus.Cancelled)
         .ToListAsync();
@@ -265,7 +340,7 @@ namespace SportCourtManagent_Server.Services.Implements
           {
             UserId = userId,
             CourtId = request.CourtId,
-            SlotId = request.SlotId,
+            SlotId = primarySlot.SlotId,
             StartDate = request.StartDate,
             EndDate = request.EndDate,
             DaysOfWeek = daysStr,
@@ -274,33 +349,37 @@ namespace SportCourtManagent_Server.Services.Implements
           await _context.RecurringBookings.AddAsync(recurring);
           await _context.SaveChangesAsync();
 
-          // Create individual bookings for each available date
+          // Create individual bookings for each available date (Status = Pending, 5-minute TTL)
           decimal totalAmount = 0;
           var createdBookings = new List<Booking>();
 
           foreach (var date in availableDates)
           {
-            decimal subTotal = await CalculateSubTotalAsync(request.CourtId, slot, null);
+            decimal daySubTotal = 0;
+            foreach (var s in slots)
+            {
+              daySubTotal += await CalculateSubTotalAsync(request.CourtId, s, null);
+            }
 
             var booking = new Booking
             {
               BookingCode = $"RBK{DateTime.UtcNow:yyMMddHHmmss}{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
               UserId = userId,
               CourtId = request.CourtId,
-              SlotId = request.SlotId,
+              SlotId = primarySlot.SlotId,
               BookingDate = date,
-              StartTime = slot.StartTime,
-              EndTime = slot.EndTime,
-              SubTotal = subTotal,
+              StartTime = startTime,
+              EndTime = endTime,
+              SubTotal = daySubTotal,
               DiscountAmount = 0,
-              TotalAmount = subTotal,
-              Status = BookingStatus.Pending,
+              TotalAmount = daySubTotal,
+              Status = BookingStatus.Confirmed,
               Note = request.Note,
               CreatedAt = DateTime.UtcNow,
-              ExpiredAt = DateTime.UtcNow.AddMinutes(5)
+              ExpiredAt = null
             };
 
-            totalAmount += subTotal;
+            totalAmount += daySubTotal;
             await _context.Bookings.AddAsync(booking);
             createdBookings.Add(booking);
           }
@@ -326,6 +405,34 @@ namespace SportCourtManagent_Server.Services.Implements
             }
           }
 
+          // Deduct wallet balance
+          var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
+          if (wallet == null)
+          {
+              wallet = new Wallet { UserId = userId, Balance = 10000000m };
+              await _context.Wallets.AddAsync(wallet);
+              await _context.SaveChangesAsync();
+          }
+
+          decimal netTotalAmount = Math.Max(0, totalAmount - discountAmount);
+          if (wallet.Balance < netTotalAmount)
+          {
+              throw new InvalidOperationException($"Số dư ví không đủ. Chi phí đặt lịch định kỳ là {netTotalAmount:N0}đ nhưng ví của bạn chỉ còn {wallet.Balance:N0}đ. Vui lòng nạp thêm tiền.");
+          }
+
+          wallet.Balance -= netTotalAmount;
+          wallet.UpdatedAt = DateTime.UtcNow;
+
+          var wt = new WalletTransaction
+          {
+              WalletId = wallet.WalletId,
+              Amount = -netTotalAmount,
+              Type = WalletTransactionType.Payment,
+              Description = $"Thanh toán đặt lịch định kỳ sân #{request.CourtId}",
+              CreatedAt = DateTime.UtcNow
+          };
+          await _context.WalletTransactions.AddAsync(wt);
+
           await _context.SaveChangesAsync();
           await transaction.CommitAsync();
 
@@ -349,13 +456,17 @@ namespace SportCourtManagent_Server.Services.Implements
             _ => d.ToString()
           }));
 
+          string responseSlotName = slots.Count > 1
+            ? $"{CleanSlotName(slots.First().SlotName)} - {CleanSlotName(slots.Last().SlotName)}"
+            : slots.First().SlotName;
+
           return new RecurringBookingResponseDto
           {
             RecurringId = recurring.RecurringId,
             CourtId = court.CourtId,
             CourtName = court.CourtName,
-            SlotId = slot.SlotId,
-            SlotName = slot.SlotName,
+            SlotId = primarySlot.SlotId,
+            SlotName = responseSlotName,
             StartDate = request.StartDate,
             EndDate = request.EndDate,
             DaysOfWeek = daysDisplay,
@@ -479,6 +590,74 @@ namespace SportCourtManagent_Server.Services.Implements
       }
     }
 
+    /// <summary>Creates a tournament booking with immediate wallet payment in a single atomic transaction.</summary>
+    public async Task<TournamentDto> CreateAndPayTournamentWithWalletAsync(int userId, CreateTournamentRequest request)
+    {
+      var strategy = _context.Database.CreateExecutionStrategy();
+      return await strategy.ExecuteAsync(async () =>
+      {
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+          var tournament = new Tournament
+          {
+            TournamentName = request.TournamentName,
+            Description = request.Description,
+            UserId = userId,
+            Status = TournamentStatus.Paid,
+            CreatedAt = DateTime.UtcNow,
+            ExpiredAt = null
+          };
+          await _context.Tournaments.AddAsync(tournament);
+          await _context.SaveChangesAsync();
+
+          var createdBookings = await ProcessTournamentBookingsAsync(userId, tournament.TournamentId, request);
+          decimal totalAmount = createdBookings.Sum(b => b.SubTotal);
+          await ApplyTournamentPromotionAsync(tournament, createdBookings, request.PromotionCode, totalAmount);
+          await _context.SaveChangesAsync();
+
+          // Deduct wallet
+          var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
+          if (wallet == null)
+          {
+              wallet = new Wallet { UserId = userId, Balance = 10000000m };
+              await _context.Wallets.AddAsync(wallet);
+              await _context.SaveChangesAsync();
+          }
+
+          if (wallet.Balance < tournament.TotalAmount)
+          {
+              throw new InvalidOperationException($"Số dư ví không đủ. Chi phí giải đấu là {tournament.TotalAmount:N0}đ nhưng ví của bạn chỉ còn {wallet.Balance:N0}đ. Vui lòng nạp thêm tiền.");
+          }
+
+          wallet.Balance -= tournament.TotalAmount;
+          wallet.UpdatedAt = DateTime.UtcNow;
+
+          var wt = new WalletTransaction
+          {
+              WalletId = wallet.WalletId,
+              Amount = -tournament.TotalAmount,
+              Type = WalletTransactionType.Payment,
+              Description = $"Thanh toán giải đấu {tournament.TournamentName}",
+              CreatedAt = DateTime.UtcNow
+          };
+          await _context.WalletTransactions.AddAsync(wt);
+          await _context.SaveChangesAsync();
+
+          await transaction.CommitAsync();
+          _cache.Remove(PublicTournamentsCacheKey);
+
+          var user = await _context.Users.FindAsync(userId);
+          return MapToTournamentDtoWithCustomer(tournament, user?.FullName ?? $"User #{userId}", createdBookings);
+        }
+        catch
+        {
+          await transaction.RollbackAsync();
+          throw;
+        }
+      });
+    }
+
     /// <summary>Executes tournament creation inside a database transaction.</summary>
     private async Task<TournamentDto> ExecuteCreateTournamentTransactionAsync(int userId, CreateTournamentRequest request)
     {
@@ -495,7 +674,7 @@ namespace SportCourtManagent_Server.Services.Implements
             UserId = userId,
             Status = TournamentStatus.Pending,
             CreatedAt = DateTime.UtcNow,
-            ExpiredAt = DateTime.UtcNow.AddMinutes(5)
+            ExpiredAt = null
           };
           await _context.Tournaments.AddAsync(tournament);
           await _context.SaveChangesAsync();
@@ -544,17 +723,51 @@ namespace SportCourtManagent_Server.Services.Implements
       var createdBookings = new List<Booking>();
       foreach (var sel in request.CourtSelections)
       {
-        if (sel.SlotIds == null) continue;
-        for (int i = 0; i < sel.SlotIds.Count; i++)
+        if (sel.SlotIds == null || !sel.SlotIds.Any()) continue;
+        var selSlots = sel.SlotIds.Where(sId => slots.ContainsKey(sId)).Select(sId => slots[sId]).OrderBy(s => s.StartTime).ToList();
+        if (!selSlots.Any()) continue;
+
+        var primarySlot = selSlots.First();
+        var startTime = selSlots.Min(s => s.StartTime);
+        var endTime = selSlots.Max(s => s.EndTime);
+
+        foreach (var sId in sel.SlotIds)
         {
-          var slotId = sel.SlotIds[i];
-          var reqServices = (i == 0) ? sel.Services : null;
-          var booking = await BuildSingleTournamentBookingAsync(userId, tournamentId, sel.CourtId, slotId, sel.BookingDate, reqServices, request.Note, slots, courts, pricings, complexServices, activeBookings);
-          
-          // Add to activeBookings to prevent duplicates within the same request
-          activeBookings.Add(booking);
-          createdBookings.Add(booking);
+          if (slots.TryGetValue(sId, out var sl))
+          {
+            await CheckSlotConflictAndLazyExpireAsync(sel.CourtId, sId, sel.BookingDate, sl.SlotName, activeBookings);
+          }
         }
+
+        decimal selSubTotal = 0;
+        for (int i = 0; i < selSlots.Count; i++)
+        {
+          var s = selSlots[i];
+          var reqServices = (i == 0) ? sel.Services : null;
+          selSubTotal += CalculateBatchSubTotal(sel.CourtId, s, reqServices, courts, pricings, complexServices);
+        }
+
+        var booking = new Booking
+        {
+          BookingCode = $"BK{DateTime.UtcNow:yyMMddHHmmss}{Guid.NewGuid().ToString("N")[..5].ToUpper()}",
+          UserId = userId,
+          CourtId = sel.CourtId,
+          SlotId = primarySlot.SlotId,
+          BookingDate = sel.BookingDate,
+          StartTime = startTime,
+          EndTime = endTime,
+          SubTotal = selSubTotal,
+          TotalAmount = selSubTotal,
+          Status = BookingStatus.Confirmed,
+          TournamentId = tournamentId,
+          Note = request.Note,
+          CreatedAt = DateTime.UtcNow,
+          ExpiredAt = null
+        };
+        await AddBookingServicesAsync(booking, sel.Services);
+
+        activeBookings.Add(booking);
+        createdBookings.Add(booking);
       }
       await _context.Bookings.AddRangeAsync(createdBookings);
       return createdBookings;
@@ -581,11 +794,11 @@ namespace SportCourtManagent_Server.Services.Implements
         EndTime = slot.EndTime,
         SubTotal = subTotal,
         TotalAmount = subTotal,
-        Status = BookingStatus.Pending,
+        Status = BookingStatus.Confirmed,
         TournamentId = tournamentId,
         Note = note,
         CreatedAt = DateTime.UtcNow,
-        ExpiredAt = DateTime.UtcNow.AddMinutes(5)
+        ExpiredAt = null
       };
       AddBatchBookingServices(booking, reqServices, courts, complexServices);
       return booking;
@@ -616,8 +829,20 @@ namespace SportCourtManagent_Server.Services.Implements
     private static decimal CalculateBatchSubTotal(int courtId, TimeSlot slot, List<ServiceItemRequest>? reqServices, Dictionary<int, Court> courts, List<CourtPricing> pricings, List<ComplexCourtTypeService> complexServices)
     {
       var pricing = pricings.FirstOrDefault(p => p.CourtId == courtId && p.SlotId == slot.SlotId);
-      decimal subTotal = pricing != null ? pricing.Price : (courts.TryGetValue(courtId, out var c) ? c.PricePerHour * (decimal)(slot.EndTime - slot.StartTime).TotalHours : 0);
-      if (subTotal == 0 && courts.TryGetValue(courtId, out var court)) subTotal = court.PricePerHour;
+      decimal subTotal = pricing != null ? pricing.Price : 0;
+      if (subTotal == 0)
+      {
+        var anyPricing = pricings.FirstOrDefault(p => p.CourtId == courtId && p.Price > 0);
+        if (anyPricing != null)
+        {
+          subTotal = anyPricing.Price;
+        }
+        else if (courts.TryGetValue(courtId, out var c))
+        {
+          decimal hours = (decimal)(slot.EndTime - slot.StartTime).TotalHours;
+          subTotal = (c.PricePerHour > 0 ? c.PricePerHour : 100000m) * (hours > 0 ? hours : 1);
+        }
+      }
 
       if (reqServices != null && courts.TryGetValue(courtId, out var crt))
       {
@@ -776,8 +1001,8 @@ namespace SportCourtManagent_Server.Services.Implements
             BookingCode = $"TBK{DateTime.UtcNow:yyMMddHHmmss}{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
             UserId = userId, CourtId = pair.CourtId, SlotId = pair.SlotId, BookingDate = pair.Date,
             StartTime = slot.StartTime, EndTime = slot.EndTime, SubTotal = subTotal, TotalAmount = subTotal,
-            Status = BookingStatus.Pending, TournamentId = tournament.TournamentId, Note = request.Note,
-            CreatedAt = DateTime.UtcNow, ExpiredAt = DateTime.UtcNow.AddMinutes(5)
+            Status = BookingStatus.Confirmed, TournamentId = tournament.TournamentId, Note = request.Note,
+            CreatedAt = DateTime.UtcNow, ExpiredAt = null
           };
           await AddBookingServicesAsync(booking, reqServices);
           newBookings.Add(booking);
@@ -793,12 +1018,12 @@ namespace SportCourtManagent_Server.Services.Implements
     private async Task<decimal> CalculateSubTotalAsync(int courtId, TimeSlot slot, List<ServiceItemRequest>? services)
     {
       var pricing = await _context.CourtPricings.FirstOrDefaultAsync(p => p.CourtId == courtId && p.SlotId == slot.SlotId);
-      decimal subTotal = pricing != null ? pricing.Price : 0;
+      decimal subTotal = pricing != null && pricing.Price > 0 ? pricing.Price : 0;
       var court = await _context.Courts.FindAsync(courtId);
-      if (subTotal == 0)
+      if (subTotal == 0 && court != null)
       {
         decimal hours = (decimal)(slot.EndTime - slot.StartTime).TotalHours;
-        subTotal = (court?.PricePerHour ?? 0) * (hours > 0 ? hours : 1);
+        subTotal = (court.PricePerHour > 0 ? court.PricePerHour : 100000m) * (hours > 0 ? hours : 1.5m);
       }
       if (services != null && services.Any() && court != null)
       {
@@ -884,6 +1109,35 @@ namespace SportCourtManagent_Server.Services.Implements
       }
     }
 
+    private static string CleanSlotName(string? name)
+    {
+      if (string.IsNullOrWhiteSpace(name)) return string.Empty;
+      int idx = name.IndexOf('(');
+      return idx > 0 ? name.Substring(0, idx).Trim() : name.Trim();
+    }
+
+    private static string FormatSlotNameForBooking(Booking b)
+    {
+      string startName = CleanSlotName(b.TimeSlot?.SlotName);
+      if (string.IsNullOrEmpty(startName)) startName = $"Slot {b.SlotId}";
+
+      var durationHours = (b.EndTime - b.StartTime).TotalHours;
+      if (durationHours > 1.75)
+      {
+        var digits = new string(startName.Where(char.IsDigit).ToArray());
+        if (int.TryParse(digits, out int startNum) && startNum > 0)
+        {
+          int slotCount = (int)Math.Round(durationHours / 1.5);
+          if (slotCount > 1)
+          {
+            int endNum = startNum + slotCount - 1;
+            return $"Slot {startNum} - Slot {endNum}";
+          }
+        }
+      }
+      return startName;
+    }
+
     /// <summary>Maps booking entity to DTO.</summary>
     private static BookingDto MapToDto(Booking b)
     {
@@ -892,7 +1146,7 @@ namespace SportCourtManagent_Server.Services.Implements
         BookingId = b.BookingId, BookingCode = b.BookingCode, UserId = b.UserId,
         CustomerName = b.User?.FullName ?? $"User #{b.UserId}", CustomerPhone = b.User?.Phone,
         CourtId = b.CourtId, CourtName = b.Court?.CourtName ?? $"Court #{b.CourtId}",
-        SlotId = b.SlotId, SlotName = b.TimeSlot?.SlotName ?? $"{b.StartTime:hh\\:mm} - {b.EndTime:hh\\:mm}",
+        SlotId = b.SlotId, SlotName = FormatSlotNameForBooking(b),
         BookingDate = b.BookingDate, StartTime = b.StartTime.ToString("hh\\:mm"), EndTime = b.EndTime.ToString("hh\\:mm"),
         SubTotal = b.SubTotal, DiscountAmount = b.DiscountAmount, TotalAmount = b.TotalAmount,
         Status = b.Status, PromotionId = b.PromotionId, PromotionCode = b.Promotion?.PromoCode,

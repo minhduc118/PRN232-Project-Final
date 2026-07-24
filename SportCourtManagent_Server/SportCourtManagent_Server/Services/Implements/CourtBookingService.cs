@@ -65,42 +65,86 @@ namespace SportCourtManagent_Server.Services.Implements
                 throw new InvalidOperationException($"Court is currently under {court.Status} and cannot be booked.");
             }
 
-            var timeSlot = await _timeSlotRepository.GetByIdAsync(dto.SlotId);
-            if (timeSlot == null)
+            var targetSlotIds = (dto.SlotIds != null && dto.SlotIds.Any()) 
+                ? dto.SlotIds.Distinct().OrderBy(s => s).ToList() 
+                : new List<int> { dto.SlotId };
+
+            var timeSlots = await _context.TimeSlots
+                .Where(s => targetSlotIds.Contains(s.SlotId))
+                .OrderBy(s => s.StartTime)
+                .ToListAsync();
+
+            if (timeSlots.Count == 0)
             {
-                throw new ArgumentException($"Time slot with ID {dto.SlotId} does not exist.");
+                throw new ArgumentException("Khung giờ đã chọn không tồn tại.");
             }
 
-            var isAlreadyBookedInDb = await _bookingRepository.HasConflictingBookingAsync(dto.CourtId, dto.SlotId, dto.BookingDate);
-
-            if (isAlreadyBookedInDb)
+            foreach (var sId in targetSlotIds)
             {
-                throw new InvalidOperationException("Sân đấu này đã được đặt trong khung giờ đã chọn.");
+                var isAlreadyBookedInDb = await _bookingRepository.HasConflictingBookingAsync(dto.CourtId, sId, dto.BookingDate);
+                if (isAlreadyBookedInDb)
+                {
+                    throw new InvalidOperationException($"Sân đấu này đã được đặt trong khung giờ đã chọn.");
+                }
             }
 
-            decimal courtPrice = await _courtRepository.GetCourtPriceAsync(dto.CourtId, dto.SlotId, dto.BookingDate);
+            decimal totalCourtPrice = 0;
+            foreach (var sId in targetSlotIds)
+            {
+                totalCourtPrice += await _courtRepository.GetCourtPriceAsync(dto.CourtId, sId, dto.BookingDate);
+            }
 
-            var billingResult = await _bookingRepository.ProcessBookingBillingAsync(dto, courtPrice);
+            var billingResult = await _bookingRepository.ProcessBookingBillingAsync(dto, totalCourtPrice);
 
             string bookingCode = $"BK-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}";
+            var primarySlot = timeSlots.First();
+            var startTime = timeSlots.Min(s => s.StartTime);
+            var endTime = timeSlots.Max(s => s.EndTime);
 
             var booking = new Booking
             {
                 BookingCode = bookingCode,
                 UserId = userId,
                 CourtId = dto.CourtId,
-                SlotId = dto.SlotId,
+                SlotId = primarySlot.SlotId,
                 BookingDate = dto.BookingDate.Date,
-                StartTime = timeSlot.StartTime,
-                EndTime = timeSlot.EndTime,
+                StartTime = startTime,
+                EndTime = endTime,
                 SubTotal = billingResult.SubTotal,
                 DiscountAmount = billingResult.DiscountAmount,
                 TotalAmount = billingResult.TotalAmount,
-                Status = BookingStatus.Pending, // Pending payment
-                ExpiredAt = DateTime.UtcNow.AddMinutes(5),
+                Status = BookingStatus.Confirmed,
+                ExpiredAt = null,
                 PromotionId = billingResult.AppliedPromotion?.PromotionId,
                 BookingServices = billingResult.BookingServices
             };
+
+            // Check & deduct wallet balance
+            var wallet = await _context.Wallets.FirstOrDefaultAsync(w => w.UserId == userId);
+            if (wallet == null)
+            {
+                wallet = new Wallet { UserId = userId, Balance = 10000000m };
+                await _context.Wallets.AddAsync(wallet);
+                await _context.SaveChangesAsync();
+            }
+
+            if (wallet.Balance < billingResult.TotalAmount)
+            {
+                throw new InvalidOperationException($"Số dư ví không đủ. Số tiền cần thanh toán là {billingResult.TotalAmount:N0}đ nhưng ví của bạn chỉ còn {wallet.Balance:N0}đ. Vui lòng nạp thêm tiền.");
+            }
+
+            wallet.Balance -= billingResult.TotalAmount;
+            wallet.UpdatedAt = DateTime.UtcNow;
+
+            var wt = new WalletTransaction
+            {
+                WalletId = wallet.WalletId,
+                Amount = -billingResult.TotalAmount,
+                Type = WalletTransactionType.Payment,
+                Description = $"Thanh toán đặt sân lẻ #{bookingCode}",
+                CreatedAt = DateTime.UtcNow
+            };
+            await _context.WalletTransactions.AddAsync(wt);
 
             await _bookingRepository.AddAsync(booking);
             await _context.SaveChangesAsync();
@@ -112,8 +156,9 @@ namespace SportCourtManagent_Server.Services.Implements
                 UserId = booking.UserId,
                 CourtId = booking.CourtId,
                 CourtName = court.CourtName,
-                SlotId = booking.SlotId,
-                SlotName = timeSlot.SlotName,
+                SlotName = timeSlots.Count > 1 
+                    ? $"{CleanSlotName(primarySlot.SlotName)} - {CleanSlotName(timeSlots.Last().SlotName)}" 
+                    : CleanSlotName(primarySlot.SlotName),
                 BookingDate = booking.BookingDate,
                 StartTime = booking.StartTime,
                 EndTime = booking.EndTime,
@@ -125,8 +170,7 @@ namespace SportCourtManagent_Server.Services.Implements
                 BookingServices = booking.BookingServices.Select(bs => new BookingServiceResponseDto
                 {
                     ServiceId = bs.ServiceId,
-                    ServiceName = bs.Service?.ServiceName ?? "Unknown Service",
-                    Quantity = bs.Quantity,
+                    ServiceName = bs.Service?.ServiceName ?? string.Empty,
                     Price = bs.Service?.Price ?? 0,
                     TotalPrice = bs.TotalPrice
                 }).ToList()
@@ -208,5 +252,11 @@ namespace SportCourtManagent_Server.Services.Implements
             };
         }
 
+        private static string CleanSlotName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return string.Empty;
+            int idx = name.IndexOf('(');
+            return idx > 0 ? name.Substring(0, idx).Trim() : name.Trim();
+        }
     }
 }

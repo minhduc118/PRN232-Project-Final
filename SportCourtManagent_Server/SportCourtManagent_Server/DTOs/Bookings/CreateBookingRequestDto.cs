@@ -12,9 +12,9 @@ namespace SportCourtManagent_Server.DTOs.Bookings
         [Range(1, int.MaxValue, ErrorMessage = "Court ID must be a positive integer.")]
         public int CourtId { get; set; }
 
-        [Required(ErrorMessage = "Slot ID is required.")]
-        [Range(1, int.MaxValue, ErrorMessage = "Slot ID must be a positive integer.")]
         public int SlotId { get; set; }
+
+        public List<int>? SlotIds { get; set; }
 
         [StringLength(50, ErrorMessage = "Promotion code cannot exceed 50 characters.")]
         public string? PromoCode { get; set; }

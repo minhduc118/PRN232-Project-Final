@@ -18,5 +18,6 @@ namespace SportCourtManagent_Server.DataAccess.Interfaces
         Task DeleteAsync(int id);
         Task<bool> HasConflictingBookingAsync(int courtId, int slotId, DateTime bookingDate);
         Task<BookingBillingResult> ProcessBookingBillingAsync(CreateBookingRequestDto dto, decimal courtPrice);
+        Task<IEnumerable<Booking>> GetBookingsByCourtAsync(int courtId);
     }
 }

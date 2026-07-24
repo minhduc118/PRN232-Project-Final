@@ -449,6 +449,72 @@ namespace SportCourtManagent_Server.Services.Implements
 
         public async Task DeleteAsync(int id)
         {
+            // 1. Kiểm tra có booking Pending/Confirmed không
+            var activeBookings = await _db.Bookings
+                .Include(b => b.Payment)
+                .Where(b => b.CourtId == id &&
+                            (b.Status == BookingStatus.Pending ||
+                             b.Status == BookingStatus.Confirmed))
+                .ToListAsync();
+
+            var now = DateTime.UtcNow;
+
+            // 2. Tự động hủy booking và hoàn tiền
+            foreach (var booking in activeBookings)
+            {
+                booking.Status = BookingStatus.Cancelled;
+                booking.CancelReason = "Sân bị xóa khỏi hệ thống bởi Admin.";
+
+                // Hoàn tiền vào Wallet nếu payment đã thành công
+                if (booking.Payment != null && booking.Payment.Status == PaymentStatus.Success)
+                {
+                    var refundAmount = booking.Payment.Amount;
+
+                    var wallet = await _db.Wallets
+                        .FirstOrDefaultAsync(w => w.UserId == booking.UserId);
+
+                    if (wallet == null)
+                    {
+                        wallet = new Wallet { UserId = booking.UserId, Balance = 0, CreatedAt = now, UpdatedAt = now };
+                        _db.Wallets.Add(wallet);
+                        await _db.SaveChangesAsync(); // flush để có WalletId
+                    }
+
+                    wallet.Balance += refundAmount;
+                    wallet.UpdatedAt = now;
+
+                    _db.WalletTransactions.Add(new WalletTransaction
+                    {
+                        WalletId = wallet.WalletId,
+                        Amount = refundAmount,
+                        Type = WalletTransactionType.Refund,
+                        BookingId = booking.BookingId,
+                        Description = $"Hoàn tiền do sân bị xóa (Booking #{booking.BookingId})",
+                        CreatedAt = now
+                    });
+
+                    booking.Payment.Status = PaymentStatus.Refunded;
+                    booking.Payment.RefundAmount = refundAmount;
+                }
+
+                // Gửi notification cho khách hàng
+                _db.Notifications.Add(new Notification
+                {
+                    UserId = booking.UserId,
+                    Title = $"Booking #{booking.BookingId} đã bị hủy do sân không còn hoạt động" +
+                            (booking.Payment?.Status == PaymentStatus.Refunded
+                                ? ". Tiền đã được hoàn vào ví của bạn."
+                                : "."),
+                    Type = NotificationType.BookingCancel,
+                    IsRead = false,
+                    CreatedAt = now
+                });
+            }
+
+            if (activeBookings.Count > 0)
+                await _db.SaveChangesAsync();
+
+            // 3. Soft delete sân
             await _courtRepo.SoftDeleteAsync(id);
         }
 
